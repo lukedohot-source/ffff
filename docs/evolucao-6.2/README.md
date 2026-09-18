@@ -110,7 +110,8 @@ Depois disso, na ordem de retorno sobre esforço:
 | 1 · reexibir a interface escondida | **aplicada** | `docs/evolucao-6.2/patches/etapa-1-2.patch` · `opt.zip` |
 | 2 · `App.ById` + caches + filtro sem rebuild | **aplicada** | idem |
 | 3 · perfis por cenário | proposta | `03-perfis-por-cenario.md` |
-| — · redução profunda de processos e serviços | **aplicada** | `patches/etapa-3-processos-servicos.patch` · `opt.zip` |
+| — · redução profunda de processos e serviços | **aplicada** | `patches/etapa-3-processos-servicos-e-tema-azul.patch` · `opt.zip` |
+| — · tema azul | **aplicada** | idem |
 | 4 · badges, navegação, dashboard, toasts | proposta | `04-ui-ux.md` |
 | 5 · limpezas e diagnósticos | proposta | `05-limpezas-e-diagnosticos.md` |
 | 6 · módulos novos | proposta | `06-modulos-novos.md` |
@@ -122,8 +123,8 @@ produzido. Compile com `codigo-fonte\LukeOptimizer\COMPILAR.cmd` no Windows.
 Detalhes e pendências em `ETAPA-1-2-NOTAS.txt`.
 
 Os patches aplicam na raiz `LukeOptimizer-6.1.2` com `patch -p1 -i <arquivo>`, na
-ordem `etapa-1-2.patch` e depois `etapa-3-processos-servicos.patch`. Ambos foram
-verificados: reproduzem a árvore alterada byte a byte.
+ordem `etapa-1-2.patch` e depois `etapa-3-processos-servicos-e-tema-azul.patch`.
+Ambos foram verificados: reproduzem a árvore alterada byte a byte.
 
 ### Redução profunda (fora da numeração original)
 
@@ -138,3 +139,20 @@ launcher pode encerrar o jogo aberto por ele. Fechar apps deixou de ser
 irreversível: o executável de cada app encerrado fica no registro do Histórico e
 o botão **Reabrir apps fechados** inicia todos de novo — sem restaurar abas,
 janelas ou trabalho não salvo, e sem entrar na cadeia de Desfazer.
+
+### Tema azul
+
+A paleta inteira mora em `Theme.Apply()` (`source/Interface.cs`);
+`Theme.Apply(false)` devolve a pele âmbar original. Seleção, hover, linha
+alternada, destaque e caixa de marcar eram `Color.FromArgb` fixos em cinco
+arquivos — agora todos têm nome no `Theme`, que é o que torna a troca possível.
+
+Duas correções que a troca revelou: `Theme.Blue` era a linha "antes" do gráfico
+de FPS e ficaria a 1,49:1 do acento azul (virou `Theme.Contrast`, magenta, a
+110° do acento); e `Line` pintava borda **e** botão desligado, papéis que
+puxavam em direções opostas (virou `Line` + `Disabled`, ambos melhores que no
+tema original).
+
+Os 17 pares de texto reais passam de 4,5:1 nas duas peles, medidos pelo
+`TestPalette` em `tests/ProductUiTests.cs`, que implementa a fórmula do WCAG e
+falha a validação se alguém baixar um contraste.

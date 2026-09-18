@@ -1,5 +1,5 @@
-LukeOptimizer 6.1.2 — etapas 1, 2 e 3 aplicadas ao CODIGO-FONTE
-==============================================================
+LukeOptimizer 6.1.2 — etapas 1, 2, 3 e tema azul no CODIGO-FONTE
+===============================================================
 
 ATENCAO: OS .EXE DESTE PACOTE AINDA SAO OS ANTIGOS.
 
@@ -126,3 +126,39 @@ PROCESSOS: a lista de apps fechaveis passou de 46 para 130, em tres niveis
  com privilegio que ele nao tinha antes.
 
 Verbos novos: --services-tier <nivel> e --reopen-apps <id do registro>.
+
+TEMA AZUL
+---------
+A paleta passou de cinza-escuro com acento amarelo para azul-marinho com
+acento azul. A troca inteira mora em Theme.Apply(), em source/Interface.cs:
+Theme.Apply(false) devolve a pele ambar original e nada mais no codigo
+precisa mudar. A pele azul e a padrao.
+
+Para isso as cores tiveram de sair do lugar onde estavam. Selecao, hover,
+linha alternada, fundo e texto do destaque e fundo da caixa de marcar eram
+Color.FromArgb fixos espalhados por cinco arquivos - era impossivel trocar
+de cor sem cacar cada um. Agora todos tem nome no Theme.
+
+Duas correcoes que a troca revelou:
+ - Theme.Blue era a linha "antes" do grafico de FPS, contra o acento na
+   linha "depois". Com o acento virando azul, as duas linhas ficaram a
+   1,49:1 e 20 graus de matiz - indistinguiveis. O campo virou
+   Theme.Contrast, em magenta, a 110 graus do acento e longe do ambar de
+   aviso, para nao confundir serie com alerta.
+ - Line pintava borda E preenchia botao desligado. Clarear a borda para
+   separar melhor os cartoes escurecia o texto do botao desligado. Os dois
+   papeis se separaram em Line e Disabled. Resultado: borda de 1,73 para
+   2,41:1 e texto de botao desligado de 4,96 para 6,17:1 - as duas coisas
+   melhores que no tema original.
+
+Contraste conferido por calculo, nao no olho: os 17 pares de texto reais
+da interface passam de 4,5:1 nas DUAS peles. O teste TestPalette, em
+tests/ProductUiTests.cs, implementa a formula de luminancia do WCAG e
+falha a compilacao do pacote se alguem baixar um contraste. Ele tambem
+exige que as duas series do grafico nunca sejam a mesma cor.
+
+Numeros da pele azul (sobre o cartao, salvo indicado):
+  texto 15,1:1   secundario 7,9:1   acento 6,7:1   erro 7,3:1
+  aviso 10,1:1   serie secundaria 7,9:1
+  texto do botao primario sobre o acento 7,5:1
+  acento sobre selecao 5,0:1 (o par mais apertado)

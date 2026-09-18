@@ -1,0 +1,777 @@
+--- a/codigo-fonte/LukeOptimizer/source/Interface.cs
++++ b/codigo-fonte/LukeOptimizer/source/Interface.cs
+@@ -10,14 +10,40 @@
+ using System.Windows.Forms;
+ 
+ static class Theme {
+- internal static Color Bg=Color.FromArgb(15,16,18),Side=Color.FromArgb(20,21,24),Card=Color.FromArgb(27,29,33),Line=Color.FromArgb(65,68,74),Text=Color.FromArgb(245,246,248),Muted=Color.FromArgb(180,185,194),Accent=Color.FromArgb(255,208,48),Amber=Color.FromArgb(244,191,112),Red=Color.FromArgb(248,139,143),Blue=Color.FromArgb(139,190,241);
++ // Paleta única do aplicativo. Selection/Hover/Alt/HeroFill/HeroText/CheckFill existiam
++ // como Color.FromArgb fixos espalhados por cinco arquivos, o que tornava impossível
++ // trocar de cor sem caçar cada um. Agora todos saem daqui.
++ // Line desenha bordas; Disabled preenche botao desligado. Eram a mesma cor, e clarear
++ // a borda escurecia o texto do botao desligado — agora cada papel tem a sua.
++ internal static Color Bg,Side,Card,Line,Disabled,Text,Muted,Accent,Amber,Red,Contrast,Selection,Hover,Alt,HeroFill,HeroText,CheckFill;
++ internal static bool BlueSkin;
++ static Theme(){Apply(true);}
++ // Apply(false) devolve a pele âmbar original; nada mais no código precisa mudar.
++ internal static void Apply(bool blue){
++  BlueSkin=blue;
++  Text=Color.FromArgb(238,243,250);Red=Color.FromArgb(248,139,143);Amber=Color.FromArgb(244,191,112);
++  if(blue){
++   Bg=Color.FromArgb(12,16,24);Side=Color.FromArgb(16,21,32);Card=Color.FromArgb(22,29,43);
++   Line=Color.FromArgb(70,90,120);Disabled=Color.FromArgb(38,48,66);Muted=Color.FromArgb(165,178,197);
++   Accent=Color.FromArgb(88,166,255);            // 6,6:1 sobre Card e 7,5:1 contra Bg em botão primário
++   Contrast=Color.FromArgb(236,150,205);         // serie secundaria: 108 graus de matiz do acento e longe do ambar de aviso
++   Selection=Color.FromArgb(28,52,84);Hover=Color.FromArgb(30,42,62);Alt=Color.FromArgb(18,26,40);
++   HeroFill=Color.FromArgb(24,34,52);HeroText=Color.FromArgb(186,206,235);CheckFill=Color.FromArgb(8,12,20);
++  }else{
++   Bg=Color.FromArgb(15,16,18);Side=Color.FromArgb(20,21,24);Card=Color.FromArgb(27,29,33);
++   Line=Color.FromArgb(65,68,74);Disabled=Color.FromArgb(65,68,74);Muted=Color.FromArgb(180,185,194);
++   Accent=Color.FromArgb(255,208,48);Contrast=Color.FromArgb(139,190,241);
++   Selection=Color.FromArgb(62,55,27);Hover=Color.FromArgb(39,49,62);Alt=Color.FromArgb(25,33,44);
++   HeroFill=Color.FromArgb(34,35,39);HeroText=Color.FromArgb(191,214,203);CheckFill=Color.FromArgb(3,2,5);
++  }
++ }
+  internal static Font Font(float size,bool bold=false){return new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular);}
+  internal static Label Label(string text,float size,Color color,bool bold=false){var label=size>=20?(Label)new HeadingLabel():new Label();label.Text=text;label.Font=Font(size,bold);label.ForeColor=color;label.AutoSize=false;label.Dock=DockStyle.Fill;label.TextAlign=ContentAlignment.MiddleLeft;label.AutoEllipsis=size<20;label.Margin=Padding.Empty;return label;}
+  internal static ActionButton Button(string text,bool primary=false){return new ActionButton {Text=text,Primary=primary,Height=40,Width=175,Font=Font(10,true),Margin=new Padding(0,0,10,0),Cursor=Cursors.Hand,AccessibleName=text};}
+  internal static TextBox ReadBox(){return new TextBox {Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Dock=DockStyle.Fill,BackColor=Card,ForeColor=Text,BorderStyle=BorderStyle.None,Font=Font(10),Margin=Padding.Empty};}
+  internal static Color StatusColor(string s){if(s=="Conferido"||s=="Valores conferidos"||s=="Plano ativo"||s=="aplicado"||s=="desfeito"||s=="Revisado")return Accent;if(s.Contains("erro")||s.Contains("Erro")||s.Contains("falha")||s=="Alto risco")return Red;if(s=="Parcial"||s=="Condicional"||s=="Nome incorreto"||s=="Não comprovado"||s=="Substituído")return Amber;return Muted;}
+  internal static void DrawCheck(Graphics g,Rectangle box,bool selected,bool enabled){
+-  using(var fill=new SolidBrush(Color.FromArgb(3,2,5)))g.FillRectangle(fill,box);
++  using(var fill=new SolidBrush(CheckFill))g.FillRectangle(fill,box);
+   using(var border=new Pen(enabled?(selected?Accent:Muted):Line,selected?2:1))g.DrawRectangle(border,box);
+   if(selected)using(var tick=new Pen(enabled?Accent:Muted,Math.Max(2,box.Width/7f))){tick.StartCap=tick.EndCap=LineCap.Round;g.DrawLines(tick,new[]{new Point(box.X+box.Width/5,box.Y+box.Height/2),new Point(box.X+box.Width*2/5,box.Y+box.Height*3/4),new Point(box.X+box.Width*4/5,box.Y+box.Height/4)});}
+  }
+@@ -47,20 +73,20 @@
+  public ActionButton(){FlatStyle=FlatStyle.Flat;FlatAppearance.BorderSize=0;SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer,true);BackColor=Theme.Card;ForeColor=Theme.Text;}
+  protected override void OnMouseEnter(EventArgs e){hover=true;Invalidate();base.OnMouseEnter(e);}
+  protected override void OnMouseLeave(EventArgs e){hover=false;Invalidate();base.OnMouseLeave(e);}
+- protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Parent==null?Theme.Bg:Parent.BackColor);Color c=!Enabled?Theme.Line:Primary?Theme.Accent:Active?Color.FromArgb(62,55,27):hover?Color.FromArgb(39,49,62):Theme.Card;using(var path=Theme.Round(new Rectangle(0,0,Math.Max(1,Width-1),Math.Max(1,Height-1)),8))using(var b=new SolidBrush(c))g.FillPath(b,path);TextRenderer.DrawText(g,Text,Font,ClientRectangle,!Enabled?Theme.Muted:Primary?Theme.Bg:Active?Theme.Accent:Theme.Text,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);if(Focused)ControlPaint.DrawFocusRectangle(g,new Rectangle(4,4,Width-8,Height-8),Theme.Text,c);}
++ protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Parent==null?Theme.Bg:Parent.BackColor);Color c=!Enabled?Theme.Disabled:Primary?Theme.Accent:Active?Theme.Selection:hover?Theme.Hover:Theme.Card;using(var path=Theme.Round(new Rectangle(0,0,Math.Max(1,Width-1),Math.Max(1,Height-1)),8))using(var b=new SolidBrush(c))g.FillPath(b,path);TextRenderer.DrawText(g,Text,Font,ClientRectangle,!Enabled?Theme.Muted:Primary?Theme.Bg:Active?Theme.Accent:Theme.Text,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);if(Focused)ControlPaint.DrawFocusRectangle(g,new Rectangle(4,4,Width-8,Height-8),Theme.Text,c);}
+ }
+ class CatalogList : ListView {
+  ImageList rowHeight;
+  public CatalogList(){DoubleBuffered=true;View=View.Details;FullRowSelect=true;MultiSelect=false;HideSelection=false;BackColor=Theme.Card;ForeColor=Theme.Text;BorderStyle=BorderStyle.None;Font=Theme.Font(10);Dock=DockStyle.Fill;OwnerDraw=true;rowHeight=new ImageList {ImageSize=new Size(1,36)};SmallImageList=rowHeight;}
+  protected override void OnDrawColumnHeader(DrawListViewColumnHeaderEventArgs e){using(var b=new SolidBrush(Theme.Side))e.Graphics.FillRectangle(b,e.Bounds);TextRenderer.DrawText(e.Graphics,e.Header.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-16,e.Bounds.Height),Theme.Muted,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);}
+  protected override void OnDrawItem(DrawListViewItemEventArgs e){}
+- protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){bool selected=e.Item.Selected;using(var b=new SolidBrush(selected?Color.FromArgb(62,55,27):e.ItemIndex%2==0?Theme.Card:Color.FromArgb(25,33,44)))e.Graphics.FillRectangle(b,e.Bounds);Color color=e.ColumnIndex>=2?Theme.StatusColor(e.SubItem.Text):Theme.Text;TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-18,e.Bounds.Height),color,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.SingleLine);}
++ protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){bool selected=e.Item.Selected;using(var b=new SolidBrush(selected?Theme.Selection:e.ItemIndex%2==0?Theme.Card:Theme.Alt))e.Graphics.FillRectangle(b,e.Bounds);Color color=e.ColumnIndex>=2?Theme.StatusColor(e.SubItem.Text):Theme.Text;TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-18,e.Bounds.Height),color,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.SingleLine);}
+  protected override void Dispose(bool disposing){if(disposing)rowHeight.Dispose();base.Dispose(disposing);}
+ }
+ 
+ class CheckableList : CatalogList {
+  protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){
+-  using(var brush=new SolidBrush(e.Item.Selected?Color.FromArgb(36,53,74):Theme.Card))e.Graphics.FillRectangle(brush,e.Bounds);
++  using(var brush=new SolidBrush(e.Item.Selected?Theme.Selection:Theme.Card))e.Graphics.FillRectangle(brush,e.Bounds);
+   int inset=12;
+   if(e.ColumnIndex==0&&CheckBoxes){Theme.DrawCheck(e.Graphics,new Rectangle(e.Bounds.X+9,e.Bounds.Y+(e.Bounds.Height-20)/2,20,20),e.Item.Checked,Enabled);inset=38;}
+   TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+inset,e.Bounds.Y,Math.Max(1,e.Bounds.Width-inset-8),e.Bounds.Height),e.Item.ForeColor,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);
+@@ -103,9 +129,9 @@
+  void ShowPage(string key){if(key=="Avançado / Alto Impacto"||key=="Energia avançada"||key=="Ajustes manuais")key="Otimizações";if(ready&&!App.IsUiTest()&&(key=="Apps e RAM"||key=="Manutenção"))BeginInvoke((Action)(async()=>await RefreshResources()));foreach(var p in pages)p.Value.Visible=p.Key==key;pages[key].BringToFront();foreach(var n in nav){n.Value.Active=n.Key==key;n.Value.Invalidate();}title.Text=key;subtitle.Text=key=="Otimizações"?"Selecione. Aplique. Acompanhe no histórico.":key=="Ferramentas"?"Todas as funções do Luke Optimizer.":key=="Catálogo"?"Busque um nome e veja o que cada item faz. As opções nativas têm backup.":key=="Otimização máxima"?"Escolha os ajustes. O modo fácil usa esta seleção.":key=="Seus 14 BATs"?"Conteúdo preservado, efeitos explicados e integração revisada.":key=="Apps e RAM"?"Consumo real, seleção explícita e fechamento sem apagar cache útil.":key=="Manutenção"?"Inicialização, serviços, temporários e foco — sempre opcionais.":key=="Diagnóstico"?"Leituras do seu PC e limites do que foi verificado.":key=="Histórico"?"Resultados por etapa e restauração dos valores anteriores.":"Seu PC, com ações claras e resultados verificáveis.";}
+  void BuildDashboard(){
+   var page=Page("Visão geral");var grid=Rows(214,112,-1);page.Controls.Add(grid);
+-  var hero=new Surface {Dock=DockStyle.Fill,Fill=Color.FromArgb(34,35,39),BackColor=Color.FromArgb(34,35,39),Padding=new Padding(25,17,25,17),Margin=new Padding(0,0,0,16)};grid.Controls.Add(hero,0,0);
++  var hero=new Surface {Dock=DockStyle.Fill,Fill=Theme.HeroFill,BackColor=Theme.HeroFill,Padding=new Padding(25,17,25,17),Margin=new Padding(0,0,0,16)};grid.Controls.Add(hero,0,0);
+   var heroGrid=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=2};heroGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,67));heroGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,33));hero.Controls.Add(heroGrid);
+-  var heroText=Rows(25,48,42,-1);heroGrid.Controls.Add(heroText,0,0);heroText.Controls.Add(Theme.Label("PERFIL REVISADO  /  BACKUP AUTOMÁTICO",9,Theme.Accent,true),0,0);heroText.Controls.Add(Theme.Label("Seu PC, no controle.",27,Theme.Text,true),0,1);heroText.Controls.Add(Theme.Label("Aplique os ajustes compatíveis e acompanhe cada resultado.",11,Color.FromArgb(191,214,203)),0,2);
++  var heroText=Rows(25,48,42,-1);heroGrid.Controls.Add(heroText,0,0);heroText.Controls.Add(Theme.Label("PERFIL REVISADO  /  BACKUP AUTOMÁTICO",9,Theme.Accent,true),0,0);heroText.Controls.Add(Theme.Label("Seu PC, no controle.",27,Theme.Text,true),0,1);heroText.Controls.Add(Theme.Label("Aplique os ajustes compatíveis e acompanhe cada resultado.",11,Theme.HeroText),0,2);
+   var launch=Theme.Button("Otimização máxima  →",true);launch.Width=237;launch.Height=43;launch.Click+=(s,e)=>ShowPage("Otimização máxima");heroText.Controls.Add(launch,0,3);
+   var aside=Rows(55,45,-1);aside.Padding=new Padding(26,15,0,5);heroGrid.Controls.Add(aside,1,0);aside.Controls.Add(Theme.Label(Builtins.Create().Count.ToString(),28,Theme.Accent,true),0,0);aside.Controls.Add(Theme.Label("ajustes no perfil\r\n6 pré-selecionados",10,Theme.Text),0,1);heroHint=Theme.Label("A compatibilidade será\r\nconferida neste PC.",9,Theme.Muted);aside.Controls.Add(heroHint,0,2);
+   var metrics=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=4,RowCount=1};for(int n=0;n<4;n++)metrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,25));grid.Controls.Add(metrics,0,1);
+--- a/codigo-fonte/LukeOptimizer/source/EasyInterface.cs
++++ b/codigo-fonte/LukeOptimizer/source/EasyInterface.cs
+@@ -13,7 +13,7 @@
+  readonly List<Control> extraActions=new List<Control>();
+  readonly Dictionary<string,CheckBox> servicePicks=new Dictionary<string,CheckBox>();
+  readonly Dictionary<string,Label> serviceLabels=new Dictionary<string,Label>();
+- ListView appsList,startupList,batList;ComboBox focusList,processSort;TextBox processSearch;CheckBox showProtected;
++ ListView appsList,startupList,batList;ComboBox focusList,processSort,processTier,serviceTier;TextBox processSearch;CheckBox showProtected;
+  TextBox ramExplanation,easyResult,batDetail,tempDetail;Label easyCpu,easyRam,easyProcess,easySummary;
+  List<ProcessToken> processSnapshot=new List<ProcessToken>();TempScan tempSnapshot;ResourceSample currentSample;
+  bool resourceScanning,easyRunning;
+@@ -29,7 +29,7 @@
+  Surface Box(){return new Surface {Dock=DockStyle.Fill,Margin=new Padding(0,0,0,12)};}
+  void BuildEasy() {
+   var page=Page("Modo fácil");var grid=Rows(188,106,105,60,-1);page.Controls.Add(grid);
+-  var hero=Box();hero.Fill=Color.FromArgb(24,47,44);hero.BackColor=hero.Fill;grid.Controls.Add(hero,0,0);
++  var hero=Box();hero.Fill=Theme.HeroFill;hero.BackColor=hero.Fill;grid.Controls.Add(hero,0,0);
+   var split=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=2};split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));split.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,258));hero.Controls.Add(split);
+   var intro=Rows(25,50,-1);split.Controls.Add(intro,0,0);intro.Controls.Add(Theme.Label("MODO FÁCIL  /  SEM PROMESSAS DE FPS",9,Theme.Accent,true),0,0);
+   intro.Controls.Add(Theme.Label("Mais espaço para o que importa.",22,Theme.Text,true),0,1);
+@@ -39,7 +39,7 @@
+   var edit=ExtraButton("Escolher ajustes",(s,e)=>ShowPage("Otimização máxima"),false,236);edit.Dock=DockStyle.Fill;buttons.Controls.Add(edit,0,1);
+   buttons.Controls.Add(Theme.Label("Backup das configurações · resultado por etapa",8,Theme.Muted),0,2);
+   var metrics=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=3};for(int i=0;i<3;i++)metrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,33.333f));grid.Controls.Add(metrics,0,1);
+-  easyCpu=Metric(metrics,0,"—","CPU · amostra curta",Theme.Accent);easyRam=Metric(metrics,1,"—","RAM disponível · inclui reutilizável",Theme.Blue);easyProcess=Metric(metrics,2,"—","Processos · quantidade não é nota",Theme.Text);
++  easyCpu=Metric(metrics,0,"—","CPU · amostra curta",Theme.Accent);easyRam=Metric(metrics,1,"—","RAM disponível · inclui reutilizável",Theme.Contrast);easyProcess=Metric(metrics,2,"—","Processos · quantidade não é nota",Theme.Text);
+   var summary=Box();summary.Padding=new Padding(16,8,16,8);grid.Controls.Add(summary,0,2);easySummary=Theme.Label("Abra no Windows para consultar seu PC.\r\nNenhum processo é selecionado automaticamente para fechar.",10,Theme.Muted);summary.Controls.Add(easySummary);
+   var presets=new FlowLayoutPanel {Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true};grid.Controls.Add(presets,0,3);
+   presets.Controls.Add(ExtraButton("Preset Jogos",(s,e)=>SetPreset(true),false,145));presets.Controls.Add(ExtraButton("Preset Trabalho / CAD",(s,e)=>SetPreset(false),false,187));
+@@ -78,9 +78,13 @@
+  }
+  void BuildResources() {
+   var page=Page("Apps e RAM");var root=Rows(66,49,43,-1,112,51);page.Controls.Add(root);
+-  root.Controls.Add(Theme.Label("1. Atualize o consumo.  2. Marque o que não vai usar.  3. Clique em Fechar apps marcados.\r\nSistemas, drivers, serviços, jogos, launchers e OneDrive são preservados nesta tela.",10,Theme.Muted),0,0);
++  root.Controls.Add(Theme.Label("1. Atualize o consumo.  2. Marque o que não vai usar, ou use Marcar nível.  3. Clique em Fechar apps marcados.\r\nSistema, drivers, serviços, jogos e anticheat continuam preservados. Launchers, sincronização e software de periférico agora aparecem, no nível extremo.",10,Theme.Muted),0,0);
+   var controls=new FlowLayoutPanel {Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true};root.Controls.Add(controls,0,1);
+   controls.Controls.Add(ExtraButton("Atualizar consumo",async(s,e)=>await RefreshResources(),false,185));
++  processTier=Combo();processTier.Dock=DockStyle.None;processTier.Width=290;processTier.Margin=new Padding(8,4,8,0);
++  processTier.Items.AddRange(new object[]{"Nível 1 · apps de usuário","Nível 2 · + sincronização e atualizadores","Nível 3 · + launchers e periféricos"});
++  processTier.SelectedIndex=0;processTier.AccessibleName="Nível de redução de processos";controls.Controls.Add(processTier);
++  controls.Controls.Add(ExtraButton("Marcar nível",(s,e)=>MarkProcessTier(),false,150));
+   showProtected=new CheckBox {Text="Mostrar também os preservados",AutoSize=true,ForeColor=Theme.Muted,Margin=new Padding(12,10,0,0)};controls.Controls.Add(showProtected);showProtected.CheckedChanged+=(s,e)=>FillProcesses();
+   var filters=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=4};filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,155));filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,165));filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,140));root.Controls.Add(filters,0,2);
+   processSearch=Field();processSearch.AccessibleName="Filtrar apps por nome";filters.Controls.Add(processSearch,0,0);processSort=Combo();processSort.Items.AddRange(new object[]{"Maior RAM","Maior CPU","Mais processos","Nome"});processSort.SelectedIndex=0;filters.Controls.Add(processSort,1,0);
+@@ -93,15 +97,80 @@
+   var actions=new FlowLayoutPanel {Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true};root.Controls.Add(actions,0,5);
+   actions.Controls.Add(ExtraButton("Fechar apps marcados",async(s,e)=>await RunClose(false),true,220));
+   actions.Controls.Add(ExtraButton("Forçar fechamento…",async(s,e)=>await RunClose(true),false,200));
++  actions.Controls.Add(ExtraButton("Reabrir apps fechados",async(s,e)=>await ReopenLastClosedApps(),false,205));
+   actions.Controls.Add(ExtraButton("Gerenciador de Tarefas",(s,e)=>OpenSystem("Taskmgr.exe",""),false,208));
+  }
++ internal string ProcessTierKey(){
++  int index=processTier==null?0:processTier.SelectedIndex;
++  return index==2?"extremo":index==1?"agressivo":"leve";
++ }
++ // Marca de uma vez tudo que pertence ao nível escolhido e está fechável AGORA.
++ // Não fecha nada: o fechamento continua exigindo o botão e a confirmação.
++ void MarkProcessTier(){
++  if(appsList==null)return;
++  string tier=ProcessTierKey();int marked=0;
++  foreach(ListViewItem row in appsList.Items){
++   var group=(ProcessGroup)row.Tag;
++   bool wanted=group.CanClose&&ResourceMonitor.WithinTier(group.Name,tier);
++   row.Checked=wanted;if(wanted)marked++;
++  }
++  RefreshEasySummary();
++  footer.Text=marked+" app(s) marcado(s) no nível "+tier+". "+ResourceMonitor.TierWarning(tier);
++ }
++ internal string ServiceTierKey(){
++  int index=serviceTier==null?0:serviceTier.SelectedIndex;
++  return index==2?"extremo":index==1?"agressivo":"leve";
++ }
++ void MarkServiceTier(){
++  string tier=ServiceTierKey();int marked=0;
++  foreach(var pair in servicePicks){
++   bool wanted=App.ServiceWithinTier(pair.Key,tier);
++   pair.Value.Checked=wanted;if(wanted)marked++;
++  }
++  footer.Text=marked+" serviço(s) marcado(s) no nível "+tier+". "+App.ServiceTierWarning(tier);
++ }
++ // Desativa o nível inteiro numa transação só. Cada serviço guarda o modo de
++ // inicialização e o estado anteriores; Desfazer restaura os dois.
++ async Task RunServiceTier(){
++  if(busy||scanning||resourceScanning||easyRunning)return;
++  string tier=ServiceTierKey();
++  string[] names;
++  try{names=App.ServicesInTier(tier);}catch(Exception e){footer.Text=e.Message;return;}
++  if(names.Length==0)return;
++  string detail=String.Join("\r\n",names.Select(n=>"• "+n+" — "+App.OptionalServices[n]));
++  if(!await Confirm("DESATIVAR "+names.Length+" SERVIÇO(S) DO NÍVEL "+tier.ToUpperInvariant()+
++   "\r\n\r\n"+App.ServiceTierWarning(tier)+
++   "\r\n\r\n"+detail+
++   "\r\n\r\nCada serviço é parado e marcado como Desativado, com o estado anterior salvo no Histórico. "+
++   "Serviços com dependentes ativos são recusados e nada é forçado. "+
++   "Isto NÃO aumenta FPS por si só: o ganho é menos coisa rodando em segundo plano.\r\n\r\nContinuar?",
++   "Desativar nível "+tier))return;
++  await Elevated("--services-tier",tier);await RefreshResources();
++ }
++ async Task ReopenLastClosedApps(){
++  if(busy||scanning||resourceScanning||easyRunning)return;
++  var record=records.FirstOrDefault(r=>r.Kind=="Apps e RAM"&&r.ClosedApps!=null&&r.ClosedApps.Count>0);
++  if(record==null){footer.Text="Nenhum registro recente com apps fechados por este aplicativo.";return;}
++  string list=String.Join("\r\n",record.ClosedApps.Select(a=>"• "+a.Name+"  ("+a.Path+")"));
++  if(!await Confirm("Reabrir "+record.ClosedApps.Count+" aplicativo(s) fechado(s) em "+record.Time+"?\r\n\r\n"+list+
++   "\r\n\r\nCada um é iniciado do zero, sem argumentos e sem restaurar sessão: abas, janelas e trabalho não salvo NÃO voltam. "+
++   "Executáveis que saíram do lugar ou deixaram de estar na lista autorizada são ignorados.","Reabrir apps fechados"))return;
++  await Elevated("--reopen-apps",record.Id);
++ }
+  async Task RefreshResources() {
+   if(busy||scanning||resourceScanning||easyRunning)return;resourceScanning=true;scan.Enabled=false;SetActions();footer.Text="Medindo CPU/RAM e identificando processos…";
+   try {
+    processSnapshot=await Task.Run(()=>ResourceMonitor.ScanProcesses());FillProcesses();ShowSample(await Task.Run(()=>ResourceMonitor.Measure()));
+    var entries=await Task.Run(()=>App.ScanStartup());startupList.Items.Clear();
+    foreach(var entry in entries){var row=new ListViewItem(entry.Name){Tag=entry};row.SubItems.Add(entry.Allowed?"Opcional":"Preservado");row.SubItems.Add(entry.Command);startupList.Items.Add(row);}
+-   foreach(string name in App.OptionalServices.Keys){string status=await Task.Run(()=>App.OptionalServiceStatus(name));serviceLabels[name].Text=status;}
++   // Uma única ida ao pool para os 41 serviços, em vez de um await por serviço:
++   // cada consulta abre um ServiceController e enumera dependentes.
++   var serviceStatus=await Task.Run(()=>{
++    var map=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
++    foreach(string name in App.OptionalServices.Keys)map[name]=App.OptionalServiceStatus(name);
++    return map;
++   });
++   foreach(var pair in serviceStatus)if(serviceLabels.ContainsKey(pair.Key))serviceLabels[pair.Key].Text=pair.Value;
+    footer.Text="Medição concluída. CPU é uma amostra; FPS e input lag não foram medidos.";
+   }catch(Exception e){footer.Text="Medição incompleta: "+e.Message;}
+   finally{resourceScanning=false;scan.Enabled=true;SetActions();}
+@@ -117,7 +186,10 @@
+    if(processSearch!=null&&processSearch.Text.Length>0&&group.Name.IndexOf(processSearch.Text,StringComparison.OrdinalIgnoreCase)<0)continue;
+    var row=new ListViewItem(group.Name+"  ("+group.Processes.Count+")"){Tag=group};
+    row.SubItems.Add(group.Processes.All(p=>p.MemoryKnown)?group.MemoryMB.ToString("0")+" MB*":"Não consultada");row.SubItems.Add(group.Processes.All(p=>p.CpuKnown)?group.CpuPercent.ToString("0.0")+"%":"Não consultada");
+-   row.SubItems.Add(group.CanClose?"Opcional — confirme se não precisa":group.Processes.First(p=>!String.IsNullOrEmpty(p.Protection)).Protection);
++   string tier=ResourceMonitor.Tier(group.Name);
++   row.SubItems.Add(group.CanClose
++    ?"Nível "+(tier=="leve"?"1 · app de usuário":tier=="agressivo"?"2 · sincronização/atualizador":"3 · launcher ou periférico")+" — confirme se não precisa"
++    :group.Processes.First(p=>!String.IsNullOrEmpty(p.Protection)).Protection);
+    if(!group.CanClose)row.ForeColor=Theme.Muted;appsList.Items.Add(row);row.Checked=group.CanClose&&selected.Contains(group.Name);
+   }
+   if(focusList.Items.Count>0)focusList.SelectedIndex=0;appsList.EndUpdate();RefreshEasySummary();
+@@ -171,16 +243,25 @@
+    await Elevated("--startup",App.SaveRequest(new OperationRequest {Startup=chosen}));await RefreshResources();
+   },true,218));
+   startActions.Controls.Add(ExtraButton("Inicialização do Windows",(s,e)=>OpenLocal("ms-settings:startupapps"),false,220));
+-  var serviceHeights=new List<float>{104};serviceHeights.AddRange(App.OptionalServices.Select(x=>112f));serviceHeights.Add(60);var services=Rows(serviceHeights.ToArray());sections[1].Controls.Add(services);services.Controls.Add(Theme.Label("Estar parado pode ser normal. Desativar permanentemente corta a função, não cria desempenho grátis.\r\nNenhum serviço vem selecionado. Defender, Update, rede, áudio, drivers, SysMain e anticheat ficam fora.\r\nDependentes ativos impedem a alteração. Desfazer restaura o estado salvo.",10,Theme.Muted),0,0);int index=1;
+-  sections[1].AutoScroll=true;services.MinimumSize=new Size(0,164+112*App.OptionalServices.Count);
++  var serviceHeights=new List<float>{104,46};serviceHeights.AddRange(App.OptionalServices.Select(x=>112f));serviceHeights.Add(60);var services=Rows(serviceHeights.ToArray());sections[1].Controls.Add(services);services.Controls.Add(Theme.Label("Estar parado pode ser normal. Desativar permanentemente corta a função, não cria desempenho grátis.\r\nNenhum serviço vem selecionado. Defender, Update, rede, áudio, drivers, SysMain e anticheat ficam fora por construção.\r\nDependentes ativos impedem a alteração. Desfazer restaura o estado salvo de cada um.",10,Theme.Muted),0,0);
++  var tierBar=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true};services.Controls.Add(tierBar,0,1);
++  serviceTier=Combo();serviceTier.Dock=DockStyle.None;serviceTier.Width=300;serviceTier.Margin=new Padding(0,4,8,0);
++  serviceTier.Items.AddRange(new object[]{"Nível 1 · recursos que quase ninguém usa","Nível 2 · + busca, impressão, scanner, local","Nível 3 · + Bluetooth, Xbox, DLNA, sensores"});
++  serviceTier.SelectedIndex=0;serviceTier.AccessibleName="Nível de redução de serviços";tierBar.Controls.Add(serviceTier);
++  tierBar.Controls.Add(ExtraButton("Marcar nível",(s,e)=>MarkServiceTier(),false,150));
++  tierBar.Controls.Add(ExtraButton("Desativar nível inteiro…",async(s,e)=>await RunServiceTier(),false,215));
++  int index=2;
++  sections[1].AutoScroll=true;services.MinimumSize=new Size(0,210+112*App.OptionalServices.Count);
+   foreach(var entry in App.OptionalServices){string name=entry.Key;var card=Box();card.Padding=new Padding(16,8,16,8);services.Controls.Add(card,0,index++);var inside=Rows(25,28,-1);card.Controls.Add(inside);
+-   var check=new ReadableCheckBox {Text=name+" — desativar",Dock=DockStyle.Fill,ForeColor=Theme.Text,Font=Theme.Font(11,true),AccessibleName="Desativar "+name};servicePicks[name]=check;inside.Controls.Add(check,0,0);inside.Controls.Add(Theme.Label(entry.Value,9,Theme.Muted),0,1);var label=Theme.Label("Ainda não consultado",9,Theme.Amber);serviceLabels[name]=label;inside.Controls.Add(label,0,2);
++   string tier=App.ServiceTier(name);
++   var check=new ReadableCheckBox {Text=name+"  ·  nível "+(tier=="leve"?"1":tier=="agressivo"?"2":"3")+" — desativar",Dock=DockStyle.Fill,ForeColor=tier=="extremo"?Theme.Amber:Theme.Text,Font=Theme.Font(11,true),AccessibleName="Desativar "+name+", nível "+tier};servicePicks[name]=check;inside.Controls.Add(check,0,0);inside.Controls.Add(Theme.Label(entry.Value,9,Theme.Muted),0,1);var label=Theme.Label("Ainda não consultado",9,Theme.Amber);serviceLabels[name]=label;inside.Controls.Add(label,0,2);
+   }
+   var serviceActions=new FlowLayoutPanel {Dock=DockStyle.Fill};services.Controls.Add(serviceActions,0,index);serviceActions.Controls.Add(ExtraButton("Desativar serviços marcados",async(s,e)=>{
+    var selected=servicePicks.Where(x=>x.Value.Checked).Select(x=>x.Key).ToArray();if(selected.Length==0)return;
+    if(!await Confirm("Desativação persistente até Desfazer:\r\n\r\n"+String.Join("\r\n",selected.Select(n=>n+": "+App.OptionalServices[n]))+"\r\n\r\nConfirmar perda temporária dessas funções?"))return;
+    await Elevated("--services",String.Join(",",selected));await RefreshResources();
+   },true,260));serviceActions.Controls.Add(ExtraButton("Ver histórico / desfazer",(s,e)=>ShowPage("Histórico"),false,215));
++  serviceActions.Controls.Add(ExtraButton("Marcar tudo do nível",(s,e)=>MarkServiceTier(),false,185));
+   var clean=Rows(103,-1,54);sections[2].Controls.Add(clean);clean.Controls.Add(Theme.Label("Somente .tmp/.temp em LocalAppData\\Temp, sem uso/alteração/criação há mais de 7 dias.\r\nAnálise limitada a 2.000 candidatos e 10 segundos. Links/junções, arquivos recentes e em uso são ignorados.\r\nExclusão PERMANENTE, sem desfazer. Não limpa Prefetch, shaders, Downloads, cookies ou backups de projetos.",10,Theme.Muted),0,0);
+   var tmp=Box();clean.Controls.Add(tmp,0,1);tempDetail=Theme.ReadBox();tempDetail.Text="Primeiro analise. Nenhum arquivo foi selecionado.";tmp.Controls.Add(tempDetail);var cleanActions=new FlowLayoutPanel {Dock=DockStyle.Fill};clean.Controls.Add(cleanActions,0,2);
+   cleanActions.Controls.Add(ExtraButton("Analisar temporários",async(s,e)=>await AnalyzeTemps(),false,205));cleanActions.Controls.Add(ExtraButton("Excluir arquivos listados…",async(s,e)=>await RemoveTemps(),true,248));
+--- a/codigo-fonte/LukeOptimizer/source/PerformanceInterface.cs
++++ b/codigo-fonte/LukeOptimizer/source/PerformanceInterface.cs
+@@ -29,7 +29,7 @@
+   using(var pen=new Pen(Theme.Line))for(int i=0;i<=4;i++){int y=area.Bottom-i*area.Height/4;g.DrawLine(pen,area.Left,y,area.Right,y);TextRenderer.DrawText(g,(top*i/4).ToString("0.#"),Font,new Point(3,y-8),Theme.Muted);}
+   foreach(var s in all){var values=s.Timeline;int bins=Math.Min(area.Width,values.Length);var points=new PointF[bins];
+    for(int i=0;i<bins;i++){int start=i*values.Length/bins,end=Math.Max(start+1,(i+1)*values.Length/bins);double max=0;for(int n=start;n<end;n++)max=Math.Max(max,values[n]);points[i]=new PointF(area.Left+(float)i*area.Width/Math.Max(1,bins-1),area.Bottom-(float)(max/top*area.Height));}
+-   if(points.Length>1)using(var pen=new Pen(s==Before?Theme.Blue:Theme.Accent,1.5f))g.DrawLines(pen,points);
++   if(points.Length>1)using(var pen=new Pen(s==Before?Theme.Contrast:Theme.Accent,1.5f))g.DrawLines(pen,points);
+   }
+   TextRenderer.DrawText(g,"ms · azul: antes · roxo: depois · cada coluna preserva o pior intervalo",Font,new Point(area.Left,6),Theme.Muted);
+   TextRenderer.DrawText(g,"0%                  Progresso de cada captura (quadros)                  100%",Font,new Rectangle(area.Left,area.Bottom+7,area.Width,23),Theme.Muted,TextFormatFlags.HorizontalCenter);
+@@ -50,7 +50,7 @@
+  void BuildPerformance(){BuildLibrary();BuildGames();BuildPowerLab();BuildFrames();BuildHardwareLab();}
+  void BuildLibrary(){
+   performanceEntries=PerformanceLibrary.Load();var page=Page("Central de desempenho");var root=Rows(102,46,-1,190,56);page.Controls.Add(root);ScrollPage(page,root,630);
+-  var hero=Box();hero.Padding=new Padding(16,10,16,10);hero.Fill=Color.FromArgb(35,32,57);root.Controls.Add(hero,0,0);
++  var hero=Box();hero.Padding=new Padding(16,10,16,10);hero.Fill=Theme.HeroFill;root.Controls.Add(hero,0,0);
+   var intro=Rows(35,-1);hero.Controls.Add(intro);performanceCount=Theme.Label("Seu próximo ganho começa pelo gargalo.",20,Theme.Accent,true);intro.Controls.Add(performanceCount,0,0);
+   intro.Controls.Add(Theme.Label(performanceEntries.Count+" opções e ferramentas · FPS, latência, RAM, CPU, GPU, disco e rede\r\nCada item indica se aplica um ajuste, abre uma ferramenta ou oferece orientação.",10,Theme.Text),0,1);
+   var filters=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=3};filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,200));filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,220));root.Controls.Add(filters,0,1);
+--- a/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs
++++ b/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs
+@@ -45,6 +45,7 @@
+   actions.Controls.Add(HomeButton("home-clean","Limpar temporários",async(s,e)=>await QuickCleanupOneClick(),176,true));
+   actions.Controls.Add(HomeButton("home-memory","Liberar RAM",async(s,e)=>await FreeMemoryOneClick(),158,true));
+   actions.Controls.Add(HomeButton("home-processes","Reduzir processos",async(s,e)=>await RunProcessReduction(),174,true));
++  actions.Controls.Add(HomeButton("home-processes-deep","Reduzir processos: extremo",async(s,e)=>await RunProcessReduction("extremo"),228));
+   actions.Controls.Add(HomeButton("home-gaming-session","Sessão de jogo",async(s,e)=>await RunGamingSessionProfile(),168,true));
+   actions.Controls.Add(HomeButton("home-apps","Remover apps",(s,e)=>ShowPage("Remover apps"),150));
+   actions.Controls.Add(HomeButton("home-extreme","Otimização Ultra",async(s,e)=>await RunUltraProfile(),187,true));
+@@ -85,7 +86,7 @@
+     var row=new TableLayoutPanel{Height=productPrefs==null||productPrefs.Compact?32:40,Dock=DockStyle.Top,ColumnCount=1,Margin=Padding.Empty,Name="home-row-"+option.Id,Visible=HomeVisible(option,primary)&&!collapsedHome.Contains(category)};
+     var check=new ReadableCheckBox{Text=option.Title+(!option.Diagnostic&&OptionInfo.For(App.ById(option.Id)).Classification=="Manual"?" · Manual":""),Dock=DockStyle.Fill,Margin=new Padding(0,0,5,0),ForeColor=Theme.Text,BackColor=Theme.Card,Font=Theme.Font(9.5f),Name="home-check-"+option.Id,AccessibleName=option.Title};homeChecks.Add(option.Id,check);row.Controls.Add(check,0,0);
+     string id=option.Id;var defaults=App.ById(id);check.Checked=first?!option.Diagnostic&&defaults!=null&&defaults.DefaultSelected:saved.Contains(id);
+-    check.CheckedChanged+=(s,e)=>{check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;check.Invalidate();if(!homeSync)UpdateHome();};check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;
++    check.CheckedChanged+=(s,e)=>{check.BackColor=check.Checked?Theme.Selection:Theme.Card;check.Invalidate();if(!homeSync)UpdateHome();};check.BackColor=check.Checked?Theme.Selection:Theme.Card;
+     body.Controls.Add(row);
+    }
+    foreach(var link in CategoryTools(category)){string target=link.Value;var button=Theme.Button(link.Key);button.Name="home-tool-"+category+"-"+link.Key;button.Height=34;button.Dock=DockStyle.Top;button.Margin=new Padding(0,5,0,0);button.Click+=(s,e)=>{if(target.StartsWith("ms-settings:"))OpenLocal(target);else if(target=="dfrgui.exe")OpenSystem(target,"");else ShowPage(target);};body.Controls.Add(button);}
+--- a/codigo-fonte/LukeOptimizer/source/ProductInterface.cs
++++ b/codigo-fonte/LukeOptimizer/source/ProductInterface.cs
+@@ -82,13 +82,19 @@
+   foreach(ListViewItem row in memoryList.Items){var p=row.Tag as ProcessToken;if(p!=null&&String.IsNullOrEmpty(p.Protection))row.Checked=true;}
+   await RunMemory(false,false);
+  }
+- async Task RunProcessReduction(){
++ // O botão de um clique fica no nível 1 de propósito. Launchers e software de
++ // periférico (nível 3) só saem por escolha explícita em Apps e RAM, porque fechar
++ // um launcher pode encerrar o jogo aberto por ele.
++ async Task RunProcessReduction(){await RunProcessReduction("leve");}
++ async Task RunProcessReduction(string tier){
+   if(productRunning||busy||!ready)return;
+   var processes=await Task.Run(()=>ResourceMonitor.ScanProcesses());
+-  var candidates=processes.Where(p=>p.HasWindow&&String.IsNullOrEmpty(p.Protection)).Take(50).ToList();
+-  if(candidates.Count==0){footer.Text="Nenhum aplicativo elegível para fechamento normal foi encontrado.";return;}
+-  string names=String.Join("\r\n",candidates.Select(p=>"• "+p.Name+" ("+p.MemoryMB.ToString("0")+" MB)"));
+-  if(!await Confirm("Reduzir processos em segundo plano?\r\n\r\nO aplicativo solicitará o fechamento normal de "+candidates.Count+" aplicativo(s) autorizados. Janelas com alterações não salvas poderão pedir confirmação. Processos críticos, jogos, serviços e componentes do Windows foram excluídos.\r\n\r\n"+names,"Redução controlada de processos"))return;
++  var candidates=processes.Where(p=>p.HasWindow&&String.IsNullOrEmpty(p.Protection)&&ResourceMonitor.WithinTier(p.Name,tier)).Take(50).ToList();
++  if(candidates.Count==0){footer.Text="Nenhum aplicativo do nível "+tier+" está aberto agora.";return;}
++  string names=String.Join("\r\n",candidates.Select(p=>"• "+p.Name+" · nível "+ResourceMonitor.Tier(p.Name)+" ("+p.MemoryMB.ToString("0")+" MB)"));
++  if(!await Confirm("Reduzir processos em segundo plano — nível "+tier+"?\r\n\r\n"+ResourceMonitor.TierWarning(tier)+
++   "\r\n\r\nO aplicativo solicitará o fechamento normal de "+candidates.Count+" aplicativo(s) autorizados. Janelas com alterações não salvas poderão pedir confirmação. Processos críticos, jogos, anticheat, serviços e componentes do Windows continuam excluídos."+
++   "\r\nOs executáveis ficam gravados no Histórico para Reabrir apps fechados.\r\n\r\n"+names,"Redução controlada de processos"))return;
+   await ProductWork(token=>Task.Run(()=>ExecutionHub.Project(App.CloseApps(candidates,false,s=>footer.Text=s))),true);
+  }
+  void BuildStorageManager(){
+--- a/codigo-fonte/LukeOptimizer/source/Resources.cs
++++ b/codigo-fonte/LukeOptimizer/source/Resources.cs
+@@ -36,13 +36,69 @@
+  [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetSystemTimes(out FT idle,out FT kernel,out FT user);
+  [DllImport("advapi32.dll",SetLastError=true)] static extern bool OpenProcessToken(IntPtr process,uint access,out IntPtr token);
+  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
+- internal static readonly HashSet<string> Closable=new HashSet<string>(new[]{
++ // Nível 1 — apps de usuário: fechar custa no máximo reabrir o programa.
++ static readonly string[] LightProcesses={
+   "chrome","msedge","firefox","brave","opera","spotify","discord","telegram","slack","teams","ms-teams","zoom","skype",
+-  "vivaldi","waterfox","librewolf","floorp","zen","thunderbird","WhatsApp","Signal","DiscordCanary","DiscordPTB",
++  "vivaldi","waterfox","librewolf","floorp","zen","thunderbird","WhatsApp","Signal","DiscordCanary","DiscordPTB","msteams",
+   "obs64","Streamlabs OBS","Overwolf","OverwolfBrowser","Medal","ShareX","ScreenToGif","CamtasiaStudio",
+   "vlc","mpv","PotPlayerMini64","iTunes","Deezer","Amazon Music","TIDAL","qBittorrent","uTorrent",
+   "notion","Obsidian","Todoist","Evernote","CapCut","Canva"
+- },StringComparer.OrdinalIgnoreCase);
++ };
++ // Nível 2 — acompanhantes e sincronização: param de sincronizar, atualizar ou notificar
++ // até serem reabertos. Nada some do disco; nada é desinstalado.
++ static readonly string[] AggressiveProcesses={
++  "OneDrive","Dropbox","GoogleDriveFS","googledrivesync","MEGAsync","pCloud","Creative Cloud",
++  "CCXProcess","CCLibrary","Adobe Desktop Service","AdobeIPCBroker","AdobeNotificationClient",
++  "GoogleUpdate","MicrosoftEdgeUpdate","jusched","AcrobatNotificationClient","OfficeClickToRun",
++  "Cortana","SearchApp","YourPhone","PhoneExperienceHost","Widgets","WidgetService",
++  "olk","OUTLOOK","EXCEL","WINWORD","POWERPNT","Todo","OneNote",
++  "SnippingTool","StickyNotes","Microsoft.Notes","GameBar","GameBarFTServer","XboxPcApp","XboxPcAppFT"
++ };
++ // Nível 3 — launchers, periféricos e overlays. Fechar um launcher pode encerrar o jogo
++ // aberto por ele e derrubar macros, RGB e software de mouse/teclado. Nunca entra em
++ // ação de um clique; exige seleção explícita e a confirmação avisa disso.
++ static readonly string[] ExtremeProcesses={
++  "steam","steamwebhelper","EpicGamesLauncher","EpicWebHelper","GalaxyClient","GalaxyClientService",
++  "Battle.net","UbisoftConnect","UplayWebCore","upc","EADesktop","EABackgroundService","Origin",
++  "RiotClientServices","RiotClientUx","RiotClientUxRender","Rockstar-Games-Launcher","SocialClubHelper",
++  "itch","PlayniteDesktop","HeroicGamesLauncher",
++  "RazerAppEngine","Razer Synapse 3","RzSDKService","LogiOverlay","LogiOptionsMgr","lghub","lghub_agent",
++  "iCUE","CorsairService","Armoury Crate","ArmouryCrate.UserSessionHelper","MSI Center","LightKeeper",
++  "SteelSeriesGG","SteelSeriesEngine","OpenRGB","SignalRgb","NZXT CAM","FanControl",
++  "NVIDIA Share","NVIDIA Web Helper","nvcontainer","RadeonSoftware","AMDRSServ","AMDRSSrcExt"
++ };
++ internal static readonly HashSet<string> Closable=new HashSet<string>(
++  LightProcesses.Concat(AggressiveProcesses).Concat(ExtremeProcesses),StringComparer.OrdinalIgnoreCase);
++ static readonly HashSet<string> AggressiveSet=new HashSet<string>(AggressiveProcesses,StringComparer.OrdinalIgnoreCase);
++ static readonly HashSet<string> ExtremeSet=new HashSet<string>(ExtremeProcesses,StringComparer.OrdinalIgnoreCase);
++ // "leve" | "agressivo" | "extremo" | "" (fora da lista, nunca fechável)
++ internal static string Tier(string processName){
++  if(String.IsNullOrEmpty(processName))return "";
++  if(ExtremeSet.Contains(processName))return "extremo";
++  if(AggressiveSet.Contains(processName))return "agressivo";
++  return Closable.Contains(processName)?"leve":"";
++ }
++ internal static bool WithinTier(string processName,string tier){
++  string actual=Tier(processName);
++  if(actual.Length==0)return false;
++  if(tier=="extremo")return true;
++  if(tier=="agressivo")return actual!="extremo";
++  return actual=="leve";
++ }
++ // Tamanho do array de origem, não do conjunto final: é o que permite provar que os
++ // três níveis não se sobrepõem (a soma tem de bater com Closable.Count).
++ internal static int TierSourceCount(string tier){
++  if(tier=="leve")return LightProcesses.Length;
++  if(tier=="agressivo")return AggressiveProcesses.Length;
++  if(tier=="extremo")return ExtremeProcesses.Length;
++  throw new ArgumentException("Nível de processo inválido.");
++ }
++ internal static string TierWarning(string tier){
++  if(tier=="leve")return "Fecha apenas apps de usuário: navegador, mensageiro, player, gravador. Reabra quando quiser; nada é desinstalado.";
++  if(tier=="agressivo")return "Inclui sincronização de nuvem (OneDrive, Drive, Dropbox), atualizadores e apps do Office. Arquivos param de sincronizar e notificações param de chegar até você reabrir. Nenhum arquivo local é apagado.";
++  if(tier=="extremo")return "Inclui launchers de jogos e software de periférico. FECHAR UM LAUNCHER PODE ENCERRAR O JOGO ABERTO POR ELE, e perfis de mouse, teclado e RGB voltam ao padrão até o software reabrir. Anticheat em execução não é tocado. Use com o jogo fechado.";
++  return "Nível desconhecido.";
++ }
+  internal static readonly HashSet<string> Focusable=new HashSet<string>(new[]{
+   "cs2","csgo","FortniteClient-Win64-Shipping","RobloxPlayerBeta","GTA5","GTA5_Enhanced","VALORANT-Win64-Shipping",
+   "League of Legends","acad","Revit","SketchUp","Lumion","3dsmax","blender","vray",
+@@ -158,8 +214,55 @@
+   Save(rec);try {
+    rec.BeforeSample=ResourceMonitor.Measure();rec.Status="executando";Save(rec);
+    rec.Steps=ResourceMonitor.CloseSelected(selected,force,progress);rec.AfterSample=ResourceMonitor.Measure();
++   // Guarda o executável de cada app efetivamente encerrado, para permitir reabrir depois.
++   // Só o caminho: linha de comando e argumentos não são reproduzidos.
++   rec.ClosedApps=new List<ClosedApp>();
++   foreach(var token in selected.GroupBy(p=>p.Pid).Select(g=>g.First())){
++    var step=rec.Steps.FirstOrDefault(s=>s.Id==token.Pid.ToString());
++    if(step==null||step.Status!="encerrado")continue;
++    if(String.IsNullOrEmpty(token.Path)||!ResourceMonitor.Closable.Contains(token.Name))continue;
++    if(rec.ClosedApps.Any(a=>String.Equals(a.Path,token.Path,StringComparison.OrdinalIgnoreCase)))continue;
++    rec.ClosedApps.Add(new ClosedApp{Name=token.Name,Path=token.Path,Tier=ResourceMonitor.Tier(token.Name)});
++   }
+    rec.Status=rec.Steps.Any(s=>s.Status!="encerrado"&&s.Status!="já encerrado")?"concluído com avisos":"concluído";
+-   rec.Message=ResourceMonitor.Compare(rec.BeforeSample,rec.AfterSample)+"\r\nFechar apps não possui desfazer: reabra-os manualmente. Não há limpeza periódica de cache/working set.";Save(rec);return rec;
++   rec.Message=ResourceMonitor.Compare(rec.BeforeSample,rec.AfterSample)+
++    "\r\n"+rec.ClosedApps.Count+" app(s) podem ser reabertos por Reabrir apps fechados, no Histórico. "+
++    "Reabrir inicia o programa de novo: janelas, abas e trabalho não salvo NÃO voltam. Não há limpeza periódica de cache/working set.";
++   Save(rec);return rec;
+   }catch(Exception e){rec.Status="falhou";rec.Message=e.Message+"\r\nApps já fechados não são reabertos automaticamente.";Save(rec);throw;}
+  }
++ // Reabrir NÃO é desfazer: não entra em CanUndo nem na cadeia de Undo, porque não
++ // restaura estado do Windows. É uma ação separada e explícita sobre um registro.
++ internal static Record ReopenClosedApps(string recordId){
++  var source=Json.Deserialize<Record>(AtomicStore.Read(RecordPath(recordId)));
++  if(source==null||source.UserSid!=Sid)throw new Exception("Este registro pertence a outro usuário.");
++  if(source.Kind!="Apps e RAM")throw new Exception("Este registro não fechou aplicativos.");
++  var apps=source.ClosedApps??new List<ClosedApp>();
++  if(apps.Count==0||apps.Count>300)throw new Exception("Nenhum aplicativo reabrível neste registro.");
++  var rec=NewRecord("Reabrir apps fechados","reopen-apps","Apps e RAM");
++  rec.Status="executando";Save(rec);
++  string windows=Environment.GetFolderPath(Environment.SpecialFolder.Windows);
++  foreach(var app in apps){
++   var step=new StepResult{Id=app.Path,Name=app.Name,Status="ignorado",Message=""};rec.Steps.Add(step);
++   try{
++    // O registro fica no perfil do próprio usuário, mas nunca confiamos nele para
++    // executar: o caminho é revalidado contra a mesma allowlist e as mesmas regras
++    // que autorizaram o fechamento.
++    if(!ResourceMonitor.Closable.Contains(app.Name)){step.Message="Aplicativo fora da lista autorizada.";continue;}
++    if(String.IsNullOrEmpty(app.Path)||!Path.IsPathRooted(app.Path)||app.Path.IndexOfAny(new[]{'\r','\n','"'})>=0){step.Message="Caminho inválido.";continue;}
++    if(!app.Path.EndsWith(".exe",StringComparison.OrdinalIgnoreCase)){step.Message="Somente executáveis são reabertos.";continue;}
++    if(!File.Exists(app.Path)){step.Message="O executável não está mais neste caminho.";continue;}
++    if(!String.IsNullOrEmpty(windows)&&ResourceMonitor.Within(app.Path,windows)){step.Message="Componente do Windows: não é reaberto por aqui.";continue;}
++    if(!String.Equals(Path.GetFileNameWithoutExtension(app.Path),app.Name,StringComparison.OrdinalIgnoreCase)){step.Message="O nome do processo não corresponde ao executável gravado.";continue;}
++    using(Process.Start(new ProcessStartInfo(app.Path){UseShellExecute=true,WorkingDirectory=Path.GetDirectoryName(app.Path)})){}
++    step.Status="reaberto";step.Message="Programa iniciado. Abas, janelas e trabalho não salvo não são restaurados.";
++   }catch(Exception e){step.Status="não reaberto";step.Message=e.Message;}
++   Save(rec);
++  }
++  int reopened=rec.Steps.Count(s=>s.Status=="reaberto");
++  rec.Status=reopened==rec.Steps.Count?"concluído":reopened==0?"falhou":"concluído com avisos";
++  rec.Message=reopened+" de "+rec.Steps.Count+" aplicativo(s) reaberto(s) a partir do registro "+recordId+
++   ".\r\nCada um foi iniciado do zero, sem argumentos de linha de comando e sem restaurar sessão.";
++  Save(rec);return rec;
++ }
+ }
+--- a/codigo-fonte/LukeOptimizer/source/Management.cs
++++ b/codigo-fonte/LukeOptimizer/source/Management.cs
+@@ -26,18 +26,117 @@
+  [DllImport("advapi32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool ChangeServiceConfig(IntPtr service,uint type,uint start,uint error,string binary,string group,IntPtr tag,string dependencies,string user,string password,string display);
+  [DllImport("advapi32.dll",SetLastError=true)] static extern bool CloseServiceHandle(IntPtr handle);
+  internal const string RunKey=@"Software\Microsoft\Windows\CurrentVersion\Run";
++ // NUNCA entram na lista opcional, por mais "extremo" que seja o perfil pedido.
++ // ServiceTiers é conferido contra esta lista em ValidateServiceCatalog().
++ internal static readonly HashSet<string> ProtectedServices=new HashSet<string>(new[]{
++  // Segurança
++  "WinDefend","SecurityHealthService","WdNisSvc","Sense","wscsvc","mpssvc","SgrmBroker","BFE","EventLog",
++  // Atualização e Store
++  "wuauserv","UsoSvc","WaaSMedicSvc","BITS","DoSvc","TrustedInstaller","msiserver","AppXSvc","ClipSVC","StateRepository","InstallService",
++  // Núcleo do sistema
++  "RpcSs","DcomLaunch","RpcEptMapper","LSM","PlugPlay","Power","ProfSvc","gpsvc","UserManager","Schedule",
++  "CryptSvc","KeyIso","SamSs","Themes","ShellHWDetection","SENS","SystemEventsBroker","CoreMessagingRegistrar",
++  // Rede
++  "Dhcp","Dnscache","NlaSvc","netprofm","nsi","WlanSvc","LanmanWorkstation","LanmanServer","WinHttpAutoProxySvc",
++  // Áudio e vídeo
++  "Audiosrv","AudioEndpointBuilder","AudioSrv",
++  // Backup e recuperação
++  "VSS","swprv","wbengine","sppsvc",
++  // SysMain fica de fora de propósito: em SSD o ganho é nulo e pode piorar abertura de apps.
++  "SysMain"
++ },StringComparer.OrdinalIgnoreCase);
++
++ // Nível de cada serviço opcional: "leve" (perda óbvia e localizada),
++ // "agressivo" (perde recurso que muita gente usa) e "extremo" (só com certeza do que se perde).
++ internal static readonly Dictionary<string,string> ServiceTiers=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase) {
++  {"Fax","leve"},{"RetailDemo","leve"},{"RemoteRegistry","leve"},{"MapsBroker","leve"},
++  {"WMPNetworkSvc","leve"},{"AJRouter","leve"},{"RemoteAccess","leve"},{"WpcMonSvc","leve"},
++  {"SCardSvr","leve"},{"ScDeviceEnum","leve"},{"SCPolicySvc","leve"},{"SEMgrSvc","leve"},
++  {"TrkWks","leve"},{"dmwappushservice","leve"},{"diagnosticshub.standardcollector.service","leve"},
++  {"DiagTrack","agressivo"},{"WerSvc","agressivo"},{"PhoneSvc","agressivo"},{"lfsvc","agressivo"},
++  {"WSearch","agressivo"},{"Spooler","agressivo"},{"PrintNotify","agressivo"},{"stisvc","agressivo"},
++  {"WiaRpc","agressivo"},{"icssvc","agressivo"},{"QWAVE","agressivo"},{"PcaSvc","agressivo"},
++  {"SSDPSRV","extremo"},{"upnphost","extremo"},{"bthserv","extremo"},{"BTAGService","extremo"},
++  {"SensorService","extremo"},{"SensrSvc","extremo"},{"SensorDataService","extremo"},
++  {"XblAuthManager","extremo"},{"XblGameSave","extremo"},{"XboxNetApiSvc","extremo"},{"XboxGipSvc","extremo"},
++  {"DPS","extremo"},{"WdiServiceHost","extremo"},{"WdiSystemHost","extremo"}
++ };
++
+  internal static readonly Dictionary<string,string> OptionalServices=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase) {
+-  {"WSearch","Indexação da pesquisa — pode deixar buscas de arquivos/Outlook mais lentas."},
+-  {"Spooler","Impressão — desativa impressoras e impressão em PDF enquanto estiver desativado."},
+-  {"DiagTrack","Diagnóstico conectado — reduz coleta de diagnóstico; não há ganho de FPS comprovado."},
++  // ---- leve ----
+   {"Fax","Fax — use apenas se você não utiliza envio/recebimento de fax."},
+-  {"MapsBroker","Mapas baixados — interrompe acesso/atualização de mapas offline."},
+   {"RetailDemo","Demonstração de varejo — dispensável em um PC pessoal que não usa modo de loja."},
+-  {"WMPNetworkSvc","Compartilhamento do Windows Media Player — interrompe streaming DLNA para outros aparelhos."},
+   {"RemoteRegistry","Registro remoto — impede administração remota por esse serviço. Não altera acesso local."},
+-  {"WerSvc","Relatórios de erros — dificulta diagnóstico de falhas. Deixe ativo ao investigar crashes."},
+-  {"PhoneSvc","Telefonia / integração com telefone — pode afetar recursos de conexão com celular."}
++  {"MapsBroker","Mapas baixados — interrompe acesso/atualização de mapas offline."},
++  {"WMPNetworkSvc","Compartilhamento do Windows Media Player — interrompe streaming DLNA para outros aparelhos."},
++  {"AJRouter","Roteador AllJoyn — protocolo de dispositivos IoT quase sem uso doméstico. Normalmente já está parado."},
++  {"RemoteAccess","Roteamento e acesso remoto — VPN/roteamento de entrada. Vem desativado por padrão no Windows."},
++  {"WpcMonSvc","Controle dos Pais — desativa relatórios e limites de conta infantil. Não use se há conta de criança supervisionada."},
++  {"SCardSvr","Cartão inteligente — só faz falta com leitor de smart card, certificado A3 ou crachá corporativo."},
++  {"ScDeviceEnum","Enumeração de dispositivos de cartão inteligente — acompanha o serviço acima."},
++  {"SCPolicySvc","Política de remoção de cartão inteligente — acompanha o serviço acima."},
++  {"SEMgrSvc","Gerenciador de pagamentos e NFC — desativa pagamento por aproximação. Sem efeito em PC sem NFC."},
++  {"TrkWks","Rastreamento de link distribuído — deixa de corrigir atalhos quando o arquivo de destino é movido no NTFS."},
++  {"dmwappushservice","Roteamento de mensagens WAP push — usado por gerenciamento corporativo (MDM). Não desative em PC da empresa."},
++  {"diagnosticshub.standardcollector.service","Coletor do Hub de Diagnóstico — usado pelo profiler do Visual Studio. Sem efeito para quem não faz profiling."},
++  // ---- agressivo ----
++  {"DiagTrack","Experiências do Usuário Conectado (telemetria) — reduz coleta de diagnóstico. Não há ganho de FPS comprovado."},
++  {"WerSvc","Relatórios de erros — dificulta diagnóstico de falhas. Deixe ativo se está investigando travamentos."},
++  {"PhoneSvc","Telefonia / integração com telefone — pode afetar recursos de conexão com celular."},
++  {"lfsvc","Geolocalização — Mapas, Clima, Buscar meu dispositivo e fuso horário automático param de funcionar."},
++  {"WSearch","Indexação da pesquisa — buscas de arquivos, e-mail do Outlook e Iniciar ficam mais lentas e incompletas."},
++  {"Spooler","Spooler de impressão — desativa impressoras e impressão em PDF enquanto estiver desativado."},
++  {"PrintNotify","Notificações e extensões de impressora — acompanha o Spooler; sem ele alguns drivers perdem a interface."},
++  {"stisvc","Aquisição de imagens (WIA) — scanners e importação de câmera param de funcionar."},
++  {"WiaRpc","Chamadas WIA — acompanha o serviço de scanner acima."},
++  {"icssvc","Ponto de acesso móvel — desativa compartilhar a internet do PC por Wi-Fi."},
++  {"QWAVE","QoS de áudio e vídeo — streaming local pode perder priorização de rede. Não aumenta FPS."},
++  {"PcaSvc","Assistente de compatibilidade — para de sugerir correções para programas antigos e de registrar incompatibilidades."},
++  // ---- extremo ----
++  {"SSDPSRV","Descoberta SSDP — quebra DLNA, Transmitir para dispositivo e descoberta de TV, console e impressora de rede."},
++  {"upnphost","Host de dispositivo UPnP — acompanha o SSDP; pode afetar NAT aberto em console e alguns jogos multiplayer."},
++  {"bthserv","Suporte a Bluetooth — fone, mouse, teclado e controle Bluetooth param de conectar."},
++  {"BTAGService","Gateway de áudio Bluetooth — acompanha o suporte a Bluetooth."},
++  {"SensorService","Serviço de sensores — rotação automática, brilho adaptativo e sensores param."},
++  {"SensrSvc","Monitoramento de sensores — acompanha o serviço de sensores."},
++  {"SensorDataService","Dados de sensores — acompanha o serviço de sensores."},
++  {"XblAuthManager","Xbox Live: autenticação — quebra login do app Xbox, Game Pass e jogos que autenticam por Xbox Live."},
++  {"XblGameSave","Xbox Live: saves na nuvem — progresso deixa de sincronizar. Saves locais permanecem."},
++  {"XboxNetApiSvc","Xbox Live: rede — multiplayer e convites de jogos Xbox podem falhar."},
++  {"XboxGipSvc","Acessórios Xbox — controle Xbox por cabo/adaptador pode não ser reconhecido."},
++  {"DPS","Serviço de Política de Diagnóstico — solucionadores de problemas do Windows param de funcionar, inclusive o de rede."},
++  {"WdiServiceHost","Host de serviço de diagnóstico — acompanha o serviço de política de diagnóstico."},
++  {"WdiSystemHost","Host de sistema de diagnóstico — acompanha o serviço de política de diagnóstico."}
+  };
++
++ internal static string ServiceTier(string name){
++  string tier;return ServiceTiers.TryGetValue(name,out tier)?tier:"extremo";
++ }
++ internal static bool ServiceWithinTier(string name,string tier){
++  string actual=ServiceTier(name);
++  if(tier=="extremo")return true;
++  if(tier=="agressivo")return actual!="extremo";
++  return actual=="leve";
++ }
++ internal static string ServiceTierWarning(string tier){
++  if(tier=="leve")return "Recursos que a maioria dos PCs domésticos nunca usa: fax, modo de loja, cartão inteligente, NFC, mapas offline, registro remoto.";
++  if(tier=="agressivo")return "Inclui busca indexada, impressão, scanner, geolocalização e telemetria. Você perde funções que usa de vez em quando; tudo volta ao desfazer.";
++  if(tier=="extremo")return "Inclui Bluetooth, Xbox Live, DLNA/UPnP, sensores e os solucionadores de problemas do Windows. Só use se souber exatamente o que cada um faz no seu PC. Nada aqui aumenta FPS por si só.";
++  return "Nível desconhecido.";
++ }
++ // Conferido nos testes e antes de qualquer alteração em lote: a lista opcional não
++ // pode conter nada da lista protegida, e todo serviço precisa de nível e descrição.
++ internal static void ValidateServiceCatalog(){
++  foreach(var entry in OptionalServices){
++   if(ProtectedServices.Contains(entry.Key))throw new Exception("Serviço protegido na lista opcional: "+entry.Key);
++   if(String.IsNullOrWhiteSpace(entry.Value))throw new Exception("Serviço sem descrição de impacto: "+entry.Key);
++   if(!ServiceTiers.ContainsKey(entry.Key))throw new Exception("Serviço sem nível declarado: "+entry.Key);
++   string tier=ServiceTiers[entry.Key];
++   if(tier!="leve"&&tier!="agressivo"&&tier!="extremo")throw new Exception("Nível inválido em "+entry.Key+": "+tier);
++  }
++  foreach(var entry in ServiceTiers)
++   if(!OptionalServices.ContainsKey(entry.Key))throw new Exception("Nível declarado para serviço fora da lista opcional: "+entry.Key);
++ }
+ #if TESTS
+  internal static Func<string,ServiceState> TestServiceRead;
+  internal static Action<string,bool> TestServiceChange;
+@@ -142,7 +241,13 @@
+    if(!ChangeServiceConfig(service,UInt32.MaxValue,UInt32.Parse(start),UInt32.MaxValue,null,null,IntPtr.Zero,null,null,null,null))throw new Win32Exception(Marshal.GetLastWin32Error());
+   }finally{if(service!=IntPtr.Zero)CloseServiceHandle(service);CloseServiceHandle(manager);}
+  }
++ // Serviços de um nível que ainda não estão desativados neste PC.
++ internal static string[] ServicesInTier(string tier){
++  if(tier!="leve"&&tier!="agressivo"&&tier!="extremo")throw new Exception("Nível de serviço inválido.");
++  return OptionalServices.Keys.Where(n=>ServiceWithinTier(n,tier)).OrderBy(n=>ServiceTier(n)=="leve"?0:ServiceTier(n)=="agressivo"?1:2).ThenBy(n=>n,StringComparer.OrdinalIgnoreCase).ToArray();
++ }
+  internal static void DisableOptionalServices(string[] names) {
++  ValidateServiceCatalog(); // nada protegido pode ter entrado na lista opcional
+   if(names.Length==0||names.Length>OptionalServices.Count||names.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=names.Length)throw new Exception("Seleção de serviços inválida.");
+   foreach(string name in names)ServiceStart(name); // entire allowlist check before any record or mutation
+   var rec=NewRecord("Desativar serviços opcionais selecionados","services-v3","Serviços");rec.ServiceValues=new List<ServiceSaved>();Save(rec);
+--- a/codigo-fonte/LukeOptimizer/source/LukeOptimizer.cs
++++ b/codigo-fonte/LukeOptimizer/source/LukeOptimizer.cs
+@@ -44,6 +44,11 @@
+  public RegOp Before {get;set;} public RegOp After {get;set;} public bool KeyExisted {get;set;}
+  public string[] AbsentKeys {get;set;}
+ }
++// Executável de um app encerrado, guardado para permitir reabri-lo depois.
++// Só caminho e nome: linha de comando, argumentos e sessão não são reproduzidos.
++public class ClosedApp {
++ public string Name {get;set;} public string Path {get;set;} public string Tier {get;set;}
++}
+ public class Record {
+  public string OutcomeCode {get;set;} public bool? RequestedAdmin {get;set;} public List<BackupAttachment> Attachments {get;set;} public bool ExecutionCancelled {get;set;}
+  public PlatformSnapshot Platform {get;set;} public ExecutionReport Result {get;set;} public string LogError {get;set;}
+@@ -56,6 +61,7 @@
+  public bool PlanReused {get;set;} public int Schema {get;set;} public string[] ItemIds {get;set;}
+  public string Updated {get;set;} public bool ChangesStarted {get;set;}
+  public List<ServiceSaved> ServiceValues {get;set;}
++ public List<ClosedApp> ClosedApps {get;set;}
+  public PrioritySaved PriorityValue {get;set;}
+  public ResourceSample BeforeSample {get;set;} public ResourceSample AfterSample {get;set;}
+  public List<SettingEvidence> Evidence {get;set;}
+@@ -169,6 +175,8 @@
+       else if(args[0]=="--restorepoint")RestorePoint();
+       else if(args[0]=="--startup")DisableStartup(args[1]);
+       else if(args[0]=="--services")DisableOptionalServices(args[1].Split(new[]{','}));
++      else if(args[0]=="--services-tier")DisableOptionalServices(ServicesInTier(args[1]));
++      else if(args[0]=="--reopen-apps")ReopenClosedApps(args[1]);
+       else if(args[0]=="--priority")ApplyFocus(args[1]);
+       else if(args[0]=="--restore-selection")ApplyTransaction(RestoreSelectionItems(args[1]),"Perfil","Restaurar seleção do backup");
+       else if(args[0]=="--apply-custom")ApplyTransaction(ExtraSettings.Manual(args[1]),"Perfil","Ajustes manuais escolhidos");
+--- a/codigo-fonte/LukeOptimizer/source/IsolatedTransactions.cs
++++ b/codigo-fonte/LukeOptimizer/source/IsolatedTransactions.cs
+@@ -10,6 +10,10 @@
+   if(action=="--restore-selection")return LiquidProtocol.NeedsAdmin(RestoreSelectionItems(payload));
+   if(action=="--apply-custom")return LiquidProtocol.NeedsAdmin(ExtraSettings.Manual(payload));
+   if(action=="--remove-apps"){ValidateRemovalPayload(payload);return false;}
++  // Serviços exigem administrador; reabrir apps do usuário, não — e elevar aqui seria
++  // pior, porque relançaria o programa com privilégio que ele não tinha antes.
++  if(action=="--services-tier"){ServicesInTier(payload);return true;}
++  if(action=="--reopen-apps")return false;
+   if(action=="--apply-many"||action=="--max")return LiquidProtocol.NeedsAdmin(LiquidProtocol.Resolve(payload));
+   if(action=="--apply"){
+    var item=Items.FirstOrDefault(i=>i.Id==CatalogIds.Canonical(payload));
+--- a/codigo-fonte/LukeOptimizer/tests/V4Tests.cs
++++ b/codigo-fonte/LukeOptimizer/tests/V4Tests.cs
+@@ -22,8 +22,33 @@
+   var library=PerformanceLibrary.Load();Assert(library.Count>=70&&library.Select(x=>x.Id).Distinct().Count()==library.Count,"original performance library preserved and unique");
+   Assert(library.All(x=>(x.Action=="catalog"||x.Source.StartsWith("https://"))&&!String.IsNullOrWhiteSpace(x.Effect)&&!String.IsNullOrWhiteSpace(x.Tradeoff)),"every option identifies effects, limits and reference");
+   Assert(library.Where(x=>x.Action=="native").All(x=>Builtins.Create().Concat(V5Options.Items()).Concat(V5InputItems.Create()).Concat(ImportedOptions.Items()).Concat(ExtraSettings.Items()).Concat(ReviewedFeatures.Items()).Any(i=>i.Id==x.Target)),"library native actions resolve to trusted items");
+-  Assert(App.OptionalServices.Count==10&&!App.OptionalServices.Keys.Any(x=>new[]{"WinDefend","wuauserv","BITS","Audiosrv","Dhcp","SysMain"}.Contains(x)),"expanded optional service list excludes essential security and device services");
+-  Assert(ResourceMonitor.Closable.Count>=40&&!ResourceMonitor.Closable.Contains("OneDrive")&&!ResourceMonitor.Closable.Contains("steam")&&!ResourceMonitor.Closable.Contains("explorer"),"expanded process list preserves synchronization, launcher and shell");
++  // A contagem deixou de ser fixa (era 10, hoje 41). O que precisa continuar valendo é
++  // que nada essencial entre na lista, que todo serviço tenha nível e descrição, e que
++  // a lista protegida e a opcional nunca se cruzem — é o que ValidateServiceCatalog confere.
++  App.ValidateServiceCatalog();
++  Assert(App.OptionalServices.Count>=10&&!App.OptionalServices.Keys.Any(x=>App.ProtectedServices.Contains(x)),"optional service list never contains a protected service");
++  Assert(new[]{"WinDefend","wuauserv","BITS","Audiosrv","Dhcp","SysMain","Dnscache","PlugPlay","CryptSvc","VSS","Schedule","Themes"}.All(x=>App.ProtectedServices.Contains(x)&&!App.OptionalServices.ContainsKey(x)),"security, update, network, audio and core services stay out of reach");
++  Assert(App.ServicesInTier("leve").All(n=>App.ServiceTier(n)=="leve")&&App.ServicesInTier("agressivo").All(n=>App.ServiceTier(n)!="extremo")&&App.ServicesInTier("extremo").Length==App.OptionalServices.Count,"service tiers nest: leve subset of agressivo subset of extremo");
++  Assert(App.ServicesInTier("leve").Length>0&&App.ServicesInTier("leve").Length<App.ServicesInTier("agressivo").Length&&App.ServicesInTier("agressivo").Length<App.ServicesInTier("extremo").Length,"each service tier adds services");
++  ExpectFailure(()=>App.ServicesInTier("tudo"),"unknown service tier rejected");
++  ExpectFailure(()=>App.DisableOptionalServices(new[]{"Dnscache"}),"protected service rejected by tier-aware allowlist");
++  // Launchers e sincronização passaram a ser fecháveis, mas só nos níveis 2 e 3, nunca
++  // no nível 1 nem na ação de um clique. O shell continua fora de qualquer nível.
++  Assert(ResourceMonitor.Closable.Count>=40&&!ResourceMonitor.Closable.Contains("explorer")&&!ResourceMonitor.Closable.Contains("csrss")&&!ResourceMonitor.Closable.Contains("dwm"),"shell and session processes are never closable");
++  Assert(ResourceMonitor.Tier("OneDrive")=="agressivo"&&ResourceMonitor.Tier("steam")=="extremo"&&ResourceMonitor.Tier("chrome")=="leve"&&ResourceMonitor.Tier("explorer")=="","synchronization, launcher and user apps are tiered, shell has no tier");
++  Assert(!ResourceMonitor.WithinTier("steam","leve")&&!ResourceMonitor.WithinTier("steam","agressivo")&&ResourceMonitor.WithinTier("steam","extremo"),"launcher only reachable at the extreme tier");
++  Assert(!ResourceMonitor.WithinTier("OneDrive","leve")&&ResourceMonitor.WithinTier("OneDrive","agressivo"),"synchronization only reachable from the aggressive tier up");
++  Assert(!ResourceMonitor.WithinTier("explorer","extremo"),"a process outside the allowlist belongs to no tier");
++  Assert(new[]{"leve","agressivo","extremo"}.All(t=>!String.IsNullOrWhiteSpace(ResourceMonitor.TierWarning(t))&&!String.IsNullOrWhiteSpace(App.ServiceTierWarning(t))),"every tier states what is lost");
++  // Um nome genérico casa com processo alheio: "Agent" é backup, monitoramento e EDR
++  // corporativo; "Sync" é meia dúzia de produtos. Nada disso pode virar app fechável.
++  Assert(!ResourceMonitor.Closable.Contains("Agent")&&!ResourceMonitor.Closable.Contains("Sync")&&!ResourceMonitor.Closable.Contains("Update")&&!ResourceMonitor.Closable.Contains("Service")&&!ResourceMonitor.Closable.Contains("Host")&&!ResourceMonitor.Closable.Contains("Client"),"generic process names never enter the closable list");
++  // Closable já é um HashSet, então comparar com Distinct não provaria nada: um nome
++  // repetido entre níveis seria absorvido em silêncio e ficaria com o nível errado.
++  // Somar os arrays de origem é o que expõe a sobreposição.
++  Assert(ResourceMonitor.TierSourceCount("leve")+ResourceMonitor.TierSourceCount("agressivo")+ResourceMonitor.TierSourceCount("extremo")==ResourceMonitor.Closable.Count,"the three process tiers do not overlap");
++  ExpectFailure(()=>ResourceMonitor.TierSourceCount("tudo"),"unknown process tier rejected");
++  ReopenTests();
+   var parts=FrameAnalysis.ParseLine("\"a,b\",\"x\"\"y\",3",',');Assert(parts.SequenceEqual(new[]{"a,b","x\"y","3"}),"CSV parser handles quoted delimiters and escaped quotes");
+   ExpectFailure(()=>FrameAnalysis.ParseLine("\"unfinished",','),"unclosed CSV quotes rejected");
+   ExpectFailure(()=>Csv("Application,GPUTime\ngame,8"),"GPU duration is not falsely treated as frame interval");
+@@ -81,4 +106,46 @@
+   game.CloseApps=new string[0];game.TargetFps=1001;ExpectFailure(()=>GameProfiles.Save(game),"invalid target FPS rejected");
+   Reset();
+  }
++ // Reabrir apps fechados nunca deve virar "execute este caminho porque o registro mandou".
++ // Todo caminho é revalidado contra a mesma allowlist que autorizou o fechamento.
++ static void ReopenTests(){
++  Reset();
++  ExpectFailure(()=>App.ReopenClosedApps("nao-e-um-guid"),"reopen with malformed record id rejected");
++  ExpectFailure(()=>App.ReopenClosedApps(Guid.NewGuid().ToString("N")),"reopen of a missing record rejected");
++
++  Func<List<ClosedApp>,string,Record> store=(apps,kind)=>{
++   var r=new Record{Id=Guid.NewGuid().ToString("N"),ItemId="apps",Name="fixture",Time=DateTime.UtcNow.ToString("o"),
++    Kind=kind,Status="concluído",Message="",UserSid=App.Sid,Values=new List<SavedValue>(),
++    NativeValues=new List<NativeSaved>(),Steps=new List<StepResult>(),Schema=3,ClosedApps=apps};
++   App.Save(r);return r;
++  };
++
++  var wrongKind=store(new List<ClosedApp>{new ClosedApp{Name="chrome",Path=@"C:\Apps\chrome.exe",Tier="leve"}},"Serviços");
++  ExpectFailure(()=>App.ReopenClosedApps(wrongKind.Id),"reopen refuses a record that did not close applications");
++
++  var empty=store(new List<ClosedApp>(),"Apps e RAM");
++  ExpectFailure(()=>App.ReopenClosedApps(empty.Id),"reopen refuses a record with nothing to reopen");
++
++  var foreign=store(new List<ClosedApp>{new ClosedApp{Name="chrome",Path=@"C:\Apps\chrome.exe",Tier="leve"}},"Apps e RAM");
++  foreign.UserSid="S-1-0-0";App.Save(foreign);
++  ExpectFailure(()=>App.ReopenClosedApps(foreign.Id),"reopen refuses another account's record");
++
++  // Um registro adulterado não consegue lançar nada: cada entrada é recusada por um
++  // motivo próprio e o resultado fica "falhou", sem nenhum processo iniciado.
++  var tampered=store(new List<ClosedApp>{
++   new ClosedApp{Name="evil",Path=@"C:\Temp\evil.exe",Tier="leve"},                      // fora da allowlist
++   new ClosedApp{Name="chrome",Path=@"..\..\chrome.exe",Tier="leve"},                    // caminho relativo
++   new ClosedApp{Name="chrome",Path="C:\\Apps\\chrome.exe\" --disable-web-security",Tier="leve"}, // aspas no caminho
++   new ClosedApp{Name="chrome",Path=@"C:\Apps\payload.bat",Tier="leve"},                 // não é .exe
++   new ClosedApp{Name="chrome",Path=@"C:\Apps\naoexiste.exe",Tier="leve"}                // não existe
++  },"Apps e RAM");
++  var result=App.ReopenClosedApps(tampered.Id);
++  Assert(result.Status=="falhou"&&result.Steps.Count==5&&result.Steps.All(s=>s.Status=="ignorado"),"tampered reopen record launches nothing");
++  // O motivo exato das entradas 2 a 5 depende da plataforma (Path.IsPathRooted trata
++  // "C:\..." como relativo fora do Windows), então só a recusa pela allowlist é fixada.
++  Assert(result.Steps[0].Message.Contains("fora da lista"),"a process outside the allowlist is refused by name, before any path check");
++  Assert(result.Steps.All(s=>!String.IsNullOrWhiteSpace(s.Message)),"every refused reopen states a reason");
++  Assert(!App.CanUndo(result)&&!App.CanUndo(tampered),"closing and reopening apps stay outside the undo chain");
++  Reset();
++ }
+ }
+--- a/codigo-fonte/LukeOptimizer/tests/ProductUiTests.cs
++++ b/codigo-fonte/LukeOptimizer/tests/ProductUiTests.cs
+@@ -12,6 +12,7 @@
+   // e o teste falhava por desatualização. A invariante é a grade refletir o catálogo.
+   if(storageCategories.Items.Count!=StorageManager.Categories().Count||memoryInterval.Minimum<1)throw new Exception("v6 module controls missing");
+   TestVisibility();
++  TestPalette();
+   string[] targets={"Painel","Memory Manager","Temporários","Avançado / Alto Impacto","Resultados","Configurações"};
+   foreach(var size in new[]{new Size(1080,720),new Size(1920,1080),new Size(2560,1440)}){
+    Size=size;foreach(string target in targets){ShowPage(target);PerformLayout();Application.DoEvents();if(pages[target].ClientSize.Width<700||pages[target].Height<460)throw new Exception("v6 collapsed page "+target);
+@@ -74,6 +75,50 @@
+   SameVisibility(reference,memoryList,"6.2 a lista de processos está invisível");
+   SameVisibility(reference,memoryInterval,"6.2 o intervalo do modo automático está invisível");
+  }
++ // Luminância relativa e contraste do WCAG 2.x. O tema é escuro e os ganhos de cor
++ // são fáceis de perder de vista numa troca de paleta, então ficam medidos, não no olho.
++ static double Channel(int v){
++  double s=v/255.0;
++  return s<=0.04045?s/12.92:Math.Pow((s+0.055)/1.055,2.4);
++ }
++ static double Luminance(Color c){return 0.2126*Channel(c.R)+0.7152*Channel(c.G)+0.0722*Channel(c.B);}
++ static double Contrast(Color a,Color b){
++  double la=Luminance(a),lb=Luminance(b);
++  return (Math.Max(la,lb)+0.05)/(Math.Min(la,lb)+0.05);
++ }
++ static void Readable(Color ink,Color back,string label){
++  double ratio=Contrast(ink,back);
++  if(ratio<4.5)throw new Exception("6.2 contraste insuficiente em "+label+": "+ratio.ToString("0.00")+":1");
++ }
++ internal void TestPalette(){
++  // Todo par de texto real da interface, nas duas peles.
++  foreach(bool blue in new[]{true,false}){
++   Theme.Apply(blue);
++   string skin=blue?"azul":"âmbar";
++   Readable(Theme.Text,Theme.Card,skin+" texto/cartão");
++   Readable(Theme.Text,Theme.Bg,skin+" texto/fundo");
++   Readable(Theme.Text,Theme.Side,skin+" texto/barra lateral");
++   Readable(Theme.Text,Theme.Selection,skin+" texto/seleção");
++   Readable(Theme.Text,Theme.Alt,skin+" texto/linha alternada");
++   Readable(Theme.Text,Theme.Hover,skin+" texto/hover");
++   Readable(Theme.Muted,Theme.Card,skin+" secundário/cartão");
++   Readable(Theme.Muted,Theme.Bg,skin+" secundário/fundo");
++   Readable(Theme.Muted,Theme.Disabled,skin+" secundário/botão desligado");
++   Readable(Theme.Accent,Theme.Card,skin+" acento/cartão");
++   Readable(Theme.Accent,Theme.Selection,skin+" acento/seleção");
++   Readable(Theme.Accent,Theme.HeroFill,skin+" acento/destaque");
++   Readable(Theme.Bg,Theme.Accent,skin+" texto do botão primário");
++   Readable(Theme.HeroText,Theme.HeroFill,skin+" texto do destaque");
++   Readable(Theme.Red,Theme.Card,skin+" erro/cartão");
++   Readable(Theme.Amber,Theme.Card,skin+" aviso/cartão");
++   Readable(Theme.Contrast,Theme.Card,skin+" série secundária/cartão");
++  }
++  Theme.Apply(true);
++  // As duas linhas do gráfico antes/depois não podem ser a mesma cor.
++  if(Theme.Accent.ToArgb()==Theme.Contrast.ToArgb())throw new Exception("6.2 as séries do gráfico usam a mesma cor");
++  if(Theme.Selection.ToArgb()==Theme.Card.ToArgb())throw new Exception("6.2 seleção indistinguível do cartão");
++  if(!Theme.BlueSkin)throw new Exception("6.2 a pele azul não é a padrão");
++ }
+  // Com a janela realizada exige visibilidade efetiva; sem ela, conta a presença na árvore.
+  static int CountChecks(Control parent,bool realized){
+   int total=0;
