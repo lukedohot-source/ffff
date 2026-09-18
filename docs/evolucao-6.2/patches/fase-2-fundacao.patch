@@ -1,0 +1,1336 @@
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-18 11:07:06.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-18 23:25:40.586181538 +0000
+@@ -10,14 +10,40 @@
+ using System.Windows.Forms;
+ 
+ static class Theme {
+- internal static Color Bg=Color.FromArgb(15,16,18),Side=Color.FromArgb(20,21,24),Card=Color.FromArgb(27,29,33),Line=Color.FromArgb(65,68,74),Text=Color.FromArgb(245,246,248),Muted=Color.FromArgb(180,185,194),Accent=Color.FromArgb(255,208,48),Amber=Color.FromArgb(244,191,112),Red=Color.FromArgb(248,139,143),Blue=Color.FromArgb(139,190,241);
++ // Paleta única do aplicativo. Selection/Hover/Alt/HeroFill/HeroText/CheckFill existiam
++ // como Color.FromArgb fixos espalhados por cinco arquivos, o que tornava impossível
++ // trocar de cor sem caçar cada um. Agora todos saem daqui.
++ // Line desenha bordas; Disabled preenche botao desligado. Eram a mesma cor, e clarear
++ // a borda escurecia o texto do botao desligado — agora cada papel tem a sua.
++ internal static Color Bg,Side,Card,Line,Disabled,Text,Muted,Accent,Amber,Red,Contrast,Selection,Hover,Alt,HeroFill,HeroText,CheckFill;
++ internal static bool BlueSkin;
++ static Theme(){Apply(true);}
++ // Apply(false) devolve a pele âmbar original; nada mais no código precisa mudar.
++ internal static void Apply(bool blue){
++  BlueSkin=blue;
++  Text=Color.FromArgb(238,243,250);Red=Color.FromArgb(248,139,143);Amber=Color.FromArgb(244,191,112);
++  if(blue){
++   Bg=Color.FromArgb(12,16,24);Side=Color.FromArgb(16,21,32);Card=Color.FromArgb(22,29,43);
++   Line=Color.FromArgb(70,90,120);Disabled=Color.FromArgb(38,48,66);Muted=Color.FromArgb(165,178,197);
++   Accent=Color.FromArgb(88,166,255);            // 6,6:1 sobre Card e 7,5:1 contra Bg em botão primário
++   Contrast=Color.FromArgb(236,150,205);         // serie secundaria: 108 graus de matiz do acento e longe do ambar de aviso
++   Selection=Color.FromArgb(28,52,84);Hover=Color.FromArgb(30,42,62);Alt=Color.FromArgb(18,26,40);
++   HeroFill=Color.FromArgb(24,34,52);HeroText=Color.FromArgb(186,206,235);CheckFill=Color.FromArgb(8,12,20);
++  }else{
++   Bg=Color.FromArgb(15,16,18);Side=Color.FromArgb(20,21,24);Card=Color.FromArgb(27,29,33);
++   Line=Color.FromArgb(65,68,74);Disabled=Color.FromArgb(65,68,74);Muted=Color.FromArgb(180,185,194);
++   Accent=Color.FromArgb(255,208,48);Contrast=Color.FromArgb(139,190,241);
++   Selection=Color.FromArgb(62,55,27);Hover=Color.FromArgb(39,49,62);Alt=Color.FromArgb(25,33,44);
++   HeroFill=Color.FromArgb(34,35,39);HeroText=Color.FromArgb(191,214,203);CheckFill=Color.FromArgb(3,2,5);
++  }
++ }
+  internal static Font Font(float size,bool bold=false){return new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular);}
+  internal static Label Label(string text,float size,Color color,bool bold=false){var label=size>=20?(Label)new HeadingLabel():new Label();label.Text=text;label.Font=Font(size,bold);label.ForeColor=color;label.AutoSize=false;label.Dock=DockStyle.Fill;label.TextAlign=ContentAlignment.MiddleLeft;label.AutoEllipsis=size<20;label.Margin=Padding.Empty;return label;}
+  internal static ActionButton Button(string text,bool primary=false){return new ActionButton {Text=text,Primary=primary,Height=40,Width=175,Font=Font(10,true),Margin=new Padding(0,0,10,0),Cursor=Cursors.Hand,AccessibleName=text};}
+  internal static TextBox ReadBox(){return new TextBox {Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Dock=DockStyle.Fill,BackColor=Card,ForeColor=Text,BorderStyle=BorderStyle.None,Font=Font(10),Margin=Padding.Empty};}
+  internal static Color StatusColor(string s){if(s=="Conferido"||s=="Valores conferidos"||s=="Plano ativo"||s=="aplicado"||s=="desfeito"||s=="Revisado")return Accent;if(s.Contains("erro")||s.Contains("Erro")||s.Contains("falha")||s=="Alto risco")return Red;if(s=="Parcial"||s=="Condicional"||s=="Nome incorreto"||s=="Não comprovado"||s=="Substituído")return Amber;return Muted;}
+  internal static void DrawCheck(Graphics g,Rectangle box,bool selected,bool enabled){
+-  using(var fill=new SolidBrush(Color.FromArgb(3,2,5)))g.FillRectangle(fill,box);
++  using(var fill=new SolidBrush(CheckFill))g.FillRectangle(fill,box);
+   using(var border=new Pen(enabled?(selected?Accent:Muted):Line,selected?2:1))g.DrawRectangle(border,box);
+   if(selected)using(var tick=new Pen(enabled?Accent:Muted,Math.Max(2,box.Width/7f))){tick.StartCap=tick.EndCap=LineCap.Round;g.DrawLines(tick,new[]{new Point(box.X+box.Width/5,box.Y+box.Height/2),new Point(box.X+box.Width*2/5,box.Y+box.Height*3/4),new Point(box.X+box.Width*4/5,box.Y+box.Height/4)});}
+  }
+@@ -47,20 +73,20 @@
+  public ActionButton(){FlatStyle=FlatStyle.Flat;FlatAppearance.BorderSize=0;SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer,true);BackColor=Theme.Card;ForeColor=Theme.Text;}
+  protected override void OnMouseEnter(EventArgs e){hover=true;Invalidate();base.OnMouseEnter(e);}
+  protected override void OnMouseLeave(EventArgs e){hover=false;Invalidate();base.OnMouseLeave(e);}
+- protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Parent==null?Theme.Bg:Parent.BackColor);Color c=!Enabled?Theme.Line:Primary?Theme.Accent:Active?Color.FromArgb(62,55,27):hover?Color.FromArgb(39,49,62):Theme.Card;using(var path=Theme.Round(new Rectangle(0,0,Math.Max(1,Width-1),Math.Max(1,Height-1)),8))using(var b=new SolidBrush(c))g.FillPath(b,path);TextRenderer.DrawText(g,Text,Font,ClientRectangle,!Enabled?Theme.Muted:Primary?Theme.Bg:Active?Theme.Accent:Theme.Text,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);if(Focused)ControlPaint.DrawFocusRectangle(g,new Rectangle(4,4,Width-8,Height-8),Theme.Text,c);}
++ protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Parent==null?Theme.Bg:Parent.BackColor);Color c=!Enabled?Theme.Disabled:Primary?Theme.Accent:Active?Theme.Selection:hover?Theme.Hover:Theme.Card;using(var path=Theme.Round(new Rectangle(0,0,Math.Max(1,Width-1),Math.Max(1,Height-1)),8))using(var b=new SolidBrush(c))g.FillPath(b,path);TextRenderer.DrawText(g,Text,Font,ClientRectangle,!Enabled?Theme.Muted:Primary?Theme.Bg:Active?Theme.Accent:Theme.Text,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);if(Focused)ControlPaint.DrawFocusRectangle(g,new Rectangle(4,4,Width-8,Height-8),Theme.Text,c);}
+ }
+ class CatalogList : ListView {
+  ImageList rowHeight;
+  public CatalogList(){DoubleBuffered=true;View=View.Details;FullRowSelect=true;MultiSelect=false;HideSelection=false;BackColor=Theme.Card;ForeColor=Theme.Text;BorderStyle=BorderStyle.None;Font=Theme.Font(10);Dock=DockStyle.Fill;OwnerDraw=true;rowHeight=new ImageList {ImageSize=new Size(1,36)};SmallImageList=rowHeight;}
+  protected override void OnDrawColumnHeader(DrawListViewColumnHeaderEventArgs e){using(var b=new SolidBrush(Theme.Side))e.Graphics.FillRectangle(b,e.Bounds);TextRenderer.DrawText(e.Graphics,e.Header.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-16,e.Bounds.Height),Theme.Muted,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);}
+  protected override void OnDrawItem(DrawListViewItemEventArgs e){}
+- protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){bool selected=e.Item.Selected;using(var b=new SolidBrush(selected?Color.FromArgb(62,55,27):e.ItemIndex%2==0?Theme.Card:Color.FromArgb(25,33,44)))e.Graphics.FillRectangle(b,e.Bounds);Color color=e.ColumnIndex>=2?Theme.StatusColor(e.SubItem.Text):Theme.Text;TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-18,e.Bounds.Height),color,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.SingleLine);}
++ protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){bool selected=e.Item.Selected;using(var b=new SolidBrush(selected?Theme.Selection:e.ItemIndex%2==0?Theme.Card:Theme.Alt))e.Graphics.FillRectangle(b,e.Bounds);Color color=e.ColumnIndex>=2?Theme.StatusColor(e.SubItem.Text):Theme.Text;TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-18,e.Bounds.Height),color,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.SingleLine);}
+  protected override void Dispose(bool disposing){if(disposing)rowHeight.Dispose();base.Dispose(disposing);}
+ }
+ 
+ class CheckableList : CatalogList {
+  protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){
+-  using(var brush=new SolidBrush(e.Item.Selected?Color.FromArgb(36,53,74):Theme.Card))e.Graphics.FillRectangle(brush,e.Bounds);
++  using(var brush=new SolidBrush(e.Item.Selected?Theme.Selection:Theme.Card))e.Graphics.FillRectangle(brush,e.Bounds);
+   int inset=12;
+   if(e.ColumnIndex==0&&CheckBoxes){Theme.DrawCheck(e.Graphics,new Rectangle(e.Bounds.X+9,e.Bounds.Y+(e.Bounds.Height-20)/2,20,20),e.Item.Checked,Enabled);inset=38;}
+   TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+inset,e.Bounds.Y,Math.Max(1,e.Bounds.Width-inset-8),e.Bounds.Height),e.Item.ForeColor,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);
+@@ -70,6 +96,11 @@
+  readonly Dictionary<string,Panel> pages=new Dictionary<string,Panel>();readonly Dictionary<string,ActionButton> nav=new Dictionary<string,ActionButton>();
+  readonly Dictionary<string,CheckBox> picks=new Dictionary<string,CheckBox>();readonly Dictionary<string,Label> pickStates=new Dictionary<string,Label>();
+  Dictionary<string,Observed> states=new Dictionary<string,Observed>();HashSet<string> favorites=new HashSet<string>();Machine machine=new Machine();
++ // Leitura estruturada do PC, usada pelo motor de compatibilidade e pela ficha de cada
++ // opção. Fica NULA até a primeira análise de propósito: com perfil nulo o motor responde
++ // "Não detectado", que é a verdade antes de alguém clicar em Analisar este PC. Preenchê-la
++ // com um objeto vazio faria o motor responder o mesmo, mas parecendo que houve leitura.
++ MachineProfile profile;
+  Panel host;Label title,subtitle,footer,profileSummary,profileNote,cpu,gpu,ram,disk,os,verifiedMetric,attentionMetric,externalMetric,heroHint,diagHeader;
+  TextBox search,detail,historyDetail,diagnosticText;ComboBox categories,reviewFilter,stateFilter;CatalogList catalog,history;
+  ActionButton scan,apply,undo,maxApply,favorite,point,export;ProgressBar progress;System.Windows.Forms.Timer workerTimer;
+@@ -100,12 +131,20 @@
+  }
+  Panel Page(string name){var p=new Panel {Dock=DockStyle.Fill,BackColor=Theme.Bg};host.Controls.Add(p);pages[name]=p;return p;}
+  TableLayoutPanel Rows(params float[] heights){var p=new TableLayoutPanel {Dock=DockStyle.Fill,RowCount=heights.Length,ColumnCount=1,Margin=Padding.Empty};foreach(float h in heights)p.RowStyles.Add(h<0?new RowStyle(SizeType.Percent,100):new RowStyle(SizeType.Absolute,h));return p;}
+- void ShowPage(string key){if(key=="Avançado / Alto Impacto"||key=="Energia avançada"||key=="Ajustes manuais")key="Otimizações";if(ready&&!App.IsUiTest()&&(key=="Apps e RAM"||key=="Manutenção"))BeginInvoke((Action)(async()=>await RefreshResources()));foreach(var p in pages)p.Value.Visible=p.Key==key;pages[key].BringToFront();foreach(var n in nav){n.Value.Active=n.Key==key;n.Value.Invalidate();}title.Text=key;subtitle.Text=key=="Otimizações"?"Selecione. Aplique. Acompanhe no histórico.":key=="Ferramentas"?"Todas as funções do Luke Optimizer.":key=="Catálogo"?"Busque um nome e veja o que cada item faz. As opções nativas têm backup.":key=="Otimização máxima"?"Escolha os ajustes. O modo fácil usa esta seleção.":key=="Seus 14 BATs"?"Conteúdo preservado, efeitos explicados e integração revisada.":key=="Apps e RAM"?"Consumo real, seleção explícita e fechamento sem apagar cache útil.":key=="Manutenção"?"Inicialização, serviços, temporários e foco — sempre opcionais.":key=="Diagnóstico"?"Leituras do seu PC e limites do que foi verificado.":key=="Histórico"?"Resultados por etapa e restauração dos valores anteriores.":"Seu PC, com ações claras e resultados verificáveis.";}
++ // "Avançado / Alto Impacto" foi consolidado em "Otimizações" e não existe mais como
++ // página; traduzir esse nome aposentado é legítimo. "Energia avançada" e "Ajustes
++ // manuais" EXISTEM em pages e estavam na mesma lista, então TODA tentativa de abri-las
++ // caía em Otimizações em silêncio: os botões que Ferramentas cria para cada página, os
++ // itens Action="page" de performance-library.json, a navegação do modo embutido e o
++ // mapa do V5Bridge apontavam para telas que nunca apareciam. Duas páginas inteiras eram
++ // código morto visível. A regra passa a ser estrutural em vez de uma lista de nomes:
++ // só cai em Otimizações o que não é página de verdade.
++ void ShowPage(string key){if(!pages.ContainsKey(key))key="Otimizações";if(ready&&!App.IsUiTest()&&(key=="Apps e RAM"||key=="Manutenção"))BeginInvoke((Action)(async()=>await RefreshResources()));foreach(var p in pages)p.Value.Visible=p.Key==key;pages[key].BringToFront();foreach(var n in nav){n.Value.Active=n.Key==key;n.Value.Invalidate();}title.Text=key;subtitle.Text=key=="Otimizações"?"Selecione. Aplique. Acompanhe no histórico.":key=="Ferramentas"?"Todas as funções do Luke Optimizer.":key=="Catálogo"?"Busque um nome e veja o que cada item faz. As opções nativas têm backup.":key=="Otimização máxima"?"Escolha os ajustes. O modo fácil usa esta seleção.":key=="Seus 14 BATs"?"Conteúdo preservado, efeitos explicados e integração revisada.":key=="Apps e RAM"?"Consumo real, seleção explícita e fechamento sem apagar cache útil.":key=="Manutenção"?"Inicialização, serviços, temporários e foco — sempre opcionais.":key=="Diagnóstico"?"Leituras do seu PC e limites do que foi verificado.":key=="Histórico"?"Resultados por etapa e restauração dos valores anteriores.":"Seu PC, com ações claras e resultados verificáveis.";}
+  void BuildDashboard(){
+   var page=Page("Visão geral");var grid=Rows(214,112,-1);page.Controls.Add(grid);
+-  var hero=new Surface {Dock=DockStyle.Fill,Fill=Color.FromArgb(34,35,39),BackColor=Color.FromArgb(34,35,39),Padding=new Padding(25,17,25,17),Margin=new Padding(0,0,0,16)};grid.Controls.Add(hero,0,0);
++  var hero=new Surface {Dock=DockStyle.Fill,Fill=Theme.HeroFill,BackColor=Theme.HeroFill,Padding=new Padding(25,17,25,17),Margin=new Padding(0,0,0,16)};grid.Controls.Add(hero,0,0);
+   var heroGrid=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=2};heroGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,67));heroGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,33));hero.Controls.Add(heroGrid);
+-  var heroText=Rows(25,48,42,-1);heroGrid.Controls.Add(heroText,0,0);heroText.Controls.Add(Theme.Label("PERFIL REVISADO  /  BACKUP AUTOMÁTICO",9,Theme.Accent,true),0,0);heroText.Controls.Add(Theme.Label("Seu PC, no controle.",27,Theme.Text,true),0,1);heroText.Controls.Add(Theme.Label("Aplique os ajustes compatíveis e acompanhe cada resultado.",11,Color.FromArgb(191,214,203)),0,2);
++  var heroText=Rows(25,48,42,-1);heroGrid.Controls.Add(heroText,0,0);heroText.Controls.Add(Theme.Label("PERFIL REVISADO  /  BACKUP AUTOMÁTICO",9,Theme.Accent,true),0,0);heroText.Controls.Add(Theme.Label("Seu PC, no controle.",27,Theme.Text,true),0,1);heroText.Controls.Add(Theme.Label("Aplique os ajustes compatíveis e acompanhe cada resultado.",11,Theme.HeroText),0,2);
+   var launch=Theme.Button("Otimização máxima  →",true);launch.Width=237;launch.Height=43;launch.Click+=(s,e)=>ShowPage("Otimização máxima");heroText.Controls.Add(launch,0,3);
+   var aside=Rows(55,45,-1);aside.Padding=new Padding(26,15,0,5);heroGrid.Controls.Add(aside,1,0);aside.Controls.Add(Theme.Label(Builtins.Create().Count.ToString(),28,Theme.Accent,true),0,0);aside.Controls.Add(Theme.Label("ajustes no perfil\r\n6 pré-selecionados",10,Theme.Text),0,1);heroHint=Theme.Label("A compatibilidade será\r\nconferida neste PC.",9,Theme.Muted);aside.Controls.Add(heroHint,0,2);
+   var metrics=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=4,RowCount=1};for(int n=0;n<4;n++)metrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,25));grid.Controls.Add(metrics,0,1);
+@@ -174,12 +213,20 @@
+  void ViewContent(){var i=Selected();if(i==null)return;var s=new StringBuilder();s.AppendLine(i.ReviewTitle).AppendLine("Arquivo original: "+i.Name).AppendLine(i.Path).AppendLine().AppendLine("REVISÃO").AppendLine(String.Join("\r\n",i.Review??new string[0])).AppendLine().AppendLine("LEITURA NESTE PC").AppendLine(State(i).Detail).AppendLine().AppendLine("CONFLITOS DE VALORES");foreach(var id in i.Conflicts??new string[0]){var other=App.Items.FirstOrDefault(x=>x.Id==id);s.AppendLine(other==null?id:other.Path);}s.AppendLine().AppendLine("CONTEÚDO ORIGINAL").AppendLine(String.IsNullOrEmpty(i.Text)?"Sem texto inspecionável. Programas de terceiros não foram executados para validar seu funcionamento.":i.Text);TextDialog("Revisão — "+i.Name,s.ToString());}
+  void TextDialog(string name,string text){if(EmbeddedInterface.Parent!=IntPtr.Zero){InlineReview(name,text,false);return;}using(var f=new Form {Text=name,Size=new Size(960,680),MinimumSize=new Size(650,420),StartPosition=FormStartPosition.CenterParent,BackColor=Theme.Card,Padding=new Padding(22)}){var box=Theme.ReadBox();box.Font=Theme.Font(10);box.Text=text.Replace("\r\n","\n").Replace("\n",Environment.NewLine);f.Controls.Add(box);f.ShowDialog(this);}}
+  async Task RefreshScan(){if(busy||scanning||resourceScanning)return;scanning=true;scan.Enabled=false;progress.Visible=true;progress.Value=0;footer.Text="Consultando hardware, preferências e serviços…";SetActions();
+-  try {var m=await Task.Run(()=>App.ScanHardware());var pg=new Progress<int>(v=>{progress.Value=v;footer.Text="Conferindo catálogo: "+v+"%";});states=await Task.Run(()=>App.ScanAll(m,n=>((IProgress<int>)pg).Report(n)));machine=m;serviceText=await Task.Run(()=>App.ServiceReport());lastScan=DateTime.Now;footer.Text=m.Windows?"Análise concluída às "+lastScan.ToString("HH:mm")+" · Configurações consultadas; FPS não medido.":"Leituras disponíveis ao abrir este app no Windows.";}
++  // O perfil estruturado é lido na MESMA thread de fundo da análise, junto do resto.
++  // WMI aqui tem timeout de 8 s por consulta; chamar isso na thread da interface a cada
++  // clique em Detalhes travaria a janela — por isso é lido uma vez e guardado.
++  try {var m=await Task.Run(()=>App.ScanHardware());var p=await Task.Run(()=>App.ReadProfile(m));var pg=new Progress<int>(v=>{progress.Value=v;footer.Text="Conferindo catálogo: "+v+"%";});states=await Task.Run(()=>App.ScanAll(m,n=>((IProgress<int>)pg).Report(n)));machine=m;profile=p;serviceText=await Task.Run(()=>App.ServiceReport());lastScan=DateTime.Now;footer.Text=m.Windows?"Análise concluída às "+lastScan.ToString("HH:mm")+" · Configurações consultadas; FPS não medido.":"Leituras disponíveis ao abrir este app no Windows.";}
+   catch(Exception e){footer.Text="Análise incompleta: "+e.Message;}
+   finally{scanning=false;scan.Enabled=true;progress.Visible=false;RefreshHistory();RefreshCatalog();UpdateMetrics();UpdateProfile();SetActions();}
+  }
+  void UpdateMetrics(){verifiedMetric.Text=states.Count==0?"—":states.Values.Count(x=>x.Verified).ToString();attentionMetric.Text=App.Items.Count(Attention).ToString();externalMetric.Text=App.Items.Count(x=>x.ReviewLevel=="Externo não testado").ToString();cpu.Text="CPU  ·  "+machine.Cpu;gpu.Text="GPU  ·  "+machine.Gpu;ram.Text="MEMÓRIA  ·  "+machine.Ram;disk.Text="DISCO  ·  "+machine.Disk;os.Text=machine.OS;
+-  diagnosticText.Text="COMPUTADOR\r\n"+machine.OS+"\r\nCPU: "+machine.Cpu+"\r\nGPU: "+machine.Gpu+"\r\nMemória: "+machine.Ram+"\r\nDisco do sistema: "+machine.Disk+"\r\nPaginação: "+machine.Pagefile+"\r\nEnergia: "+machine.Power+"\r\n\r\n"+serviceText+"\r\n\r\nO QUE FOI REVISADO\r\n546 arquivos (532 anteriores + 14 BATs); 112 entradas de Registro normalizadas; 33 planos externos.\r\nRevisão estática do conteúdo legível, duplicatas e conflitos. 64 binários/pacotes não tiveram seu funcionamento testado.\r\n\r\nCOMO LER OS ESTADOS\r\nConferido: configuração consultada por API/plano ativo.\r\nValores conferidos: todos os valores do Registro coincidem com o ajuste. Isso não prova que uma chave legada seja usada pelo Windows.\r\nParcial: somente parte das configurações coincide.\r\nNão configurado: não coincide com o ajuste; pode estar no padrão do Windows.\r\nNão verificado: sem leitura que comprove o funcionamento.\r\nFalha na leitura: consulta não concluída; veja o motivo no catálogo.\r\n\r\nNenhum medidor de “saúde 100%”, ganho de FPS ou redução de ping foi estimado.";
++  // O bloco estruturado entra ao lado do texto livre, não no lugar dele: ele diz
++  // explicitamente o que NÃO foi detectado e por quê, que é o que falta num relatório de
++  // suporte. Enquanto não houver análise, a seção declara isso em vez de ficar em branco.
++  diagnosticText.Text="COMPUTADOR\r\n"+machine.OS+"\r\nCPU: "+machine.Cpu+"\r\nGPU: "+machine.Gpu+"\r\nMemória: "+machine.Ram+"\r\nDisco do sistema: "+machine.Disk+"\r\nPaginação: "+machine.Pagefile+"\r\nEnergia: "+machine.Power+
++   "\r\n\r\nPERFIL DETECTADO (usado pelo motor de compatibilidade)\r\n"+(profile==null?"Ainda não analisado. Clique em Analisar este PC.":App.ProfileReport(profile))+
++   "\r\n"+OptimizationRegistry.Score(profile,delegate(string id){Observed found;return states.TryGetValue(id,out found)&&found.State=="Valores conferidos";})+"\r\n\r\n"+serviceText+"\r\n\r\nO QUE FOI REVISADO\r\n546 arquivos (532 anteriores + 14 BATs); 112 entradas de Registro normalizadas; 33 planos externos.\r\nRevisão estática do conteúdo legível, duplicatas e conflitos. 64 binários/pacotes não tiveram seu funcionamento testado.\r\n\r\nCOMO LER OS ESTADOS\r\nConferido: configuração consultada por API/plano ativo.\r\nValores conferidos: todos os valores do Registro coincidem com o ajuste. Isso não prova que uma chave legada seja usada pelo Windows.\r\nParcial: somente parte das configurações coincide.\r\nNão configurado: não coincide com o ajuste; pode estar no padrão do Windows.\r\nNão verificado: sem leitura que comprove o funcionamento.\r\nFalha na leitura: consulta não concluída; veja o motivo no catálogo.\r\n\r\nNenhum medidor de “saúde 100%”, ganho de FPS ou redução de ping foi estimado.";
+  }
+  void UpdateProfile(){if(maxApply==null)return;updatingPicks=true;int available=0,selected=0;foreach(var i in App.Items.Where(x=>x.Native&&x.MaxEligible)) {string incompatible=App.Compatibility(i,machine);bool allowed=machine.Windows&&incompatible==null;var pick=picks[i.Id];pick.Enabled=allowed&&!busy&&!scanning&&!resourceScanning&&!easyRunning;if(!allowed&&lastScan!=default(DateTime))pick.Checked=false;var state=State(i);pickStates[i.Id].Text=allowed?state.State:machine.Windows?"Ignorado neste PC":"Aguardando Windows";pickStates[i.Id].ForeColor=allowed?Theme.StatusColor(state.State):Theme.Amber;if(allowed)available++;if(allowed&&pick.Checked)selected++;}updatingPicks=false;
+   profileSummary.Text=selected+" ajuste(s) selecionado(s) · "+available+" compatível(is) neste PC.\r\nO backup registra os valores anteriores. Se um ajuste falhar, ele é restaurado individualmente e os demais continuam. Consulte o resultado por etapa.";heroHint.Text=machine.Windows?available+" ajuste(s) compatível(is) neste PC.\r\nLeia o cartão antes de aplicar.":"Abra no Windows para\r\nconferir a compatibilidade.";maxApply.Enabled=ready&&!busy&&!scanning&&!resourceScanning&&!easyRunning&&selected>0;RefreshEasySummary();}
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs	2026-09-18 12:33:15.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs	2026-09-18 23:25:25.142181891 +0000
+@@ -45,6 +45,7 @@
+   actions.Controls.Add(HomeButton("home-clean","Limpar temporários",async(s,e)=>await QuickCleanupOneClick(),176,true));
+   actions.Controls.Add(HomeButton("home-memory","Liberar RAM",async(s,e)=>await FreeMemoryOneClick(),158,true));
+   actions.Controls.Add(HomeButton("home-processes","Reduzir processos",async(s,e)=>await RunProcessReduction(),174,true));
++  actions.Controls.Add(HomeButton("home-processes-deep","Reduzir processos: extremo",async(s,e)=>await RunProcessReduction("extremo"),228));
+   actions.Controls.Add(HomeButton("home-gaming-session","Sessão de jogo",async(s,e)=>await RunGamingSessionProfile(),168,true));
+   actions.Controls.Add(HomeButton("home-apps","Remover apps",(s,e)=>ShowPage("Remover apps"),150));
+   actions.Controls.Add(HomeButton("home-extreme","Otimização Ultra",async(s,e)=>await RunUltraProfile(),187,true));
+@@ -53,7 +54,22 @@
+   var clear=HomeButton("home-clear","Limpar seleção",(s,e)=>SetHomeSelection(false),140);second.Controls.Add(clear);
+   var apply=HomeButton("home-apply","Aplicar selecionadas",async(s,e)=>await RunHome(false),170,true);second.Controls.Add(apply);
+   var undo=HomeButton("home-undo","Desfazer",async(s,e)=>await HomeUndoClick(),140);second.Controls.Add(undo);
+-  var restore=HomeButton("home-restore-selection","Restaurar seleção",async(s,e)=>{var rec=records.FirstOrDefault(App.CanUndo);if(rec==null)return;var ids=HomePayload(false);if(ids.Length>0)await Elevated("--restore-selection",rec.Id+"|"+String.Join(",",ids));},170);second.Controls.Add(restore);
++  // Restaurar reescreve o Windows com valores gravados antes: é alteração real, com
++  // elevação, e segue a mesma regra de todo o resto da página — revisar antes de aplicar.
++  // Este botão era o único que ia direto para a elevação, sem dizer QUAL backup usaria
++  // nem O QUE mudaria. Aplicar, Ultra, remoção de apps e ajustes manuais todos revisam.
++  var restore=HomeButton("home-restore-selection","Restaurar seleção",async(s,e)=>{
++   var rec=records.FirstOrDefault(App.CanUndo);if(rec==null)return;
++   var ids=HomePayload(false);if(ids.Length==0)return;
++   var chosen=ids.Select(App.ById).Where(i=>i!=null).ToArray();
++   DateTime when;string stamp=DateTime.TryParse(rec.Time,out when)?when.ToLocalTime().ToString("dd/MM/yyyy HH:mm"):rec.Time;
++   string text="Backup: "+rec.Name+" · "+stamp+"\r\n\r\n"+
++    "Estas configurações voltam ao valor gravado nesse backup:\r\n"+
++    String.Join("\r\n",chosen.Select(i=>"· "+i.ReviewTitle).ToArray())+
++    "\r\n\r\nSe outro programa alterou algum desses valores depois do backup, a restauração recusa sobrescrever e informa, em vez de apagar a mudança em silêncio.\r\nRequer administrador.";
++   if(!await InlineReview("Confirmar restauração da seleção",text,true))return;
++   await Elevated("--restore-selection",rec.Id+"|"+String.Join(",",ids));
++  },170);second.Controls.Add(restore);
+   var windowDetails=HomeButton("home-details-native-window","Detalhes da otimização selecionada",async(s,e)=>{var item=App.ById("native-window");if(item!=null)await ShowHomeDetails(new HomeOption(item.Id,item.ReviewTitle,"Windows"));},220);second.Controls.Add(windowDetails);
+   
+   var third=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true,Margin=Padding.Empty};top.Controls.Add(third,0,2);
+@@ -85,7 +101,7 @@
+     var row=new TableLayoutPanel{Height=productPrefs==null||productPrefs.Compact?32:40,Dock=DockStyle.Top,ColumnCount=1,Margin=Padding.Empty,Name="home-row-"+option.Id,Visible=HomeVisible(option,primary)&&!collapsedHome.Contains(category)};
+     var check=new ReadableCheckBox{Text=option.Title+(!option.Diagnostic&&OptionInfo.For(App.ById(option.Id)).Classification=="Manual"?" · Manual":""),Dock=DockStyle.Fill,Margin=new Padding(0,0,5,0),ForeColor=Theme.Text,BackColor=Theme.Card,Font=Theme.Font(9.5f),Name="home-check-"+option.Id,AccessibleName=option.Title};homeChecks.Add(option.Id,check);row.Controls.Add(check,0,0);
+     string id=option.Id;var defaults=App.ById(id);check.Checked=first?!option.Diagnostic&&defaults!=null&&defaults.DefaultSelected:saved.Contains(id);
+-    check.CheckedChanged+=(s,e)=>{check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;check.Invalidate();if(!homeSync)UpdateHome();};check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;
++    check.CheckedChanged+=(s,e)=>{check.BackColor=check.Checked?Theme.Selection:Theme.Card;check.Invalidate();if(!homeSync)UpdateHome();};check.BackColor=check.Checked?Theme.Selection:Theme.Card;
+     body.Controls.Add(row);
+    }
+    foreach(var link in CategoryTools(category)){string target=link.Value;var button=Theme.Button(link.Key);button.Name="home-tool-"+category+"-"+link.Key;button.Height=34;button.Dock=DockStyle.Top;button.Margin=new Padding(0,5,0,0);button.Click+=(s,e)=>{if(target.StartsWith("ms-settings:"))OpenLocal(target);else if(target=="dfrgui.exe")OpenSystem(target,"");else ShowPage(target);};body.Controls.Add(button);}
+@@ -110,8 +126,16 @@
+       string id=child.Name.Substring("home-row-".Length);
+       bool matches=HomeVisible(homeOptions[id],primary);
+       if(!matches)hiddenHome.Add(id);
+-      child.Visible=matches&&!collapsed;
+-      if(child.Visible)visibleRows++;
++      // NUNCA reler child.Visible aqui. O getter devolve a visibilidade EFETIVA: ele sobe
++      // até o formulário e devolve false se qualquer ancestral estiver escondido. Como o
++      // cartão é ancestral da linha, reler travava a página: uma passada com o cartão
++      // escondido fazia toda linha ler false, visibleRows ficava 0, o cartão se escondia
++      // de novo e nunca mais voltava. A primeira passada roda dentro de BuildHomeCards,
++      // antes de Show(), quando NADA está efetivamente visível — então as 9 categorias
++      // nasciam escondidas e a tela Otimizações abria vazia. Vale o valor recém-decidido.
++      bool rowVisible=matches&&!collapsed;
++      child.Visible=rowVisible;
++      if(rowVisible)visibleRows++;
+       continue;
+      }
+      if(child.Name!=null&&child.Name.StartsWith("home-tool-",StringComparison.Ordinal))child.Visible=!collapsed&&!searching;
+@@ -154,13 +178,25 @@
+    foreach(var column in homeColumns)column.Dispose();homeColumns.Clear();
+    int count=width>=1420?3:width>=720?2:1;int cardWidth=Math.Max(280,width/count-12);var heights=new int[count];
+    for(int n=0;n<count;n++){var column=new FlowLayoutPanel{FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,Width=cardWidth,MinimumSize=new Size(cardWidth,0),MaximumSize=new Size(cardWidth,0),Margin=new Padding(0,0,12,0)};homeColumns.Add(column);homeFlow.Controls.Add(column);}
+-   foreach(var card in homeCards){if(hiddenCards.Contains(card.Name))continue;int column=Array.IndexOf(heights,heights.Min());card.Width=cardWidth;card.Margin=new Padding(0,0,0,12);homeColumns[column].Controls.Add(card);heights[column]+=card.Height+12;}
++   // A largura é atribuída ANTES do desvio: um cartão filtrado para fora continua com a
++   // largura da coluna atual, então ele reaparece já no tamanho certo quando a busca é
++   // limpa, em vez de voltar com os 200 px padrão de Panel e só se ajustar no próximo
++   // redimensionamento da janela.
++   foreach(var card in homeCards){card.Width=cardWidth;card.Margin=new Padding(0,0,0,12);if(hiddenCards.Contains(card.Name))continue;int column=Array.IndexOf(heights,heights.Min());homeColumns[column].Controls.Add(card);heights[column]+=card.Height+12;}
+   }finally{homeFlow.ResumeLayout();arrangingHome=false;}
+  }
+  async Task ShowHomeDetails(HomeOption option){
+   string text;
+   if(option.Diagnostic)text=ReviewedDiagnostics.Detail(option.Id)+"\r\n\r\nCompatibilidade: Windows 10/11. Somente leitura; resultados no Histórico. Não altera configurações e não exige desfazer.\r\nFonte: "+ReviewedDiagnostics.Source(option.Id);
+-  else{var item=App.ById(option.Id);var info=OptionInfo.For(item);text=String.Join("\r\n",item.Review??new string[0])+"\r\n\r\nClassificação: "+info.Classification+"\r\nRisco: "+info.Risk+"\r\nCompatibilidade: "+info.Compatibility+"\r\n"+info.AutomaticReason+"\r\n"+info.Restart+"\r\n\r\nBackup: "+App.RecordsRoot+"\r\nDesfazer: valores, tipos e ausência anteriores restaurados pelo Histórico. Mudanças posteriores são preservadas.\r\n\r\nFonte: "+item.Url+"\r\nID preservado: "+item.Id;}
++  else{
++   // A ficha passou a vir do contrato único (OptimizationRegistry), que acrescenta o que
++   // faltava aqui: nível de evidência, confiança separada do risco, estágio e o veredito
++   // do motor de compatibilidade PARA ESTE PC — não mais a frase genérica "Windows 10/11".
++   var item=App.ById(option.Id);var info=OptionInfo.For(item);
++   text=String.Join("\r\n",item.Review??new string[0])+"\r\n\r\n"+OptimizationRegistry.Details(option.Id,profile)
++    +"\r\n"+info.AutomaticReason+"\r\nPasta dos backups: "+App.RecordsRoot;
++   if(profile==null)text+="\r\n\r\nEste PC ainda não foi analisado: clique em Analisar este PC para a compatibilidade deixar de ser \"Não detectado\".";
++  }
+   await InlineReview(option.Title,text,false);
+  }
+  bool HomeBulkSafe(HomeOption option){if(option.Diagnostic)return true;var item=App.ById(option.Id);return item!=null&&ExtremeProfile.Groups().Where(g=>g.Selected).SelectMany(g=>g.Items).Contains(option.Id)&&ExtremeProfile.IsReviewed(item);}
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/ExtremeProfile.cs	2026-09-18 12:33:53.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/ExtremeProfile.cs	2026-09-18 23:22:15.354186232 +0000
+@@ -6,7 +6,14 @@
+ // The client cannot turn an arbitrary command or catalog entry into a profile action.
+ class ExtremeGroup {
+  internal string Id,Title,Effect,Tradeoff;internal bool Selected;internal string[] Items;
+- internal ExtremeGroup(string id,string title,string effect,string tradeoff,bool selected,params string[] items){Id=id;Title=title;Effect=effect;Tradeoff=tradeoff;Selected=selected;Items=items;}
++ // Selected NÃO é o que o grupo pede: é o que ele pode cumprir. Um grupo sem nenhuma
++ // opção elegível vinha marcado e exportado como "1" pelo protocolo, prometendo um efeito
++ // que ExtremeIds() jamais produzia — a lista de itens era vazia. Marcar aqui, e não em
++ // cada chamador, torna impossível reintroduzir a promessa vazia.
++ internal ExtremeGroup(string id,string title,string effect,string tradeoff,bool selected,params string[] items){
++  Id=id;Title=title;Effect=effect;Tradeoff=tradeoff;Items=items??new string[0];Selected=selected&&Items.Length>0;
++ }
++ internal bool Empty(){return Items.Length==0;}
+ }
+ static class ExtremeProfile {
+  // Os grupos são constantes. Groups() era chamado uma vez por opção dentro de
+@@ -18,10 +25,18 @@
+  }
+  static ExtremeGroup[] Build(){return new[]{
+   new ExtremeGroup("games","Priorizar o jogo","Ativa o Modo Jogo e desliga a gravação de clipes em segundo plano.","A Game Bar deixa de gravar clipes em segundo plano. Confira o resultado no seu jogo.",true,"native-gamemode","native-capture"),
+-  new ExtremeGroup("background","Menos apps em segundo plano","Reduz somente ajustes locais já testados do perfil; políticas de navegador, Widgets e Notícias ficam fora do botão automático.","Algumas opções podem exigir reabrir o aplicativo. Políticas do Windows são manuais porque podem ser bloqueadas por permissões, edição ou organização.",false),
+-  new ExtremeGroup("windows","Menos atividade do Windows","Reduz sugestões locais sem criar políticas protegidas no Registro.","Dicas e conteúdo promocional podem diminuir. Não promete ganho de FPS e pode exigir nova sessão.",true),
++  // SEM ITENS, e o texto passa a dizer isso. Tudo que caberia aqui é política do Windows
++  // (fora do botão automático por construção: IsReviewed recusa Software\Policies) ou é
++  // experimental (pack-e8ea680d9741, execução global em segundo plano, que depende de
++  // teste A/B). O grupo continua existindo para explicar a ausência — some da lista de
++  // aplicáveis porque Selected agora exige itens, e não porque foi escondido.
++  new ExtremeGroup("background","Menos apps em segundo plano","NENHUMA opção entra aqui no botão automático. Reduzir apps em segundo plano no Windows depende de política protegida do Registro ou da chave global de execução em segundo plano, que é experimental.","Para fazer isso, use Apps e RAM (fechar apps escolhidos por você) ou marque a opção global manualmente em Otimizações, ciente de que ela exige teste antes/depois.",false),
++  new ExtremeGroup("windows","Menos atividade do Windows","NENHUMA opção entra aqui no botão automático. Reduzir sugestões e conteúdo promocional do Windows é ajuste de privacidade e personalização, não de desempenho, e não deve viajar escondido dentro de um perfil de performance.","Escolha item a item em Otimizações. Nada aqui promete FPS.",false),
+   new ExtremeGroup("visual","Interface mais leve","Reduz animações, transparência, espiada na área de trabalho e espera dos menus.","O Windows fica visualmente mais simples. Isso melhora a sensação de resposta da interface; não mede FPS do jogo.",true,"native-window","native-effects","native-menu","native-transparency","pack-d1b3e7ae9f70","pack-3d76b7e8529c"),
+-  new ExtremeGroup("services","Serviços que você pode dispensar","Impede Fax, mapas offline e compartilhamento de mídia de iniciarem após reiniciar o PC.","Fax, atualização de mapas offline e compartilhamento de mídia DLNA ficam indisponíveis. Desmarque este grupo se usa esses recursos. Serviços em execução só mudam após reiniciar.",false),
++  // Serviços NÃO são itens de catálogo: quem os altera é App.DisableOptionalServices, com
++  // lista protegida, níveis e dependências próprias. Este grupo nunca pôde ter itens — a
++  // promessa "impede Fax, mapas offline e DLNA de iniciarem" não era cumprida por ninguém.
++  new ExtremeGroup("services","Serviços que você pode dispensar","NENHUMA opção entra aqui no botão automático. Serviços não passam por este perfil: eles têm tela própria, com 41 serviços opcionais em três níveis, 54 protegidos que nunca são tocados e conferência de dependências antes de mudar qualquer coisa.","Use Manutenção › Serviços e escolha o nível. Serviço em execução só muda de fato depois de reiniciar.",false),
+   new ExtremeGroup("power","Energia para desempenho","Seleciona Alto desempenho em desktops compatíveis ligados à tomada.","Opcional: aumenta consumo e calor. A vantagem depende do hardware e do jogo. O plano anterior fica salvo para desfazer.",false,"native-power"),
+   new ExtremeGroup("visual54","Reduzir redesenho de janelas","Arrasta apenas o contorno das janelas.","Preferência visual opcional; sem promessa de FPS.",false,"native-dragoutline")
+  };}
+@@ -31,11 +46,11 @@
+    &&!(item.Operations??new RegOp[0]).Any(o=>App.IsPolicy(o)||o.Hive!="HKEY_CURRENT_USER")
+    &&item.ActionCode!=ExtraSettings.Compression;
+  }
+- internal static List<Item> Resolve(string payload){
+-  var items=LiquidProtocol.Resolve(payload);
+-  if(items.Any(i=>!IsReviewed(i)))throw new Exception("A seleção contém uma opção manual, protegida ou não revisada.");
+-  return items;
+- }
++ internal static List<Item> Resolve(string payload){
++  var items=LiquidProtocol.Resolve(payload);
++  if(items.Any(i=>!IsReviewed(i)))throw new Exception("A seleção contém uma opção manual, protegida ou não revisada.");
++  return items;
++ }
+  internal static void Apply(string payload){
+   var chosen=Resolve(payload);App.ApplyIsolated(chosen,"Otimização extrema",CatalogIds.Migrations(payload),Skipped(chosen));
+  }
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/V5Options.cs	2026-09-15 00:34:58.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/V5Options.cs	2026-09-18 23:20:04.728866814 +0000
+@@ -102,6 +102,14 @@
+    Steps="Revise o efeito e aplique somente se desejar esta opção. O Histórico guarda o estado exato para desfazer. Versão, edição e aplicativo compatível são conferidos antes da gravação."}).ToList();
+  }
+  internal static bool IsOption(Item item){return item!=null&&Rules.Any(x=>Prefix+x.Code==item.Id);}
++ // A faixa de build ja esta declarada em cada Rule. Expor aqui evita que a camada de
++ // contrato (Optimizations.cs) repita os numeros a mao e eles envelhecam em dobro.
++ // maximum 0 significa "sem limite superior".
++ internal static bool BuildRange(string id,out int minimum,out int maximum){
++  minimum=0;maximum=0;
++  var r=Rules.FirstOrDefault(x=>Prefix+x.Code==id);if(r==null)return false;
++  minimum=r.Minimum<=10240?0:r.Minimum;maximum=r.Maximum==Int32.MaxValue?0:r.Maximum;return true;
++ }
+  internal static string Compatibility(Item item,Machine machine){
+   if(!IsOption(item))return null;
+   var r=Rules.SingleOrDefault(x=>Prefix+x.Code==item.Id);if(r==null)return "Preferência V5 não reconhecida.";
+--- /dev/null	2026-09-14 21:38:40.198548157 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/MachineProfile.cs	2026-09-18 23:16:21.194194332 +0000
+@@ -0,0 +1,253 @@
++using System;
++using System.IO;
++using System.Linq;
++using System.Text;
++using System.Management;
++using System.Collections.Generic;
++using System.Runtime.InteropServices;
++
++// PERFIL DA MÁQUINA — fatos, não suposições.
++//
++// Machine (Profile.cs) continua existindo e não muda: ele guarda strings prontas para a
++// tela. MachineProfile é a leitura ESTRUTURADA que o motor de compatibilidade precisa —
++// fabricante da CPU, núcleos, SMT, fabricante da GPU, bytes de RAM, tipo de mídia do
++// disco, chassi, energia, Secure Boot, TPM, tipo de link de rede.
++//
++// Regra única e inegociável: o que não for lido do sistema fica VAZIO e o par *Known
++// fica false. Nunca há valor inventado, nem "provavelmente", nem padrão otimista. Toda
++// leitura que falhou entra em Notes com o motivo, e é isso que a interface mostra como
++// "Não detectado" — que é diferente de "não compatível".
++public class MachineProfile {
++ public string CpuName="",CpuVendor="",GpuName="",GpuVendor="",Chassis="",SystemDriveMedia="",
++               NetworkLink="",Manufacturer="",Model="",BiosVersion="",RamTier="",Edition="";
++ public int PhysicalCores,LogicalCores,Build;
++ public long RamBytes,SystemDriveFreeBytes,SystemDriveTotalBytes;
++ public bool Windows,Is64;
++ public bool Smt,SmtKnown;
++ public bool Portable,PortableKnown;
++ public bool OnAC,BatteryPresent,PowerKnown;
++ public bool SecureBoot,SecureBootKnown;
++ public bool Tpm,TpmKnown;
++ public bool CoresKnown,RamKnown,StorageKnown,NetworkKnown;
++ public List<string> Notes=new List<string>();
++
++ internal bool CpuIsIntel(){return String.Equals(CpuVendor,"Intel",StringComparison.OrdinalIgnoreCase);}
++ internal bool CpuIsAmd(){return String.Equals(CpuVendor,"AMD",StringComparison.OrdinalIgnoreCase);}
++ internal bool GpuIsNvidia(){return String.Equals(GpuVendor,"NVIDIA",StringComparison.OrdinalIgnoreCase);}
++ internal bool GpuIsAmd(){return String.Equals(GpuVendor,"AMD",StringComparison.OrdinalIgnoreCase);}
++ internal bool GpuIsIntel(){return String.Equals(GpuVendor,"Intel",StringComparison.OrdinalIgnoreCase);}
++ // "" quando o tipo de mídia não foi reconhecido — não assume SSD nem HDD.
++ internal bool SolidState(){return SystemDriveMedia=="SSD"||SystemDriveMedia=="NVMe";}
++}
++
++static partial class App {
++#if TESTS
++ internal static MachineProfile TestProfile;
++#endif
++ // Fabricante a partir do nome do produto. As marcas são as que os próprios fabricantes
++ // usam nas strings de Win32_Processor/Win32_VideoController; qualquer outra coisa fica
++ // sem fabricante em vez de virar "outro" ou "desconhecido — trate como Intel".
++ internal static string CpuVendorOf(string name){
++  string n=(name??"").ToLowerInvariant();
++  if(n.Contains("intel")||n.Contains("core(tm)")||n.Contains("xeon")||n.Contains("pentium")||n.Contains("celeron"))return "Intel";
++  if(n.Contains("amd")||n.Contains("ryzen")||n.Contains("athlon")||n.Contains("epyc")||n.Contains("threadripper"))return "AMD";
++  if(n.Contains("qualcomm")||n.Contains("snapdragon"))return "Qualcomm";
++  return "";
++ }
++ internal static string GpuVendorOf(string name){
++  string n=(name??"").ToLowerInvariant();
++  if(n.Contains("nvidia")||n.Contains("geforce")||n.Contains("quadro")||n.Contains("rtx")||n.Contains("gtx"))return "NVIDIA";
++  if(n.Contains("radeon")||n.Contains("amd ")||n.StartsWith("amd")||n.Contains("firepro"))return "AMD";
++  if(n.Contains("intel")||n.Contains("uhd graphics")||n.Contains("iris")||n.Contains("arc "))return "Intel";
++  return "";
++ }
++ // Faixas: abaixo de 8 GB muitos ajustes de inicialização e processos passam a valer a
++ // pena; acima de 16 GB, liberar RAM deixa de ser assunto. Os cortes são explicados na
++ // interface e não viram promessa de FPS.
++ internal static string RamTierOf(long bytes){
++  if(bytes<=0)return "";
++  double gb=bytes/1073741824.0;
++  return gb<8?"baixa":gb<=16?"média":"alta";
++ }
++ // Win32_SystemEnclosure.ChassisTypes: 8,9,10,11,12,14,18,21,30,31,32 são portáteis.
++ // Tabela da especificação SMBIOS, citada na documentação da classe.
++ static readonly int[] PortableChassis={8,9,10,11,12,14,18,21,30,31,32};
++ internal static bool PortableChassisType(int code){return PortableChassis.Contains(code);}
++
++ internal static MachineProfile ReadProfile(Machine basic){
++#if TESTS
++  if(TestProfile!=null)return TestProfile;
++#endif
++  var p=new MachineProfile();
++  if(basic==null)basic=new Machine();
++  p.Windows=basic.Windows;p.Build=basic.Build;p.Edition=basic.Edition??"";
++  p.Is64=Environment.Is64BitOperatingSystem;
++  p.OnAC=basic.OnAC;p.BatteryPresent=!basic.NoBattery;p.PowerKnown=basic.PowerKnown;
++  if(!p.Windows){p.Notes.Add("Sem Windows neste ambiente: nenhuma leitura de hardware foi feita.");return p;}
++
++  Read(p,"CPU",delegate{
++   var rows=Query("SELECT Name,NumberOfCores,NumberOfLogicalProcessors FROM Win32_Processor");
++   if(rows.Count==0)throw new Exception("Win32_Processor não retornou nenhum processador.");
++   p.CpuName=String.Join(" / ",rows.Select(x=>Convert.ToString(x["Name"]).Trim()).ToArray());
++   p.CpuVendor=CpuVendorOf(p.CpuName);
++   foreach(var row in rows){
++    p.PhysicalCores+=ToInt(row["NumberOfCores"]);
++    p.LogicalCores+=ToInt(row["NumberOfLogicalProcessors"]);
++   }
++   p.CoresKnown=p.PhysicalCores>0&&p.LogicalCores>0;
++   // SMT/Hyper-Threading é inferido de lógicos > físicos. Isso é aritmética sobre dois
++   // números lidos do sistema, não chute: se um deles faltar, SmtKnown fica false.
++   if(p.CoresKnown){p.Smt=p.LogicalCores>p.PhysicalCores;p.SmtKnown=true;}
++  });
++
++  Read(p,"GPU",delegate{
++   var rows=Query("SELECT Name FROM Win32_VideoController");
++   if(rows.Count==0)throw new Exception("Win32_VideoController não retornou nenhum adaptador.");
++   p.GpuName=String.Join(" / ",rows.Select(x=>Convert.ToString(x["Name"]).Trim()).ToArray());
++   // Com GPU integrada + dedicada, vale a dedicada para fins de compatibilidade.
++   var vendors=rows.Select(x=>GpuVendorOf(Convert.ToString(x["Name"]))).Where(v=>v.Length>0).ToArray();
++   p.GpuVendor=vendors.FirstOrDefault(v=>v!="Intel")??vendors.FirstOrDefault()??"";
++  });
++
++  Read(p,"Memória",delegate{
++   var row=Query("SELECT TotalPhysicalMemory FROM Win32_ComputerSystem").FirstOrDefault();
++   if(row==null)throw new Exception("Win32_ComputerSystem indisponível.");
++   p.RamBytes=Convert.ToInt64(row["TotalPhysicalMemory"]);
++   p.RamTier=RamTierOf(p.RamBytes);p.RamKnown=p.RamBytes>0;
++  });
++
++  Read(p,"Fabricante e modelo",delegate{
++   var row=Query("SELECT Manufacturer,Model FROM Win32_ComputerSystem").FirstOrDefault();
++   if(row==null)throw new Exception("Win32_ComputerSystem indisponível.");
++   p.Manufacturer=Convert.ToString(row["Manufacturer"]).Trim();p.Model=Convert.ToString(row["Model"]).Trim();
++  });
++
++  Read(p,"BIOS/UEFI",delegate{
++   var row=Query("SELECT SMBIOSBIOSVersion,ReleaseDate FROM Win32_BIOS").FirstOrDefault();
++   if(row==null)throw new Exception("Win32_BIOS indisponível.");
++   p.BiosVersion=Convert.ToString(row["SMBIOSBIOSVersion"]).Trim();
++  });
++
++  Read(p,"Chassi",delegate{
++   var row=Query("SELECT ChassisTypes FROM Win32_SystemEnclosure").FirstOrDefault();
++   if(row==null)throw new Exception("Win32_SystemEnclosure indisponível.");
++   var codes=row["ChassisTypes"] as System.Collections.IEnumerable;
++   if(codes==null)throw new Exception("ChassisTypes vazio.");
++   foreach(object code in codes){
++    int value=ToInt(code);if(value<=0)continue;
++    p.Portable=PortableChassisType(value);p.PortableKnown=true;
++    p.Chassis=p.Portable?"Notebook / portátil":"Desktop";
++    break;
++   }
++   if(!p.PortableKnown)throw new Exception("Nenhum código de chassi reconhecido.");
++  });
++  // Bateria presente é um segundo indício, usado só quando o chassi não foi lido.
++  if(!p.PortableKnown&&p.PowerKnown&&p.BatteryPresent){p.Portable=true;p.PortableKnown=true;p.Chassis="Portátil (deduzido da bateria; chassi não lido)";}
++
++  Read(p,"Armazenamento do sistema",delegate{
++   string root=Path.GetPathRoot(Environment.SystemDirectory);
++   var drive=new DriveInfo(root);
++   p.SystemDriveFreeBytes=drive.AvailableFreeSpace;p.SystemDriveTotalBytes=drive.TotalSize;
++   p.SystemDriveMedia=SystemDriveMediaType(root);
++   p.StorageKnown=p.SystemDriveTotalBytes>0;
++   if(p.SystemDriveMedia.Length==0)p.Notes.Add("Tipo de mídia do disco do sistema não reconhecido: MSFT_PhysicalDisk indisponível ou sem MediaType. Ajustes que dependem de SSD ficam como Não detectado.");
++  });
++
++  Read(p,"Rede",delegate{
++   var nics=System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
++    .Where(n=>n.OperationalStatus==System.Net.NetworkInformation.OperationalStatus.Up
++           && n.NetworkInterfaceType!=System.Net.NetworkInformation.NetworkInterfaceType.Loopback
++           && n.NetworkInterfaceType!=System.Net.NetworkInformation.NetworkInterfaceType.Tunnel).ToArray();
++   if(nics.Length==0)throw new Exception("Nenhum adaptador de rede ativo.");
++   var wifi=nics.FirstOrDefault(n=>n.NetworkInterfaceType==System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211);
++   var chosen=wifi??nics[0];
++   p.NetworkLink=(chosen.NetworkInterfaceType==System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211?"Wi-Fi":"Ethernet")
++    +(chosen.Speed>0?" · "+(chosen.Speed/1000000L)+" Mb/s":" · velocidade não informada");
++   p.NetworkKnown=true;
++  });
++
++  Read(p,"Secure Boot",delegate{
++   using(var h=Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine,Microsoft.Win32.RegistryView.Registry64))
++   using(var k=h.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\SecureBoot\State")){
++    if(k==null)throw new Exception("Chave SecureBoot\\State ausente: firmware legado (BIOS) ou valor não exposto.");
++    object value=k.GetValue("UEFISecureBootEnabled");
++    if(value==null)throw new Exception("UEFISecureBootEnabled ausente.");
++    p.SecureBoot=ToInt(value)==1;p.SecureBootKnown=true;
++   }
++  });
++
++  Read(p,"TPM",delegate{
++   var rows=QueryIn(@"\\.\root\cimv2\Security\MicrosoftTpm","SELECT IsEnabled_InitialValue FROM Win32_Tpm");
++   if(rows.Count==0){p.Tpm=false;p.TpmKnown=true;return;}
++   p.Tpm=Convert.ToBoolean(rows[0]["IsEnabled_InitialValue"]);p.TpmKnown=true;
++  });
++
++  return p;
++ }
++
++ // Toda leitura passa por aqui: falha vira nota com motivo, nunca exceção que derruba a
++ // análise e nunca valor plausível inventado no lugar.
++ static void Read(MachineProfile p,string what,Action read){
++  try{read();}catch(Exception e){p.Notes.Add(what+": não foi possível ler ("+e.Message.Trim()+").");}
++ }
++ static int ToInt(object value){try{return Convert.ToInt32(value);}catch{return 0;}}
++
++ // MSFT_PhysicalDisk.MediaType: 3 = HDD, 4 = SSD, 5 = SCM; 0 e 1 significam
++ // "não especificado"/"desconhecido" e NÃO viram SSD. BusType 17 = NVMe.
++ internal static string MediaTypeName(int mediaType,int busType){
++  if(busType==17)return "NVMe";
++  if(mediaType==4)return "SSD";
++  if(mediaType==3)return "HD";
++  if(mediaType==5)return "Memória persistente";
++  return "";
++ }
++ static string SystemDriveMediaType(string root){
++  try{
++   int number=-1;
++   // Liga a letra da unidade ao disco físico por partição, em vez de supor "disco 0".
++   foreach(var part in QueryIn(@"\\.\root\Microsoft\Windows\Storage","SELECT DiskNumber,DriveLetter FROM MSFT_Partition")){
++    string letter=Convert.ToString(part["DriveLetter"]);
++    if(letter.Length>0&&root.StartsWith(letter,StringComparison.OrdinalIgnoreCase)){number=ToInt(part["DiskNumber"]);break;}
++   }
++   foreach(var disk in QueryIn(@"\\.\root\Microsoft\Windows\Storage","SELECT DeviceId,MediaType,BusType FROM MSFT_PhysicalDisk")){
++    if(number>=0&&ToInt(disk["DeviceId"])!=number)continue;
++    return MediaTypeName(ToInt(disk["MediaType"]),ToInt(disk["BusType"]));
++   }
++  }catch{}
++  return "";
++ }
++ static List<Dictionary<string,object>> QueryIn(string scope,string query){
++  var result=new List<Dictionary<string,object>>();
++  using(var search=new ManagementObjectSearcher(new ManagementScope(scope),new ObjectQuery(query),new System.Management.EnumerationOptions{Timeout=TimeSpan.FromSeconds(8),ReturnImmediately=true}))
++  using(var found=search.Get())
++   foreach(ManagementObject row in found){
++    var map=new Dictionary<string,object>();
++    foreach(PropertyData property in row.Properties)map[property.Name]=property.Value;
++    result.Add(map);row.Dispose();
++   }
++  return result;
++ }
++
++ // Texto para a tela e para o relatório de suporte. Só afirma o que foi lido.
++ internal static string ProfileReport(MachineProfile p){
++  var b=new StringBuilder();
++  b.AppendLine("Windows: "+(p.Windows?("build "+p.Build+(p.Edition.Length>0?" · "+p.Edition:"")+(p.Is64?" · 64 bits":" · 32 bits")):"não detectado"));
++  b.AppendLine("CPU: "+Or(p.CpuName)+(p.CpuVendor.Length>0?" · fabricante "+p.CpuVendor:"")+(p.CoresKnown?" · "+p.PhysicalCores+" núcleos / "+p.LogicalCores+" threads":" · núcleos não detectados"));
++  b.AppendLine("SMT/Hyper-Threading: "+(p.SmtKnown?(p.Smt?"ativo":"inativo"):"não detectado"));
++  b.AppendLine("GPU: "+Or(p.GpuName)+(p.GpuVendor.Length>0?" · fabricante "+p.GpuVendor:""));
++  b.AppendLine("RAM: "+(p.RamKnown?(p.RamBytes/1073741824.0).ToString("0.0")+" GB · faixa "+p.RamTier:"não detectada"));
++  b.AppendLine("Disco do sistema: "+(p.StorageKnown?(p.SystemDriveFreeBytes/1073741824.0).ToString("0.0")+" GB livres de "+(p.SystemDriveTotalBytes/1073741824.0).ToString("0")+" GB":"não detectado")+" · mídia "+(p.SystemDriveMedia.Length>0?p.SystemDriveMedia:"não reconhecida"));
++  b.AppendLine("Chassi: "+(p.PortableKnown?p.Chassis:"não detectado"));
++  b.AppendLine("Energia: "+(p.PowerKnown?((p.OnAC?"na tomada":"na bateria")+(p.BatteryPresent?" · bateria presente":" · sem bateria")):"não detectada"));
++  b.AppendLine("Rede: "+(p.NetworkKnown?p.NetworkLink:"não detectada"));
++  b.AppendLine("Secure Boot: "+(p.SecureBootKnown?(p.SecureBoot?"ativo":"inativo"):"não detectado"));
++  b.AppendLine("TPM: "+(p.TpmKnown?(p.Tpm?"presente e habilitado":"ausente ou desabilitado"):"não detectado"));
++  b.AppendLine("Placa/modelo: "+Or(p.Manufacturer)+" "+Or(p.Model)+" · BIOS "+Or(p.BiosVersion));
++  if(p.Notes.Count>0){
++   b.AppendLine();b.AppendLine("Não foi possível ler (e por quê):");
++   foreach(string note in p.Notes)b.AppendLine("· "+note);
++  }
++  return b.ToString();
++ }
++ static string Or(string value){return String.IsNullOrWhiteSpace(value)?"não detectado":value.Trim();}
++}
+--- /dev/null	2026-09-14 21:38:40.198548157 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Optimizations.cs	2026-09-18 23:20:44.806188303 +0000
+@@ -0,0 +1,401 @@
++using System;
++using System.Linq;
++using System.Text;
++using System.Collections.Generic;
++
++// CONTRATO ÚNICO DE OTIMIZAÇÃO — a fundação da FASE 2.
++//
++// Hoje os dados de uma mesma otimização estão em quatro lugares: Item (o que escrever),
++// OptionInfo (classificação, risco, reinício), PerformanceEntry (efeito, custo, fonte) e
++// texto solto na interface. Nada disso é substituído aqui. OptimizationDescriptor é uma
++// PROJEÇÃO somente leitura que reúne os quatro sob o mesmo Id e acrescenta o que faltava:
++// nível de evidência, confiança (separada do risco), estágio de maturidade, requisitos de
++// hardware e escopo de reinício.
++//
++// Por que projeção e não substituição: IDs, perfis, histórico e desfazer já dependem das
++// estruturas atuais. Trocar o modelo quebraria backups gravados no PC das pessoas. O
++// caminho é este — nova camada por cima, migração item a item depois.
++
++// ---------------------------------------------------------------------------
++// Evidência: de onde vem a afirmação. NÃO é o risco, e NÃO é a confiança.
++// ---------------------------------------------------------------------------
++static class Evidence {
++ internal const string Microsoft="Documentada pela Microsoft";
++ internal const string Vendor="Documentada pelo fabricante";
++ internal const string Technical="Tecnicamente justificada";
++ // Separado de "tecnicamente justificada" de propósito. 64 das 127 opções executáveis
++ // vieram de um projeto de otimizador no GitHub. O código é auditável — e isso vale mais
++ // que um vídeo — mas continua sendo prioridade 7 na hierarquia de fontes, não medição.
++ // Dobrar isso dentro de "técnica" seria dizer ao usuário algo mais bonito que a verdade.
++ internal const string OpenSource="Adaptada de projeto de código aberto (auditável, sem medição própria)";
++ internal const string HardwareDependent="Dependente de hardware";
++ internal const string Experimental="Experimental / teste A/B";
++ internal const string Convenience="Somente conveniência";
++ internal const string NotRecommended="Não recomendada";
++ internal static readonly string[] Levels={Microsoft,Vendor,Technical,OpenSource,HardwareDependent,Experimental,Convenience,NotRecommended};
++
++ internal const string High="Alta";
++ internal const string Medium="Média";
++ internal const string Low="Experimental";
++ internal static readonly string[] Confidences={High,Medium,Low};
++
++ // Itens cuja evidência NÃO pode ser deduzida da fonte, porque o problema não é a fonte:
++ // é o efeito. Estes são exatamente os ajustes que o pedido manda olhar com lupa.
++ static readonly Dictionary<string,string> Overrides=new Dictionary<string,string>(StringComparer.Ordinal){
++  {"opt-disablenetworkthrottling",Experimental},   // NetworkThrottlingIndex: efeito real só com política de QoS
++  {"extra-memory-compression",Experimental},       // Disable-MMAgent: pode aumentar paginação
++  {"pack-e8ea680d9741",Experimental},              // execução global em segundo plano
++  {"manual-responsiveness",Experimental},          // SystemResponsiveness
++  {"manual-priority",Experimental},                // Win32PrioritySeparation
++  {"opt-disablesmartscreen",NotRecommended},
++  {"opt-disablevirtualizationbasedsecurity",NotRecommended},
++  {"opt-userhvci",NotRecommended},
++  {"opt-disabletpmcheck",NotRecommended},
++  {"opt-disablesmb2",NotRecommended},
++  {"opt-disablemodernstandby",NotRecommended}
++ };
++
++ // Deduz o nível pela fonte declarada no próprio item. Determinístico e testável: a mesma
++ // URL sempre dá o mesmo nível. Sem fonte não vira "técnico" por bondade — vira o que a
++ // classificação disser, e a classificação vem do risco real.
++ internal static string Level(Item item,OptionInfo info){
++  if(item==null)return Technical;
++  string over;
++  if(item.Id!=null&&Overrides.TryGetValue(item.Id,out over))return over;
++  if(info!=null){
++   if(info.Classification=="Não recomendada")return NotRecommended;
++   if(info.Classification=="Experimental")return Experimental;
++  }
++  string url=(item.Url??"").ToLowerInvariant();
++  if(url.Contains("learn.microsoft.com")||url.Contains("support.microsoft.com")||url.Contains("docs.microsoft.com")||url.Contains("devblogs.microsoft.com")||url.Contains("blogs.windows.com"))return Microsoft;
++  if(url.Contains("nvidia.com")||url.Contains("amd.com")||url.Contains("intel.com")
++   ||url.Contains("chromeenterprise.google")||url.Contains("mozilla.org")||url.Contains("support.google.com"))return Vendor;
++  // github.com/microsoft/... continua sendo Microsoft publicando código; o resto do
++  // GitHub é projeto de terceiro, e o rótulo tem de dizer isso.
++  if(url.Contains("github.com/microsoft/"))return Microsoft;
++  if(url.Contains("github.com")||url.Contains("gitlab.com"))return OpenSource;
++  if(url.StartsWith("https://"))return Technical;
++  return Convenience;
++ }
++
++ // Confiança é sobre a EVIDÊNCIA, não sobre o estrago que o ajuste pode causar. Um item
++ // de alta confiança pode ter risco alto (está bem documentado que desativa proteção), e
++ // um item de baixa confiança pode ter risco baixo (reversível, mas sem medição). Misturar
++ // os dois é como a maioria dos "otimizadores" engana o usuário.
++ internal static string Confidence(string level){
++  if(level==Microsoft||level==Vendor)return High;
++  if(level==Technical||level==OpenSource||level==HardwareDependent||level==NotRecommended)return Medium;
++  return Low;
++ }
++}
++
++// ---------------------------------------------------------------------------
++// Estágio de maturidade — feature flags (item 28 do pedido).
++// ---------------------------------------------------------------------------
++static class Stage {
++ internal const string Stable="Estável";
++ internal const string Beta="Beta";
++ internal const string Experimental="Experimental";
++ internal const string Developer="Desenvolvedor";
++ internal static readonly string[] All={Stable,Beta,Experimental,Developer};
++ // Um estágio só entra automaticamente em perfil se for Estável. Beta e Experimental
++ // exigem que a pessoa marque; Desenvolvedor nem aparece fora do modo avançado.
++ internal static bool AutomaticAllowed(string stage){return stage==Stable;}
++ internal static string Of(string evidenceLevel){
++  if(evidenceLevel==Evidence.Experimental)return Experimental;
++  if(evidenceLevel==Evidence.NotRecommended)return Developer;
++  return Stable;
++ }
++}
++
++// ---------------------------------------------------------------------------
++// Escopo de reinício, acumulado uma vez no fim (item 43).
++// ---------------------------------------------------------------------------
++public class RestartPlan {
++ public bool Explorer,SignOut,WindowsRestart;
++ public bool Any(){return Explorer||SignOut||WindowsRestart;}
++ public string Text(){
++  if(WindowsRestart)return "Reinicie o Windows para o efeito valer por completo.";
++  if(SignOut)return "Saia da conta e entre de novo para o efeito valer.";
++  if(Explorer)return "Reabra o Explorador de Arquivos (ou o aplicativo afetado) para ver a mudança.";
++  return "Nenhum reinício necessário.";
++ }
++}
++static class RestartScope {
++ internal const string None="nenhum",Explorer="explorer",SignOut="sessão",Windows="reiniciar";
++ // Deduzido do alvo real da gravação, não de um campo escrito à mão: HKLM\SYSTEM só vale
++ // depois de reiniciar; o resto do Explorer/Shell precisa de nova sessão ou do Explorer
++ // reiniciado. É a mesma regra que OptionInfo.Restart já usava, agora em forma de dado.
++ internal static string For(Item item){
++  var ops=item==null?new RegOp[0]:(item.Operations??new RegOp[0]);
++  if(ops.Any(o=>o.Key!=null&&o.Key.StartsWith(@"SYSTEM\",StringComparison.OrdinalIgnoreCase)))return Windows;
++  if(ops.Any(o=>o.Key!=null&&o.Key.IndexOf(@"Explorer",StringComparison.OrdinalIgnoreCase)>=0))return Explorer;
++  if(ops.Length==0)return None;
++  return SignOut;
++ }
++ internal static RestartPlan Aggregate(IEnumerable<OptimizationDescriptor> chosen){
++  var plan=new RestartPlan();
++  foreach(var d in chosen??new OptimizationDescriptor[0]){
++   if(d==null)continue;
++   if(d.Restart==Windows)plan.WindowsRestart=true;
++   else if(d.Restart==SignOut)plan.SignOut=true;
++   else if(d.Restart==Explorer)plan.Explorer=true;
++  }
++  return plan;
++ }
++}
++
++// ---------------------------------------------------------------------------
++// Requisitos de hardware/plataforma que uma otimização pode declarar.
++// Vazio/zero significa "não exige" — nunca "exige algo que eu não sei conferir".
++// ---------------------------------------------------------------------------
++public class OptimizationRequirements {
++ public int MinBuild,MaxBuild;
++ public string CpuVendor="",GpuVendor="",StorageMedia="";
++ public long MinRamBytes;
++ public bool RequiresDesktop,RequiresAC,RequiresSmt;
++ public bool Empty(){
++  return MinBuild==0&&MaxBuild==0&&CpuVendor.Length==0&&GpuVendor.Length==0
++   &&StorageMedia.Length==0&&MinRamBytes==0&&!RequiresDesktop&&!RequiresAC&&!RequiresSmt;
++ }
++}
++
++public class OptimizationDescriptor {
++ public string Id="",Title="",Category="",Subcategory="",Risk="",Confidence="",EvidenceLevel="",
++               Source="",Effect="",Tradeoff="",Steps="",Classification="",Restart="",Undo="",
++               CompatibilityText="",BackupStrategy="",StageName="";
++ public bool Administrator,Reversible,Native,AutomaticEligible;
++ public OptimizationRequirements Requirements=new OptimizationRequirements();
++ public string[] Tags=new string[0];
++}
++
++public class CompatibilityResult {
++ public string State="",Reason="";
++ public bool Executable(){return State==CompatibilityEngine.Compatible||State==CompatibilityEngine.Experimental;}
++}
++
++// ---------------------------------------------------------------------------
++// Motor de compatibilidade (item 6): quatro estados, nunca dois.
++// "Não detectado" NÃO é "não compatível" e NÃO é "compatível". É a resposta honesta
++// quando a máquina não contou o que precisa ser conferido — e ela bloqueia a aplicação
++// automática do mesmo jeito, porque aplicar às cegas é o que o pedido proíbe.
++// ---------------------------------------------------------------------------
++static class CompatibilityEngine {
++ internal const string Compatible="Compatível";
++ internal const string Incompatible="Não compatível";
++ internal const string Undetected="Não detectado";
++ internal const string Experimental="Experimental";
++
++ internal static CompatibilityResult Evaluate(OptimizationDescriptor d,MachineProfile p){
++  if(d==null)return Result(Incompatible,"Otimização desconhecida.");
++  if(p==null||!p.Windows)return Result(Undetected,"Sem leitura deste PC: execute Analisar este PC antes de aplicar.");
++  var r=d.Requirements??new OptimizationRequirements();
++
++  if(r.MinBuild>0&&p.Build>0&&p.Build<r.MinBuild)return Result(Incompatible,"Exige Windows build "+r.MinBuild+" ou posterior; este PC está na build "+p.Build+".");
++  if(r.MaxBuild>0&&p.Build>0&&p.Build>r.MaxBuild)return Result(Incompatible,"Válida até a build "+r.MaxBuild+"; esta versão do Windows não expõe mais essa configuração.");
++  if((r.MinBuild>0||r.MaxBuild>0)&&p.Build<=0)return Result(Undetected,"A build do Windows não foi lida, e esta opção depende da versão.");
++
++  if(r.CpuVendor.Length>0){
++   if(p.CpuVendor.Length==0)return Result(Undetected,"O fabricante da CPU não foi identificado, e esta opção só vale em CPU "+r.CpuVendor+".");
++   if(!String.Equals(p.CpuVendor,r.CpuVendor,StringComparison.OrdinalIgnoreCase))return Result(Incompatible,"Só se aplica a CPU "+r.CpuVendor+"; este PC tem "+p.CpuVendor+".");
++  }
++  if(r.GpuVendor.Length>0){
++   if(p.GpuVendor.Length==0)return Result(Undetected,"O fabricante da GPU não foi identificado, e esta opção só vale em GPU "+r.GpuVendor+".");
++   if(!String.Equals(p.GpuVendor,r.GpuVendor,StringComparison.OrdinalIgnoreCase))return Result(Incompatible,"Só se aplica a GPU "+r.GpuVendor+"; este PC tem "+p.GpuVendor+".");
++  }
++  if(r.StorageMedia.Length>0){
++   if(p.SystemDriveMedia.Length==0)return Result(Undetected,"O tipo de mídia do disco do sistema não foi reconhecido, e esta opção depende disso.");
++   if(r.StorageMedia=="SSD"&&!p.SolidState())return Result(Incompatible,"Indicada para SSD/NVMe; o disco do sistema é "+p.SystemDriveMedia+".");
++   if(r.StorageMedia=="HD"&&p.SolidState())return Result(Incompatible,"Indicada para disco mecânico; o disco do sistema é "+p.SystemDriveMedia+".");
++  }
++  if(r.MinRamBytes>0){
++   if(!p.RamKnown)return Result(Undetected,"A quantidade de RAM não foi lida, e esta opção depende disso.");
++   if(p.RamBytes<r.MinRamBytes)return Result(Incompatible,"Exige pelo menos "+(r.MinRamBytes/1073741824L)+" GB de RAM.");
++  }
++  if(r.RequiresDesktop){
++   if(!p.PortableKnown)return Result(Undetected,"Não foi possível distinguir desktop de notebook, e esta opção é só para desktop.");
++   if(p.Portable)return Result(Incompatible,"Só para desktop: em notebook isso afeta bateria e temperatura.");
++  }
++  if(r.RequiresAC){
++   if(!p.PowerKnown)return Result(Undetected,"O estado de energia não foi lido, e esta opção exige o PC na tomada.");
++   if(!p.OnAC)return Result(Incompatible,"Exige o PC ligado à tomada.");
++  }
++  if(r.RequiresSmt){
++   if(!p.SmtKnown)return Result(Undetected,"SMT/Hyper-Threading não foi detectado, e esta opção depende disso.");
++   if(!p.Smt)return Result(Incompatible,"Exige SMT/Hyper-Threading ativo.");
++  }
++  // Compatível não significa recomendado. Experimental continua experimental mesmo
++  // rodando num PC que atende a tudo — é isso que impede o perfil automático de engoli-lo.
++  if(d.StageName==Stage.Experimental||d.EvidenceLevel==Evidence.Experimental)
++   return Result(Experimental,"Compatível com este PC, mas sem medição que comprove ganho. Use teste A/B e compare antes/depois.");
++  return Result(Compatible,r.Empty()?"Sem requisito de hardware; compatível com Windows 10/11 de 64 bits.":"Requisitos conferidos neste PC.");
++ }
++ static CompatibilityResult Result(string state,string reason){return new CompatibilityResult{State=state,Reason=reason};}
++}
++
++// ---------------------------------------------------------------------------
++// Registro: monta os descritores e CONFERE OS INVARIANTES.
++// ---------------------------------------------------------------------------
++static class OptimizationRegistry {
++ // Requisitos declarados só onde EXISTEM de verdade. A tentação aqui é inventar
++ // requisito para parecer sofisticado; requisito falso vira "Não compatível" falso.
++ static readonly Dictionary<string,OptimizationRequirements> Declared=new Dictionary<string,OptimizationRequirements>(StringComparer.Ordinal){
++  // Plano Alto desempenho: já é recusado em notebook e fora da tomada por App.Compatibility.
++  // Aqui o mesmo requisito vira dado, para a tela poder explicar ANTES de a pessoa marcar.
++  {"native-power",new OptimizationRequirements{RequiresDesktop=true,RequiresAC=true}}
++ };
++
++ // As faixas de build NÃO são digitadas aqui. ImportedOptions e V5Options já declaram
++ // Minimum/Maximum por regra, e App.Compatibility já barra fora dessa faixa na hora de
++ // aplicar. Copiar os números para uma segunda tabela criaria duas verdades que
++ // divergiriam no primeiro ajuste. O contrato lê a fonte que já existe.
++ static OptimizationRequirements RequirementsFor(Item item){
++  OptimizationRequirements declared;
++  if(Declared.TryGetValue(item.Id,out declared))return declared;
++  var imported=ImportedOptions.Rules().FirstOrDefault(r=>r.Id==item.Id);
++  if(imported!=null)return new OptimizationRequirements{
++   MinBuild=imported.Minimum<=10240?0:imported.Minimum,
++   MaxBuild=imported.Maximum==Int32.MaxValue?0:imported.Maximum};
++  int minimum,maximum;
++  if(V5Options.BuildRange(item.Id,out minimum,out maximum))return new OptimizationRequirements{MinBuild=minimum,MaxBuild=maximum};
++  return new OptimizationRequirements();
++ }
++
++ static List<OptimizationDescriptor> all;
++ static readonly object Gate=new object();
++ internal static void Invalidate(){lock(Gate)all=null;}
++
++ internal static List<OptimizationDescriptor> All(){
++  lock(Gate){if(all==null)all=Build();return all;}
++ }
++ internal static OptimizationDescriptor For(string id){
++  return All().FirstOrDefault(d=>String.Equals(d.Id,id,StringComparison.Ordinal));
++ }
++
++ static List<OptimizationDescriptor> Build(){
++  var library=PerformanceLibrary.Load().Where(e=>e.Action=="native").ToDictionary(e=>e.Target,e=>e,StringComparer.Ordinal);
++  var result=new List<OptimizationDescriptor>();
++  foreach(var item in CatalogIds.NativeItems()){
++   var info=OptionInfo.For(item);
++   string level=Evidence.Level(item,info);
++   PerformanceEntry entry;library.TryGetValue(item.Id,out entry);
++   OptimizationRequirements req=RequirementsFor(item);
++   var review=item.Review??new string[0];
++   result.Add(new OptimizationDescriptor{
++    Id=item.Id,
++    Title=item.ReviewTitle??item.Name??item.Id,
++    Category=entry==null?(item.Category??""):entry.Category,
++    Subcategory=item.Path??"",
++    Risk=info.Risk,
++    EvidenceLevel=level,
++    Confidence=Evidence.Confidence(level),
++    StageName=Stage.Of(level),
++    Source=item.Url??"",
++    Effect=entry==null?(review.Length>0?review[0]:""):entry.Effect,
++    Tradeoff=entry==null?(review.Length>1?review[1]:""):entry.Tradeoff,
++    Steps=entry==null?"":entry.Steps,
++    Classification=info.Classification,
++    Restart=RestartScope.For(item),
++    // Toda opção nativa passa por ApplyTransaction: o valor anterior, o tipo anterior e a
++    // AUSÊNCIA anterior são gravados antes de escrever. É isso que sustenta Reversible.
++    Undo=info.Undo,
++    BackupStrategy="SavedValue (valor, tipo e ausência anteriores) gravado por ApplyTransaction antes da escrita; restauração verificada por ChangeAudit",
++    CompatibilityText=info.Compatibility,
++    Administrator=info.Admin,
++    Reversible=true,
++    Native=true,
++    AutomaticEligible=info.Automatic&&Stage.AutomaticAllowed(Stage.Of(level)),
++    Requirements=req,
++    Tags=Tags(item,info,level)
++   });
++  }
++  return result;
++ }
++
++ // Etiquetas para a busca global (item 95): derivadas do próprio conteúdo, para não
++ // envelhecerem separadas do item.
++ static string[] Tags(Item item,OptionInfo info,string level){
++  var tags=new List<string>();
++  string text=((item.ReviewTitle??"")+" "+(item.Name??"")+" "+(item.Category??"")+" "+String.Join(" ",item.Review??new string[0])).ToLowerInvariant();
++  Action<string,string> add=delegate(string needle,string tag){if(text.Contains(needle)&&!tags.Contains(tag))tags.Add(tag);};
++  add("mouse","mouse");add("ponteiro","mouse");add("tecl","teclado");
++  add("jogo","jogos");add("game","jogos");add("fps","fps");
++  add("energia","energia");add("plano","energia");
++  add("rede","rede");add("dns","rede");add("tcp","rede");
++  add("anima","interface");add("transpar","interface");add("barra","interface");add("explorer","explorer");
++  add("privacidade","privacidade");add("sugest","privacidade");
++  add("mem","memória");add("ram","memória");
++  add("servi","serviços");add("segundo plano","processos");
++  add("disco","armazenamento");add("ssd","armazenamento");add("ntfs","armazenamento");
++  if(info.Admin)tags.Add("administrador");
++  if(level==Evidence.Experimental)tags.Add("experimental");
++  if(level==Evidence.NotRecommended)tags.Add("não recomendada");
++  return tags.ToArray();
++ }
++
++ // INVARIANTES. Quebrar qualquer um destes é erro de cadastro, não opinião de estilo.
++ // Roda nos testes e no início do processo, junto de CatalogIds.Validate().
++ internal static void Validate(){
++  var list=All();
++  var duplicated=list.GroupBy(d=>d.Id).Where(g=>g.Count()>1).Select(g=>g.Key).ToArray();
++  if(duplicated.Length>0)throw new Exception("IDs de otimização duplicados: "+String.Join(", ",duplicated));
++  foreach(var d in list){
++   if(String.IsNullOrWhiteSpace(d.Id))throw new Exception("Otimização sem Id.");
++   if(String.IsNullOrWhiteSpace(d.Title))throw new Exception("Otimização sem título: "+d.Id);
++   // "Uma opção reversível NÃO pode ser cadastrada sem estratégia de backup."
++   if(d.Reversible&&String.IsNullOrWhiteSpace(d.BackupStrategy))throw new Exception("Otimização reversível sem estratégia de backup: "+d.Id);
++   if(String.IsNullOrWhiteSpace(d.Effect))throw new Exception("Otimização sem efeito declarado: "+d.Id);
++   if(String.IsNullOrWhiteSpace(d.Tradeoff))throw new Exception("Otimização sem custo/contrapartida declarado: "+d.Id);
++   if(!Evidence.Levels.Contains(d.EvidenceLevel))throw new Exception("Nível de evidência inválido em "+d.Id+": "+d.EvidenceLevel);
++   if(!Evidence.Confidences.Contains(d.Confidence))throw new Exception("Confiança inválida em "+d.Id+": "+d.Confidence);
++   if(!Stage.All.Contains(d.StageName))throw new Exception("Estágio inválido em "+d.Id+": "+d.StageName);
++   if(d.Restart!=RestartScope.None&&d.Restart!=RestartScope.Explorer&&d.Restart!=RestartScope.SignOut&&d.Restart!=RestartScope.Windows)
++    throw new Exception("Escopo de reinício inválido em "+d.Id+": "+d.Restart);
++   // Fonte obrigatória para tudo que não é mera conveniência.
++   if(d.EvidenceLevel!=Evidence.Convenience&&!d.Source.StartsWith("https://",StringComparison.OrdinalIgnoreCase))
++    throw new Exception("Otimização sem fonte técnica: "+d.Id);
++   // Experimental nunca entra em perfil automático, e não recomendada muito menos.
++   if(d.AutomaticEligible&&(d.EvidenceLevel==Evidence.Experimental||d.EvidenceLevel==Evidence.NotRecommended))
++    throw new Exception("Otimização experimental ou não recomendada marcada como automática: "+d.Id);
++  }
++ }
++
++ // Painel “estado das recomendações” (item 11): NÃO é nota de desempenho, e o texto
++ // que acompanha diz isso. É a contagem de quantas recomendações aplicáveis a ESTE PC
++ // já estão configuradas — nada a ver com benchmark.
++ internal static string Score(MachineProfile profile,Func<string,bool> applied){
++  var list=All();int applicable=0,done=0;
++  foreach(var d in list){
++   var compat=CompatibilityEngine.Evaluate(d,profile);
++   if(compat.State!=CompatibilityEngine.Compatible)continue;
++   if(!d.AutomaticEligible)continue;
++   applicable++;if(applied!=null&&applied(d.Id))done++;
++  }
++  if(applicable==0)return "Nenhuma recomendação aplicável foi confirmada para este PC. Isto não é uma nota de desempenho.";
++  return done+"/"+applicable+" recomendações aplicáveis a este PC já estão configuradas. Isto NÃO é benchmark nem nota de desempenho: é a contagem das recomendações do próprio LukeOptimizer.";
++ }
++
++ // Ficha completa de uma otimização, para o botão “O que isso faz?” (itens 23 e 122).
++ internal static string Details(string id,MachineProfile profile){
++  var d=For(id);
++  if(d==null)return "Otimização não encontrada: "+id;
++  var compat=CompatibilityEngine.Evaluate(d,profile);
++  var b=new StringBuilder();
++  b.AppendLine(d.Title).AppendLine();
++  b.AppendLine("O que muda: "+d.Effect);
++  b.AppendLine("Possível desvantagem: "+d.Tradeoff);
++  if(d.Steps.Length>0)b.AppendLine("Como é feito: "+d.Steps);
++  b.AppendLine();
++  b.AppendLine("Evidência: "+d.EvidenceLevel+"  ·  Confiança: "+d.Confidence+"  ·  Risco: "+d.Risk);
++  b.AppendLine("Estágio: "+d.StageName+"  ·  Classificação: "+d.Classification);
++  b.AppendLine("Compatibilidade neste PC: "+compat.State+" — "+compat.Reason);
++  b.AppendLine("Precisa de administrador: "+(d.Administrator?"sim":"não"));
++  b.AppendLine("Reinício: "+new RestartPlan{
++   Explorer=d.Restart==RestartScope.Explorer,SignOut=d.Restart==RestartScope.SignOut,WindowsRestart=d.Restart==RestartScope.Windows}.Text());
++  b.AppendLine("Como será restaurado: "+d.BackupStrategy);
++  b.AppendLine("Desfazer: "+d.Undo);
++  b.AppendLine("Fonte técnica: "+(d.Source.Length>0?d.Source:"sem fonte externa; preferência de conveniência"));
++  b.AppendLine("ID preservado: "+d.Id);
++  return b.ToString();
++ }
++}
+--- /dev/null	2026-09-14 21:38:40.198548157 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/FoundationTests.cs	2026-09-18 23:23:34.830184414 +0000
+@@ -0,0 +1,179 @@
++using System;
++using System.IO;
++using System.Linq;
++using System.Collections.Generic;
++
++// FASE 2 — testes da fundação.
++//
++// Dois tipos de teste aqui. Os primeiros conferem REGRAS (dedução de evidência, motor de
++// compatibilidade, acúmulo de reinício) com dados construídos à mão. Os últimos conferem
++// INVARIANTES sobre o catálogo real que o produto carrega — é o que impede um cadastro
++// novo de entrar sem fonte, sem custo declarado ou marcado como automático sendo
++// experimental.
++partial class EngineTests {
++ static MachineProfile Pc(){
++  return new MachineProfile{
++   Windows=true,Build=26100,Is64=true,
++   CpuName="AMD Ryzen 7 5800X",CpuVendor="AMD",PhysicalCores=8,LogicalCores=16,CoresKnown=true,Smt=true,SmtKnown=true,
++   GpuName="NVIDIA GeForce RTX 4070",GpuVendor="NVIDIA",
++   RamBytes=34359738368L,RamTier="alta",RamKnown=true,
++   SystemDriveMedia="NVMe",StorageKnown=true,
++   Portable=false,PortableKnown=true,Chassis="Desktop",
++   OnAC=true,BatteryPresent=false,PowerKnown=true
++  };
++ }
++ static OptimizationDescriptor Desc(OptimizationRequirements r,string stage){
++  return new OptimizationDescriptor{Id="fixture",Title="Fixture",Effect="e",Tradeoff="t",
++   EvidenceLevel=Evidence.Microsoft,Confidence=Evidence.High,StageName=stage??Stage.Stable,
++   Restart=RestartScope.None,Requirements=r??new OptimizationRequirements(),
++   BackupStrategy="SavedValue",Source="https://learn.microsoft.com/"};
++ }
++
++ static void RunFoundationTests(){
++  Reset();
++
++  // ---------------------------------------------------------------- evidência
++  // O nível sai da fonte declarada no item. Mesma URL, sempre o mesmo nível.
++  Func<string,string,Item> item=delegate(string id,string url){return new Item{Id=id,Name=id,ReviewTitle=id,Native=true,Url=url,Operations=new RegOp[0],Review=new[]{"efeito","custo"}};};
++  Assert(Evidence.Level(item("a","https://learn.microsoft.com/x"),null)==Evidence.Microsoft,"Microsoft Learn is recognized as Microsoft documentation");
++  Assert(Evidence.Level(item("b","https://support.microsoft.com/x"),null)==Evidence.Microsoft,"Microsoft support article is Microsoft documentation");
++  Assert(Evidence.Level(item("c","https://www.nvidia.com/x"),null)==Evidence.Vendor,"NVIDIA documentation is vendor documentation");
++  Assert(Evidence.Level(item("d","https://chromeenterprise.google/policies/x"),null)==Evidence.Vendor,"browser vendor policy documentation is vendor documentation");
++  // O ponto que mais importa: projeto de terceiro no GitHub NÃO vira "tecnicamente
++  // justificada". Ele recebe rótulo próprio, porque é isso que ele é.
++  Assert(Evidence.Level(item("e","https://github.com/algum/optimizer"),null)==Evidence.OpenSource,"third-party GitHub project gets its own evidence label, not a flattering one");
++  Assert(Evidence.Level(item("f","https://github.com/microsoft/WindowsDeveloperConfig"),null)==Evidence.Microsoft,"Microsoft publishing code on GitHub is still Microsoft documentation");
++  Assert(Evidence.Level(item("g",""),null)==Evidence.Convenience,"an option without a source is convenience, never technical justification");
++  Assert(Evidence.Level(item("opt-disablenetworkthrottling","https://learn.microsoft.com/x"),null)==Evidence.Experimental,"a Microsoft source does not make NetworkThrottlingIndex measured");
++  Assert(Evidence.Level(item("opt-disablesmartscreen","https://learn.microsoft.com/x"),null)==Evidence.NotRecommended,"a Microsoft source does not make disabling SmartScreen recommended");
++
++  // Confiança e risco são eixos diferentes: um item bem documentado pode ser perigoso.
++  Assert(Evidence.Confidence(Evidence.Microsoft)==Evidence.High&&Evidence.Confidence(Evidence.NotRecommended)==Evidence.Medium,"confidence describes the evidence, not the damage");
++  Assert(Evidence.Confidence(Evidence.Experimental)==Evidence.Low,"an experimental option never claims high confidence");
++  Assert(Evidence.Levels.Distinct().Count()==Evidence.Levels.Length,"evidence levels are unique");
++
++  // ---------------------------------------------------------------- estágio
++  Assert(Stage.AutomaticAllowed(Stage.Stable)&&!Stage.AutomaticAllowed(Stage.Beta)&&!Stage.AutomaticAllowed(Stage.Experimental)&&!Stage.AutomaticAllowed(Stage.Developer),"only a stable option may enter an automatic profile");
++  Assert(Stage.Of(Evidence.Experimental)==Stage.Experimental&&Stage.Of(Evidence.NotRecommended)==Stage.Developer&&Stage.Of(Evidence.Microsoft)==Stage.Stable,"stage follows evidence");
++
++  // ---------------------------------------------------------------- compatibilidade
++  var pc=Pc();
++  Assert(CompatibilityEngine.Evaluate(Desc(null,null),pc).State==CompatibilityEngine.Compatible,"an option without requirements is compatible on a detected PC");
++  Assert(CompatibilityEngine.Evaluate(Desc(null,null),null).State==CompatibilityEngine.Undetected,"without a machine reading nothing is declared compatible");
++  Assert(CompatibilityEngine.Evaluate(Desc(null,null),new MachineProfile()).State==CompatibilityEngine.Undetected,"a profile without Windows is undetected, not incompatible");
++
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{MinBuild=22000},null),pc).State==CompatibilityEngine.Compatible,"build 26100 satisfies a Windows 11 requirement");
++  var win10=Pc();win10.Build=19045;
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{MinBuild=22000},null),win10).State==CompatibilityEngine.Incompatible,"a Windows 11 option is incompatible on Windows 10");
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{MaxBuild=21999},null),pc).State==CompatibilityEngine.Incompatible,"an option removed in Windows 11 is incompatible there");
++  var noBuild=Pc();noBuild.Build=0;
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{MinBuild=22000},null),noBuild).State==CompatibilityEngine.Undetected,"an unread build is undetected, never assumed good");
++
++  // "Não detectado" é a resposta central deste motor: NUNCA vira compatível por otimismo.
++  var noVendor=Pc();noVendor.GpuVendor="";
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{GpuVendor="NVIDIA"},null),noVendor).State==CompatibilityEngine.Undetected,"an unidentified GPU vendor is undetected, not compatible");
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{GpuVendor="AMD"},null),pc).State==CompatibilityEngine.Incompatible,"an AMD-only option is incompatible on an NVIDIA PC");
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{CpuVendor="AMD"},null),pc).State==CompatibilityEngine.Compatible,"a CPU vendor requirement matches the detected vendor");
++
++  var hdd=Pc();hdd.SystemDriveMedia="HD";
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{StorageMedia="SSD"},null),hdd).State==CompatibilityEngine.Incompatible,"an SSD option is incompatible on a mechanical drive");
++  var unknownMedia=Pc();unknownMedia.SystemDriveMedia="";
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{StorageMedia="SSD"},null),unknownMedia).State==CompatibilityEngine.Undetected,"an unrecognized media type never passes as SSD");
++
++  var laptop=Pc();laptop.Portable=true;laptop.Chassis="Notebook";
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{RequiresDesktop=true},null),laptop).State==CompatibilityEngine.Incompatible,"a desktop-only option is refused on a notebook");
++  var battery=Pc();battery.OnAC=false;
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{RequiresAC=true},null),battery).State==CompatibilityEngine.Incompatible,"an option that requires mains power is refused on battery");
++  var smallRam=Pc();smallRam.RamBytes=4294967296L;
++  Assert(CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{MinRamBytes=8589934592L},null),smallRam).State==CompatibilityEngine.Incompatible,"a RAM requirement is enforced");
++
++  // Compatível não é recomendado: experimental continua experimental no PC perfeito.
++  var experimental=CompatibilityEngine.Evaluate(Desc(null,Stage.Experimental),pc);
++  Assert(experimental.State==CompatibilityEngine.Experimental&&experimental.Reason.Contains("sem medição"),"an experimental option stays experimental even on a fully compatible PC");
++  Assert(!CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{RequiresDesktop=true},null),laptop).Executable(),"an incompatible option cannot be executed");
++  Assert(!CompatibilityEngine.Evaluate(Desc(new OptimizationRequirements{GpuVendor="NVIDIA"},null),noVendor).Executable(),"an undetected requirement blocks execution just like an incompatible one");
++  Assert(CompatibilityEngine.Evaluate(Desc(null,Stage.Experimental),pc).Executable(),"an experimental option may still be executed when explicitly chosen");
++
++  // ---------------------------------------------------------------- perfil da máquina
++  Assert(App.CpuVendorOf("AMD Ryzen 7 5800X")=="AMD"&&App.CpuVendorOf("Intel(R) Core(TM) i7-12700K")=="Intel","CPU vendor read from the product name");
++  Assert(App.CpuVendorOf("")==""&&App.CpuVendorOf("Processador Genérico")=="","an unrecognized CPU has no vendor instead of a guessed one");
++  Assert(App.GpuVendorOf("NVIDIA GeForce RTX 4070")=="NVIDIA"&&App.GpuVendorOf("AMD Radeon RX 7800 XT")=="AMD"&&App.GpuVendorOf("Intel(R) UHD Graphics 770")=="Intel","GPU vendor read from the product name");
++  Assert(App.GpuVendorOf("Adaptador de Vídeo Básico")=="","an unrecognized GPU has no vendor instead of a guessed one");
++  Assert(App.RamTierOf(0)==""&&App.RamTierOf(4294967296L)=="baixa"&&App.RamTierOf(17179869184L)=="média"&&App.RamTierOf(34359738368L)=="alta","RAM tier boundaries; unread RAM has no tier");
++  // MediaType 0 e 1 significam "não especificado"/"desconhecido" e NÃO podem virar SSD.
++  Assert(App.MediaTypeName(4,0)=="SSD"&&App.MediaTypeName(3,0)=="HD"&&App.MediaTypeName(3,17)=="NVMe","documented MSFT_PhysicalDisk media and bus types");
++  Assert(App.MediaTypeName(0,0)==""&&App.MediaTypeName(1,0)=="","unspecified or unknown media type never becomes SSD");
++  Assert(App.PortableChassisType(10)&&App.PortableChassisType(31)&&!App.PortableChassisType(3)&&!App.PortableChassisType(7),"SMBIOS chassis codes distinguish portable from desktop");
++  var empty=new MachineProfile();
++  Assert(!empty.CpuIsIntel()&&!empty.CpuIsAmd()&&!empty.GpuIsNvidia()&&!empty.SolidState(),"an empty profile claims nothing");
++  string report=App.ProfileReport(empty);
++  Assert(report.Contains("não detectado")&&!report.Contains("não detectadonão"),"the profile report says what was not detected instead of leaving a blank");
++  Assert(App.ProfileReport(pc).Contains("8 núcleos / 16 threads")&&App.ProfileReport(pc).Contains("NVMe"),"the profile report states what was actually read");
++
++  // ---------------------------------------------------------------- reinício
++  Assert(RestartScope.For(new Item{Operations=new[]{new RegOp{Hive="HKEY_LOCAL_MACHINE",Key=@"SYSTEM\CurrentControlSet\Control\X",Name="n"}}})==RestartScope.Windows,"a write under HKLM\\SYSTEM requires restarting Windows");
++  Assert(RestartScope.For(new Item{Operations=new[]{new RegOp{Hive="HKEY_CURRENT_USER",Key=@"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",Name="n"}}})==RestartScope.Explorer,"an Explorer write needs Explorer reopened");
++  Assert(RestartScope.For(new Item{Operations=new RegOp[0]})==RestartScope.None,"an option with no registry write declares no restart");
++  var plan=RestartScope.Aggregate(new[]{
++   new OptimizationDescriptor{Restart=RestartScope.Explorer},
++   new OptimizationDescriptor{Restart=RestartScope.Windows},
++   new OptimizationDescriptor{Restart=RestartScope.SignOut}});
++  // O ponto do item 43: pedir reinício UMA vez, pelo escopo mais forte, não uma vez por opção.
++  Assert(plan.WindowsRestart&&plan.Text().Contains("Reinicie o Windows")&&!plan.Text().Contains("Explorador"),"a mixed batch asks for the strongest restart once, not once per option");
++  Assert(!RestartScope.Aggregate(new OptimizationDescriptor[0]).Any()&&RestartScope.Aggregate(null).Text().Contains("Nenhum"),"an empty batch asks for no restart");
++
++  // ---------------------------------------------------------------- catálogo real
++  FullCatalog();
++  OptimizationRegistry.Invalidate();
++  OptimizationRegistry.Validate();
++  Assert(true,"every registered optimization satisfies the contract invariants");
++  var all=OptimizationRegistry.All();
++  Assert(all.Count==CatalogIds.NativeItems().Count(),"one descriptor per executable optimization, no more and no less");
++  Assert(all.All(d=>d.Reversible&&d.BackupStrategy.Length>0),"a reversible optimization cannot exist without a backup strategy");
++  Assert(all.All(d=>d.Source.StartsWith("https://")||d.EvidenceLevel==Evidence.Convenience),"every optimization beyond plain convenience carries a technical source");
++  Assert(all.All(d=>!String.IsNullOrWhiteSpace(d.Effect)&&!String.IsNullOrWhiteSpace(d.Tradeoff)),"every optimization states both what it does and what it costs");
++  Assert(!all.Any(d=>d.AutomaticEligible&&(d.EvidenceLevel==Evidence.Experimental||d.EvidenceLevel==Evidence.NotRecommended)),"no experimental or discouraged optimization is part of an automatic profile");
++  Assert(all.Count(d=>d.EvidenceLevel==Evidence.OpenSource)>0,"options adapted from an open-source project are labelled as such and counted");
++  Assert(all.Any(d=>d.Tags.Contains("experimental"))&&all.Any(d=>d.Tags.Contains("administrador")),"search tags are derived from the option itself");
++
++  // A tabela de requisitos não repete números: ela lê os que ImportedOptions e V5Options
++  // já declaram. Se alguém mudar a faixa lá, isto acompanha sozinho.
++  var importedRule=ImportedOptions.Rules().FirstOrDefault(r=>r.Minimum>10240);
++  if(importedRule!=null){
++   var mirrored=OptimizationRegistry.For(importedRule.Id);
++   Assert(mirrored!=null&&mirrored.Requirements.MinBuild==importedRule.Minimum,"a build requirement is read from the rule that already declares it, not retyped");
++  }
++
++  // O perfil automático coincide com os grupos marcados — e nenhum grupo vazio promete nada.
++  foreach(var group in ExtremeProfile.Groups())
++   Assert(!(group.Empty()&&group.Selected),"an Ultra group with no eligible option can never come selected: "+group.Id);
++  Assert(ExtremeProfile.Groups().Any(g=>g.Empty()),"groups kept to explain an absence still exist");
++  foreach(var group in ExtremeProfile.Groups().Where(g=>g.Empty()))
++   Assert(group.Effect.StartsWith("NENHUMA opção"),"an empty group states the absence in its own text: "+group.Id);
++
++  // Score é contagem de recomendações, jamais nota de desempenho.
++  string none=OptimizationRegistry.Score(Pc(),delegate(string id){return false;});
++  string every=OptimizationRegistry.Score(Pc(),delegate(string id){return true;});
++  Assert(none.Contains("NÃO é benchmark")||none.Contains("não é uma nota"),"the score always says it is not a benchmark");
++  Assert(every.Contains("/")&&every.Split(new[]{'/'})[0]!="0","applied recommendations are counted");
++  Assert(OptimizationRegistry.Score(null,null).Length>0,"the score never throws without a machine reading");
++
++  // Ficha do botão "O que isso faz?": tudo que o pedido exige, em um texto só.
++  string details=OptimizationRegistry.Details("native-window",Pc());
++  foreach(string required in new[]{"O que muda","Possível desvantagem","Evidência","Confiança","Risco","Compatibilidade neste PC","administrador","Reinício","Como será restaurado","Fonte técnica","ID preservado"})
++   Assert(details.Contains(required),"the details sheet answers: "+required);
++  Assert(OptimizationRegistry.Details("nao-existe",Pc()).Contains("não encontrada"),"an unknown id is reported instead of throwing");
++
++  // O catálogo importado de .reg/.bat é REVISÃO, não execução: os tweaks de placebo
++  // conhecidos (LargeSystemCache, DisablePagingExecutive, IoPageLockLimit, TcpAckFrequency,
++  // SvcHostSplitThresholdInKB, HwSchMode) aparecem lá e NÃO viram opção executável.
++  var executableNames=new HashSet<string>(CatalogIds.NativeItems()
++   .SelectMany(i=>i.Operations??new RegOp[0]).Select(o=>o.Name??"").Where(n=>n.Length>0),StringComparer.OrdinalIgnoreCase);
++  foreach(string placebo in new[]{"LargeSystemCache","DisablePagingExecutive","IoPageLockLimit","TcpAckFrequency","TCPNoDelay","SvcHostSplitThresholdInKB","HwSchMode","Win32PrioritySeparation","SystemResponsiveness"})
++   Assert(!executableNames.Contains(placebo),"a well-known placebo tweak is catalogued for reading but never executable: "+placebo);
++  Assert(executableNames.Contains("NetworkThrottlingIndex"),"NetworkThrottlingIndex is executable, which is exactly why it must be labelled experimental");
++  Assert(OptimizationRegistry.For("opt-disablenetworkthrottling").EvidenceLevel==Evidence.Experimental,"the one executable throttling tweak carries the experimental label");
++
++  Reset();
++ }
++}
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs	2026-09-14 12:07:18.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs	2026-09-18 23:23:40.013160181 +0000
+@@ -8,6 +8,30 @@
+  static string Key(RegOp op){return (op.Hive+"\\"+op.Key+"\\"+op.Name).ToLowerInvariant();}
+  static RegOp Copy(RegOp op){return new RegOp{Hive=op.Hive,Key=op.Key,Name=op.Name,Kind=op.Kind,Data=op.Data,Delete=op.Delete};}
+  static void Assert(bool ok,string message){checks++;if(!ok)throw new Exception("FAILED: "+message);Console.WriteLine("PASS "+message);}
++ // Um teste cuja PREMISSA nao existe neste sistema nao pode virar PASS nem sumir: vira
++ // SKIP com o motivo, e o total final diz quantos foram pulados. Afrouxar a asseracao
++ // para ela passar no Linux seria apagar a garantia que vale no Windows.
++ static readonly List<string> skips=new List<string>();
++ static void Skip(string message,string why){skips.Add(message+" ("+why+")");Console.WriteLine("SKIP "+message+" -- "+why);}
++ // No Windows, um leitor com FileShare.Read impede MoveFileEx de substituir o arquivo.
++ // Em POSIX nao ha trava obrigatoria: o rename sempre vence e nenhum leitor bloqueia
++ // nada. Em vez de supor a plataforma, mede-se o comportamento real deste runtime.
++ // GameProfiles exige caminho com letra de unidade (full[1]==':') e arquivo existente.
++ // Fora do Windows nao existe "C:\", entao a fixture nao pode ser construida. Medimos
++ // a capacidade em vez de supor a plataforma.
++ static bool WindowsDrivePaths(){
++  try{string full=Path.GetFullPath(Path.Combine(App.DataRoot,"x.exe"));return full.Length>3&&full[1]==':';}catch{return false;}
++ }
++ static bool ReplacementBlockedByReaders(){
++  string probe=Path.Combine(App.DataRoot,"lock-probe.tmp");
++  try{
++   AtomicStore.Write(probe,"a");
++   using(new FileStream(probe,FileMode.Open,FileAccess.Read,FileShare.Read)){
++    try{AtomicStore.Write(probe,"b");return false;}catch{return true;}
++   }
++  }catch{return true;}
++  finally{foreach(string leftover in new[]{probe,probe+".lock"})try{File.Delete(leftover);}catch{}}
++ }
+  static void Reset(){
+   foreach(string p in Directory.GetFiles(App.RecordsRoot,"*.json"))File.Delete(p);
+   registry=new Dictionary<string,RegOp>();native=new Dictionary<string,string>{{"window","1"},{"client","1"},{"menuanim","1"},{"combo","1"},{"list","1"},{"tooltip","1"},{"selection","1"},{"menu","400"},{"mouse","6,10,1"}};
+@@ -52,8 +76,9 @@
+   Reset();App.ApplyMaximum(new[]{"native-capture"});var observed=App.Observe(App.Items.Single(i=>i.ActionCode=="capture"),App.TestMachine);Assert(observed.State=="Valores conferidos"&&observed.Match==3,"status reports stored values without claiming performance");registry.Remove(registry.Keys.First());observed=App.Observe(App.Items.Single(i=>i.ActionCode=="capture"),App.TestMachine);Assert(observed.State=="Parcial"&&observed.Match==2,"partial configuration correctly detected");
+   Reset();App.TestCapture=op=>{throw new UnauthorizedAccessException("test access denied");};legacyBatch=App.Items.Where(i=>new[]{"native-window","native-capture"}.Contains(i.Id)).ToList();ExpectFailure(()=>App.ApplyTransaction(legacyBatch,"Perfil","teste de snapshot"),"unreadable registry aborts before mutation");Assert(native["window"]=="1"&&Last().Status=="falhou antes de alterar","snapshot failure makes no changes");
+   Reset();App.ApplyMaximum(new[]{"native-mouse"});record=Last();Assert(native["mouse"]=="0,0,0","optional mouse acceleration uses its own snapshot");App.Undo(record.Id);Assert(native["mouse"]=="6,10,1","all mouse acceleration parameters restored exactly");
+-  RunV3Tests();RunV4Tests();RunV5Tests();RunV52Tests();RunV53Tests();RunV54Tests();RunRegressionTests();RunV6Tests();
+-  Console.WriteLine("TOTAL: "+checks+" checks passed (logic only; not an FPS or live Windows mutation test)");
++  RunV3Tests();RunV4Tests();RunV5Tests();RunV52Tests();RunV53Tests();RunV54Tests();RunRegressionTests();RunV6Tests();RunFoundationTests();
++  Console.WriteLine("TOTAL: "+checks+" checks passed, "+skips.Count+" skipped (logic only; not an FPS or live Windows mutation test)");
++  foreach(string s in skips)Console.WriteLine("  skipped: "+s);
+   return 0;
+  }catch(Exception e){Console.Error.WriteLine(e);return 1;}}
+ }
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/compilacao.rsp	2026-09-14 12:11:44.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/compilacao.rsp	2026-09-18 23:18:48.477928868 +0000
+@@ -1,70 +1,73 @@
+-﻿/nologo
+-/utf8output
+-/codepage:65001
+-/langversion:5
+-/platform:x64
+-/optimize+
+-/reference:System.dll
+-/reference:System.Core.dll
+-/reference:System.Drawing.dll
+-/reference:System.Windows.Forms.dll
+-/reference:System.Web.dll
+-/reference:System.Web.Extensions.dll
+-/reference:System.IO.Compression.dll
+-/reference:System.IO.Compression.FileSystem.dll
+-/reference:System.Management.dll
+-/reference:System.ServiceProcess.dll
+-/resource:source\catalog.json,catalog.json
+-/resource:source\imported-reviews.json,imported-reviews.json
+-source\LukeOptimizer.cs
+-source\Profile.cs
+-source\Diagnostics.cs
+-source\Interface.cs
+-source\Resources.cs
+-source\Management.cs
+-source\Maintenance.cs
+-source\ImportedScripts.cs
+-source\EasyInterface.cs
+-source\Gaming.cs
+-source\AtomicStore.cs
+-source\FrameAnalysis.cs
+-source\HardwareLab.cs
+-source\PerformanceLibrary.cs
+-source\PerformanceInterface.cs
+-/resource:source\performance-library.json,performance-library.json
+-/resource:source\v5-advanced-library.json,v5-advanced-library.json
+-
+-source\V5Options.cs
+-source\InputTuning.cs
+-source\V5InputItems.cs
+-source\NetworkWorkbench.cs
+-source\V5Bridge.cs
+-source\LiquidProtocol.cs
+-source\EmbeddedInterface.cs
+-source\ChangeAudit.cs
+-source\AppRemoval.cs
+-source\ImportedOptions.cs
+-source\ExtraSettings.cs
+-source\CatalogIds.cs
+-source\SelectionRestore.cs
+-source\ExtremeProfile.cs
+-/resource:source\optimizer-options.json,optimizer-options.json
+-/resource:source\debloat-apps.json,debloat-apps.json
+-
+-source\OptionInfo.cs
+-
+-source\IsolatedTransactions.cs
+-source\ReviewedFeatures.cs
+-source\UnifiedInterface.cs
+-
+-source\FunctionalInterface.cs
+-
+-source\ExecutionHub.cs
+-source\SystemTelemetry.cs
+-source\StorageManager.cs
+-source\ProductInterface.cs
+-
+-source\ExecutionControl.cs
+-
+-source\CommandTools.cs
+-source\BackupBundle.cs
++﻿/nologo
++/utf8output
++/codepage:65001
++/langversion:5
++/platform:x64
++/optimize+
++/reference:System.dll
++/reference:System.Core.dll
++/reference:System.Drawing.dll
++/reference:System.Windows.Forms.dll
++/reference:System.Web.dll
++/reference:System.Web.Extensions.dll
++/reference:System.IO.Compression.dll
++/reference:System.IO.Compression.FileSystem.dll
++/reference:System.Management.dll
++/reference:System.ServiceProcess.dll
++/resource:source\catalog.json,catalog.json
++/resource:source\imported-reviews.json,imported-reviews.json
++source\LukeOptimizer.cs
++source\Profile.cs
++source\Diagnostics.cs
++source\Interface.cs
++source\Resources.cs
++source\Management.cs
++source\Maintenance.cs
++source\ImportedScripts.cs
++source\EasyInterface.cs
++source\Gaming.cs
++source\AtomicStore.cs
++source\FrameAnalysis.cs
++source\HardwareLab.cs
++source\PerformanceLibrary.cs
++source\PerformanceInterface.cs
++/resource:source\performance-library.json,performance-library.json
++/resource:source\v5-advanced-library.json,v5-advanced-library.json
++
++source\V5Options.cs
++source\InputTuning.cs
++source\V5InputItems.cs
++source\NetworkWorkbench.cs
++source\NetworkTools.cs
++source\MachineProfile.cs
++source\Optimizations.cs
++source\V5Bridge.cs
++source\LiquidProtocol.cs
++source\EmbeddedInterface.cs
++source\ChangeAudit.cs
++source\AppRemoval.cs
++source\ImportedOptions.cs
++source\ExtraSettings.cs
++source\CatalogIds.cs
++source\SelectionRestore.cs
++source\ExtremeProfile.cs
++/resource:source\optimizer-options.json,optimizer-options.json
++/resource:source\debloat-apps.json,debloat-apps.json
++
++source\OptionInfo.cs
++
++source\IsolatedTransactions.cs
++source\ReviewedFeatures.cs
++source\UnifiedInterface.cs
++
++source\FunctionalInterface.cs
++
++source\ExecutionHub.cs
++source\SystemTelemetry.cs
++source\StorageManager.cs
++source\ProductInterface.cs
++
++source\ExecutionControl.cs
++
++source\CommandTools.cs
++source\BackupBundle.cs
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-14 12:17:48.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-18 23:24:44.888787197 +0000
+@@ -15,7 +15,7 @@
+     Copy-Item -LiteralPath 'source\app.config' -Destination 'UiSmoke.exe.config' -Force
+     Build @('/target:winexe','/win32manifest:source\app.manifest','/out:LukeOptimizer-Engine.new.exe','@compilacao.rsp') 'build.log'
+     Build @('/target:exe','/out:ProcessFixture.exe','tests\ProcessFixture.cs') 'fixture-build.log'
+-    Build @('/define:TESTS','/target:exe','/main:EngineTests','/out:LukeOptimizer-Testes.exe','@compilacao.rsp','tests\EngineTests.cs','tests\V3Tests.cs','tests\V4Tests.cs','tests\V5Tests.cs','tests\V52Tests.cs','tests\V53Tests.cs','tests\V54Tests.cs','tests\RegressionTests.cs','tests\V6Tests.cs') 'tests-build.log'
++    Build @('/define:TESTS','/target:exe','/main:EngineTests','/out:LukeOptimizer-Testes.exe','@compilacao.rsp','tests\EngineTests.cs','tests\V3Tests.cs','tests\V4Tests.cs','tests\V5Tests.cs','tests\V52Tests.cs','tests\V53Tests.cs','tests\V54Tests.cs','tests\RegressionTests.cs','tests\V6Tests.cs','tests\FoundationTests.cs') 'tests-build.log'
+     & .\LukeOptimizer-Testes.exe *> (Join-Path $taskResults 'tests.log')
+     if ($LASTEXITCODE -ne 0) { throw 'Testes de logica falharam. Executavel principal preservado.' }
+     Build @('/define:TESTS','/target:exe','/main:UiSmoke','/out:UiSmoke.exe','@compilacao.rsp','tests\UiSmoke.cs','tests\UnifiedUiTests.cs','tests\FunctionalUiTests.cs','tests\ProductUiTests.cs') 'ui-build.log'
