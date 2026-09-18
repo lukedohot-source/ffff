@@ -162,3 +162,35 @@ Numeros da pele azul (sobre o cartao, salvo indicado):
   aviso 10,1:1   serie secundaria 7,9:1
   texto do botao primario sobre o acento 7,5:1
   acento sobre selecao 5,0:1 (o par mais apertado)
+
+
+CORRECAO: MetodoNaoEncontrado String.TrimEnd(Char)
+--------------------------------------------------
+O executavel distribuido mostrava no Painel:
+
+  Medicao incompleta: Metodo nao encontrado:
+  'System.String System.String.TrimEnd(Char)'
+
+Causa: as sobrecargas String.Trim/TrimStart/TrimEnd que recebem UM char so
+existem a partir do .NET Core 2.0. No .NET Framework 4.8, alvo deste projeto,
+existe apenas TrimEnd(params char[]). Compilando com um Roslyn moderno contra
+assemblies de referencia novos, a chamada liga na sobrecarga de char e o
+binario quebra em tempo de execucao com MissingMethodException.
+
+O ponto que aparecia na tela era ResourceMonitor.Within, chamado por
+Protection() durante a varredura de processos - por isso "Medicao incompleta".
+As outras tres ocorrencias estavam em TempCleaner.SafePath (duas, usadas pela
+limpeza de temporarios) e no leitor de CSV de frametime.
+
+Corrigido em 4 pontos do codigo e 1 do teste, trocando TrimEnd(c) por
+TrimEnd(new[]{c}), que liga na sobrecarga params char[] em qualquer compilador.
+
+Observacao: COMPILAR.cmd usa o csc.exe do proprio .NET Framework
+(%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe), que nao consegue
+ligar nessas sobrecargas e por isso nao produziria o erro. O executavel
+distribuido foi gerado por outra cadeia de compilacao.
+
+FrameworkSurfaceTests, em tests/V4Tests.cs, passa a executar de verdade
+ResourceMonitor.Within e TempCleaner.SafePath, alem de afirmar as duas
+sobrecargas. Se alguem reintroduzir a forma de um char e o binario for
+compilado assim, o teste estoura na validacao em vez de na mao do usuario.
