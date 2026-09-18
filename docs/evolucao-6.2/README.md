@@ -112,6 +112,7 @@ Depois disso, na ordem de retorno sobre esforço:
 | 3 · perfis por cenário | proposta | `03-perfis-por-cenario.md` |
 | — · redução profunda de processos e serviços | **aplicada** | `patches/etapa-3-processos-servicos-e-tema-azul.patch` · `opt.zip` |
 | — · tema azul | **aplicada** | idem |
+| — · módulo de rede (diagnósticos + ações) | **aplicada** | `patches/etapa-4-rede.patch` · `opt.zip` |
 | 4 · badges, navegação, dashboard, toasts | proposta | `04-ui-ux.md` |
 | 5 · limpezas e diagnósticos | proposta | `05-limpezas-e-diagnosticos.md` |
 | 6 · módulos novos | proposta | `06-modulos-novos.md` |
@@ -156,3 +157,18 @@ tema original).
 Os 17 pares de texto reais passam de 4,5:1 nas duas peles, medidos pelo
 `TestPalette` em `tests/ProductUiTests.cs`, que implementa a fórmula do WCAG e
 falha a validação se alguém baixar um contraste.
+
+### Módulo de rede
+
+A página de rede só media; não tinha nenhuma ação. `source/NetworkTools.cs`
+acrescenta três diagnósticos somente-leitura (servidores DNS, sondagem de MTU
+por `Ping` com *don't fragment*, perda e variação) e seis ações com allowlist
+fechada (`flushdns`, `registerdns`, ARP, `renew`, `winsock reset`,
+`int ip reset`), separadas por consequência: cache, conexão e reparo.
+
+As duas destrutivas gravam a configuração atual no Histórico antes de mudar, e
+**não executam** se essa gravação falhar. Nenhuma ação de rede tem desfazer,
+por isso `Kind="Rede"` fica fora de `App.CanUndo` — há teste garantindo isso.
+
+O status completo do pedido de 13 itens, com o que foi recusado e por quê, está
+em [`ENTREGA-REDE-E-STATUS.md`](ENTREGA-REDE-E-STATUS.md).
