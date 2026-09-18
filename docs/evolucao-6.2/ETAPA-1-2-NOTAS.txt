@@ -1,5 +1,5 @@
-LukeOptimizer 6.1.2 — etapas 1 e 2 aplicadas ao CODIGO-FONTE
-============================================================
+LukeOptimizer 6.1.2 — etapas 1, 2 e 3 aplicadas ao CODIGO-FONTE
+==============================================================
 
 ATENCAO: OS .EXE DESTE PACOTE AINDA SAO OS ANTIGOS.
 
@@ -66,3 +66,63 @@ PENDENCIAS CONHECIDAS
    aplicar 8 itens. Devolver amplitude de forma honesta e a etapa 3
    (perfis por cenario), descrita em docs/evolucao-6.2/03-*.md.
  - Nada aqui foi executado em Windows real. Validar antes de distribuir.
+
+ETAPA 3 - REDUCAO PROFUNDA DE PROCESSOS E SERVICOS
+--------------------------------------------------
+SERVICOS: a lista opcional passou de 10 para 41 servicos, em tres niveis.
+ - Nivel 1 (15): fax, modo de loja, registro remoto, mapas offline, DLNA do
+   Media Player, AllJoyn, roteamento remoto, controle dos pais, cartao
+   inteligente (3), NFC/pagamentos, rastreamento de link, WAP push e o
+   coletor de diagnostico do Visual Studio.
+ - Nivel 2 (12): telemetria DiagTrack, relatorios de erro, telefonia,
+   geolocalizacao, indexacao da busca, spooler de impressao e notificacoes,
+   scanner WIA (2), ponto de acesso movel, QoS de audio/video e o
+   assistente de compatibilidade.
+ - Nivel 3 (14): SSDP e UPnP, Bluetooth (2), sensores (3), Xbox Live (4) e
+   os tres servicos de diagnostico do Windows (DPS e hosts).
+ Cada um tem descricao do que se perde. Nenhum aumenta FPS por si so: o
+ efeito e menos coisa rodando em segundo plano.
+
+ Uma lista PROTEGIDA de 54 servicos passou a existir e nunca pode ser
+ desativada: Defender e firewall, Windows Update e Store, RPC/DCOM,
+ PlugPlay, CryptSvc, perfis de usuario, agendador, rede (DHCP, DNS, WLAN),
+ audio, VSS/backup e SysMain. ValidateServiceCatalog() confere antes de
+ qualquer alteracao em lote que as duas listas nao se cruzam, e os testes
+ confirmam. SysMain fica de fora de proposito: em SSD o ganho e nulo.
+
+ Botoes novos em Manutencao > Servicos opcionais: escolher o nivel, marcar
+ tudo do nivel, e "Desativar nivel inteiro" numa transacao so. Cada servico
+ guarda modo de inicializacao e estado anteriores; Desfazer restaura ambos.
+ Servico com dependente ativo continua sendo recusado, sem forcar nada.
+
+PROCESSOS: a lista de apps fechaveis passou de 46 para 130, em tres niveis
+ (47 no nivel 1, 37 no nivel 2, 46 no nivel 3).
+ - Nivel 1: navegador, mensageiro, player, gravador, notas (como antes).
+ - Nivel 2: OneDrive, Dropbox, Google Drive, MEGA, Adobe Creative Cloud,
+   atualizadores (Google, Edge, Java, Office), Cortana/SearchApp, Vincular
+   ao Celular, Widgets, apps do Office e Game Bar.
+ - Nivel 3: launchers (Steam, Epic, GOG, Battle.net, Ubisoft, EA, Riot,
+   Rockstar, itch, Playnite, Heroic) e software de periferico (Razer,
+   Logitech, Corsair, Armoury Crate, MSI Center, SteelSeries, OpenRGB,
+   SignalRGB, NZXT, FanControl, overlays NVIDIA e AMD).
+
+ FECHAR UM LAUNCHER PODE ENCERRAR O JOGO ABERTO POR ELE. Por isso o nivel 3
+ nunca entra no botao de um clique: "Reduzir processos" continua no nivel 1,
+ e existe um botao separado "Reduzir processos: extremo" que lista tudo e
+ avisa antes. Em Apps e RAM ha um seletor de nivel com "Marcar nivel".
+ Shell, sessao, drivers, servicos, jogos e anticheat continuam fora de
+ qualquer nivel, por construcao.
+
+ REABRIR: fechar apps deixou de ser irreversivel. O executavel de cada app
+ efetivamente encerrado fica gravado no registro do Historico, e o botao
+ "Reabrir apps fechados" inicia todos de novo. Abas, janelas e trabalho nao
+ salvo NAO voltam - o programa e iniciado do zero, sem argumentos.
+ Reabrir NAO entra na cadeia de Desfazer, porque nao restaura estado do
+ Windows; e uma acao separada e explicita sobre um registro.
+ O caminho gravado nunca e executado por confianca: nome do processo,
+ allowlist, caminho absoluto, extensao .exe, existencia do arquivo e
+ exclusao de %WINDIR% sao reconferidos antes de iniciar qualquer coisa.
+ Reabrir nao pede administrador de proposito: elevar relancaria o programa
+ com privilegio que ele nao tinha antes.
+
+Verbos novos: --services-tier <nivel> e --reopen-apps <id do registro>.

@@ -110,6 +110,7 @@ Depois disso, na ordem de retorno sobre esforço:
 | 1 · reexibir a interface escondida | **aplicada** | `docs/evolucao-6.2/patches/etapa-1-2.patch` · `opt.zip` |
 | 2 · `App.ById` + caches + filtro sem rebuild | **aplicada** | idem |
 | 3 · perfis por cenário | proposta | `03-perfis-por-cenario.md` |
+| — · redução profunda de processos e serviços | **aplicada** | `patches/etapa-3-processos-servicos.patch` · `opt.zip` |
 | 4 · badges, navegação, dashboard, toasts | proposta | `04-ui-ux.md` |
 | 5 · limpezas e diagnósticos | proposta | `05-limpezas-e-diagnosticos.md` |
 | 6 · módulos novos | proposta | `06-modulos-novos.md` |
@@ -120,5 +121,20 @@ só no código-fonte; não há `csc.exe` nem mono no ambiente onde o patch foi
 produzido. Compile com `codigo-fonte\LukeOptimizer\COMPILAR.cmd` no Windows.
 Detalhes e pendências em `ETAPA-1-2-NOTAS.txt`.
 
-O patch aplica na raiz `LukeOptimizer-6.1.2` com `patch -p1 -i etapa-1-2.patch`
-e foi verificado: reproduz a árvore alterada byte a byte.
+Os patches aplicam na raiz `LukeOptimizer-6.1.2` com `patch -p1 -i <arquivo>`, na
+ordem `etapa-1-2.patch` e depois `etapa-3-processos-servicos.patch`. Ambos foram
+verificados: reproduzem a árvore alterada byte a byte.
+
+### Redução profunda (fora da numeração original)
+
+Serviços opcionais: **10 → 41**, em três níveis, com uma lista **protegida de 54**
+que nunca pode ser desativada (Defender, Update, RPC/DCOM, PlugPlay, rede, áudio,
+VSS, SysMain). `App.ValidateServiceCatalog()` confere antes de cada lote que as
+duas listas não se cruzam.
+
+Processos fecháveis: **46 → 130**, em três níveis. Launchers e software de
+periférico ficam no nível 3 e **nunca** no botão de um clique, porque fechar um
+launcher pode encerrar o jogo aberto por ele. Fechar apps deixou de ser
+irreversível: o executável de cada app encerrado fica no registro do Histórico e
+o botão **Reabrir apps fechados** inicia todos de novo — sem restaurar abas,
+janelas ou trabalho não salvo, e sem entrar na cadeia de Desfazer.
