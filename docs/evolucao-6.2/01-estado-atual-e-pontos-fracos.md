@@ -100,7 +100,7 @@ Junto com ela ficaram escondidas:
 | `UnifiedInterface.cs:58` | `filters` | busca por texto e filtro de risco somem |
 | `UnifiedInterface.cs:84` | botões de `CategoryTools` | atalhos por categoria nascem `Visible=false` |
 | `ProductInterface.cs:93` | `categoryGrid` | escolha de categoria de limpeza some |
-| `ProductInterface.cs:92` | `storageCategories` | a `ListView` fonte também é `Visible=false` |
+| `ProductInterface.cs:92` | `storageCategories` | **não é defeito**: a `ListView` é o modelo oculto que alimenta `categoryGrid` e deve continuar invisível |
 | `ProductInterface.cs:56` | `memoryList` | lista de processos do Memory Manager some |
 | `ProductInterface.cs:58` | barra `automatic` | intervalo do modo automático some |
 | `ProductInterface.cs:97` | `cleanupAge` | seletor de idade some, fixo em `0` = sem filtro de idade |

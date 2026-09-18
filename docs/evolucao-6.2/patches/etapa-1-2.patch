@@ -1,0 +1,456 @@
+--- a/codigo-fonte/LukeOptimizer/source/LukeOptimizer.cs
++++ b/codigo-fonte/LukeOptimizer/source/LukeOptimizer.cs
+@@ -79,6 +79,35 @@
+  static string CurrentSid(){if(!IsWindows)return "preview";try{var identity=WindowsIdentity.GetCurrent();return identity.User==null?Environment.UserName:identity.User.Value;}catch{return Environment.UserName;}}
+  internal static readonly string Sid=CurrentSid();
+  internal static List<Item> Items;
++ // Índice por ID. Items tem 673 entradas e a interface consultava cada opção com
++ // App.Items.Single(...) dentro de laços por opção — 131 varreduras lineares por
++ // tecla digitada na busca.
++ // O índice se invalida sozinho: testes e utilitários trocam App.Items por atribuição
++ // (muda a referência) ou por AddRange (muda a contagem), e nenhum deles chamaria
++ // ResetIndex. Comparar referência e contagem cobre os dois casos sem tocar nesses
++ // arquivos; este catálogo nunca substitui um elemento no lugar.
++ static Dictionary<string,Item> itemIndex;
++ static List<Item> indexedSource;
++ static int indexedCount=-1;
++ static readonly object IndexGate=new object();
++ static bool IndexStale(List<Item> source){return itemIndex==null||!ReferenceEquals(indexedSource,source)||indexedCount!=source.Count;}
++ internal static Item ById(string id){
++  var source=Items;
++  if(id==null||source==null)return null;
++  Dictionary<string,Item> index;
++  lock(IndexGate){
++   if(IndexStale(source)){
++    var built=new Dictionary<string,Item>(StringComparer.Ordinal);
++    foreach(var item in source)built[item.Id]=item; // último vence, como SingleOrDefault fazia na prática
++    itemIndex=built;indexedSource=source;indexedCount=source.Count;
++    OptionInfo.Invalidate();
++   }
++   index=itemIndex;
++  }
++  Item found;return index.TryGetValue(id,out found)?found:null;
++ }
++ // Escape hatch explícito, para quando Items mudar sem alterar referência nem contagem.
++ internal static void ResetIndex(){lock(IndexGate){itemIndex=null;indexedSource=null;indexedCount=-1;}OptionInfo.Invalidate();}
+ #if TESTS
+  internal static bool TestUiRendering;
+ #endif
+@@ -115,6 +144,7 @@
+    Items.AddRange(ReviewedFeatures.Items());
+    ImportedScripts.Load();
+    Items.AddRange(ImportedScripts.AsCatalogItems());
++   ResetIndex();
+    Directory.CreateDirectory(RecordsRoot);
+    if(args.Length>0&&args[0]=="--liquid")return LiquidProtocol.Run(args);
+    if(EmbeddedInterface.Parse(args)){Application.Run(new MainForm());return 0;}
+--- a/codigo-fonte/LukeOptimizer/source/OptionInfo.cs
++++ b/codigo-fonte/LukeOptimizer/source/OptionInfo.cs
+@@ -4,7 +4,24 @@
+ class OptionInfo {
+  public string Id,Classification,Risk,AutomaticReason,Restart,Undo,Compatibility;
+  public bool Automatic,Admin;
++ // O resultado é puro por item: depende dos campos do Item, dos grupos fixos de
++ // ExtremeProfile e das regras importadas — nada do estado da máquina, que continua
++ // sendo lido a cada análise por App.Observe. Por isso pode ser memorizado.
++ // Invalidado por App.ResetIndex sempre que o catálogo é reconstruído.
++ static readonly Dictionary<string,OptionInfo> cache=new Dictionary<string,OptionInfo>(StringComparer.Ordinal);
++ static readonly object CacheGate=new object();
++ internal static void Invalidate(){lock(CacheGate)cache.Clear();}
+  internal static OptionInfo For(Item item){
++  if(item==null||item.Id==null)return Compute(item);
++  lock(CacheGate){
++   OptionInfo found;
++   if(cache.TryGetValue(item.Id,out found))return found;
++  }
++  var computed=Compute(item);
++  lock(CacheGate)cache[item.Id]=computed;
++  return computed;
++ }
++ static OptionInfo Compute(Item item){
+   var automatic=new HashSet<string>(ExtremeProfile.Groups().Where(g=>g.Selected).SelectMany(g=>g.Items));
+   var high=new HashSet<string>(new[]{"opt-disablesmartscreen","opt-disablevirtualizationbasedsecurity","opt-userhvci","opt-disabletpmcheck","opt-disablesmb2","opt-disablemodernstandby"});
+   var experimental=new HashSet<string>(new[]{"extra-memory-compression","pack-e8ea680d9741","opt-disablenetworkthrottling","pack-f06301afb713","pack-a137e56bbd0e","pack-b735bf30fb1a"});
+--- a/codigo-fonte/LukeOptimizer/source/ExtremeProfile.cs
++++ b/codigo-fonte/LukeOptimizer/source/ExtremeProfile.cs
+@@ -9,7 +9,14 @@
+  internal ExtremeGroup(string id,string title,string effect,string tradeoff,bool selected,params string[] items){Id=id;Title=title;Effect=effect;Tradeoff=tradeoff;Selected=selected;Items=items;}
+ }
+ static class ExtremeProfile {
+- internal static ExtremeGroup[] Groups(){return new[]{
++ // Os grupos são constantes. Groups() era chamado uma vez por opção dentro de
++ // OptionInfo.For, alocando 7 grupos e 7 arrays a cada chamada.
++ static ExtremeGroup[] groups;
++ static readonly object GroupGate=new object();
++ internal static ExtremeGroup[] Groups(){
++  lock(GroupGate){if(groups==null)groups=Build();return groups;}
++ }
++ static ExtremeGroup[] Build(){return new[]{
+   new ExtremeGroup("games","Priorizar o jogo","Ativa o Modo Jogo e desliga a gravação de clipes em segundo plano.","A Game Bar deixa de gravar clipes em segundo plano. Confira o resultado no seu jogo.",true,"native-gamemode","native-capture"),
+   new ExtremeGroup("background","Menos apps em segundo plano","Reduz somente ajustes locais já testados do perfil; políticas de navegador, Widgets e Notícias ficam fora do botão automático.","Algumas opções podem exigir reabrir o aplicativo. Políticas do Windows são manuais porque podem ser bloqueadas por permissões, edição ou organização.",false),
+   new ExtremeGroup("windows","Menos atividade do Windows","Reduz sugestões locais sem criar políticas protegidas no Registro.","Dicas e conteúdo promocional podem diminuir. Não promete ganho de FPS e pode exigir nova sessão.",true),
+--- a/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs
++++ b/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs
+@@ -19,6 +19,10 @@
+  Label homeCount;FlowLayoutPanel homeFlow;CheckBox homeAdvanced;
+  readonly List<FlowLayoutPanel> homeColumns=new List<FlowLayoutPanel>();int homeLayoutWidth;bool arrangingHome;
+  bool homeSync;TextBox homeSearch;ComboBox homeRisk;readonly HashSet<string> collapsedHome=new HashSet<string>();
++ // Filtro corrente. Control.Visible devolve a visibilidade EFETIVA (some quando a página
++ // está oculta), por isso o estado do filtro é guardado aqui em vez de ser lido da UI.
++ readonly HashSet<string> hiddenHome=new HashSet<string>();
++ readonly HashSet<string> hiddenCards=new HashSet<string>();
+ #if TESTS
+  internal Func<bool,string[],string[],Task> TestHomeApply;
+  internal Action TestHomeUndo;
+@@ -34,8 +38,9 @@
+  }
+  Button HomeButton(string name,string text,EventHandler handler,int width,bool primary=false){var button=Theme.Button(text,primary);button.Name=name;button.Width=width;button.Height=38;button.Margin=new Padding(0,0,8,8);button.Click+=handler;homeActions.Add(button);return button;}
+  void BuildUnified(){
+-  var page=Page("Otimizações");var root=Rows(170,-1);page.Controls.Add(root);
+-  var top=Rows(86,46,46,40);root.Controls.Add(top,0,0);
++  // 86+46+46+44 = 222. A linha valia 170 enquanto as três faixas de baixo estavam ocultas.
++  var page=Page("Otimizações");var root=Rows(222,-1);page.Controls.Add(root);
++  var top=Rows(86,46,46,44);root.Controls.Add(top,0,0);
+   var actions=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=true,AutoScroll=true,Margin=Padding.Empty};top.Controls.Add(actions,0,0);
+   actions.Controls.Add(HomeButton("home-clean","Limpar temporários",async(s,e)=>await QuickCleanupOneClick(),176,true));
+   actions.Controls.Add(HomeButton("home-memory","Liberar RAM",async(s,e)=>await FreeMemoryOneClick(),158,true));
+@@ -49,47 +54,86 @@
+   var apply=HomeButton("home-apply","Aplicar selecionadas",async(s,e)=>await RunHome(false),170,true);second.Controls.Add(apply);
+   var undo=HomeButton("home-undo","Desfazer",async(s,e)=>await HomeUndoClick(),140);second.Controls.Add(undo);
+   var restore=HomeButton("home-restore-selection","Restaurar seleção",async(s,e)=>{var rec=records.FirstOrDefault(App.CanUndo);if(rec==null)return;var ids=HomePayload(false);if(ids.Length>0)await Elevated("--restore-selection",rec.Id+"|"+String.Join(",",ids));},170);second.Controls.Add(restore);
+-  var windowDetails=HomeButton("home-details-native-window","Detalhes da otimização selecionada",async(s,e)=>{var item=App.Items.FirstOrDefault(i=>i.Id=="native-window");if(item!=null)await ShowHomeDetails(new HomeOption(item.Id,item.ReviewTitle,"Windows"));},220);second.Controls.Add(windowDetails);
++  var windowDetails=HomeButton("home-details-native-window","Detalhes da otimização selecionada",async(s,e)=>{var item=App.ById("native-window");if(item!=null)await ShowHomeDetails(new HomeOption(item.Id,item.ReviewTitle,"Windows"));},220);second.Controls.Add(windowDetails);
+   
+-  var third=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true,Margin=Padding.Empty,Visible=false};top.Controls.Add(third,0,2);
+-  homeAdvanced=new ReadableCheckBox{Text="Opções avançadas incluídas abaixo",AutoSize=false,Width=260,Height=36,Margin=new Padding(6,0,8,0),ForeColor=Theme.Muted,BackColor=Theme.Bg,AccessibleName="Opções avançadas incluídas",Checked=true,Visible=false};third.Controls.Add(homeAdvanced);
++  var third=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true,Margin=Padding.Empty};top.Controls.Add(third,0,2);
++  homeAdvanced=new ReadableCheckBox{Text="Mostrar também as opções avançadas",AutoSize=false,Width=280,Height=36,Margin=new Padding(6,0,8,0),ForeColor=Theme.Muted,BackColor=Theme.Bg,AccessibleName="Mostrar também as opções avançadas",Checked=false};third.Controls.Add(homeAdvanced);
+   homeCount=Theme.Label("",10,Theme.Accent,true);homeCount.Dock=DockStyle.None;homeCount.Width=170;homeCount.Height=36;third.Controls.Add(homeCount);
+   var simulate=Theme.Button("Simular seleção");simulate.Name="home-simulate";simulate.Width=154;simulate.Height=34;simulate.Click+=async(s,e)=>{var ids=homeChecks.Where(c=>c.Value.Checked&&!homeOptions[c.Key].Diagnostic).Select(c=>c.Key).ToArray();if(ids.Length>0)await ProductWork(token=>ExecutionHub.SimulateAsync(ids,token,ProductProgress),true);};third.Controls.Add(simulate);
+-  var filters=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true,Visible=false};top.Controls.Add(filters,0,3);homeSearch=new TextBox{Width=300,Font=Theme.Font(10),BackColor=Theme.Card,ForeColor=Theme.Text,AccessibleName="Buscar opções"};filters.Controls.Add(homeSearch);homeRisk=Combo();homeRisk.Width=170;homeRisk.Items.AddRange(new object[]{"Todos os riscos","Baixo","Moderado","Alto","Favoritos"});homeRisk.SelectedIndex=0;filters.Controls.Add(homeRisk);var filterHint=Theme.Label("",1,Theme.Bg);filterHint.Dock=DockStyle.None;filterHint.Width=1;filterHint.Height=1;
+-  homeFlow=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,WrapContents=true,Padding=new Padding(0,0,8,12),Visible=false};root.Controls.Add(homeFlow,0,1);
++  var filters=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true};top.Controls.Add(filters,0,3);homeSearch=new TextBox{Width=300,Font=Theme.Font(10),BackColor=Theme.Card,ForeColor=Theme.Text,AccessibleName="Buscar opções"};filters.Controls.Add(homeSearch);homeRisk=Combo();homeRisk.Width=170;homeRisk.Items.AddRange(new object[]{"Todos os riscos","Baixo","Moderado","Alto","Favoritos"});homeRisk.SelectedIndex=0;filters.Controls.Add(homeRisk);
++  homeFlow=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,WrapContents=true,Padding=new Padding(0,0,8,12)};root.Controls.Add(homeFlow,0,1);
+   foreach(var option in PrimaryOptions())homeOptions.Add(option.Id,option);
+   foreach(var item in CatalogIds.NativeItems().Where(i=>!homeOptions.ContainsKey(i.Id)))homeOptions.Add(item.Id,new HomeOption(item.Id,item.ReviewTitle,AdvancedCategory(item)));
+-  foreach(var category in HomeCategories)collapsedHome.Add(category);
+-  BuildHomeCards();var inlineTools=new FlowLayoutPanel{Dock=DockStyle.Fill,AutoScroll=true,WrapContents=true,Padding=new Padding(0,8,8,8),Visible=false};homeSearch.TextChanged+=(s,e)=>BuildHomeCards();homeRisk.SelectedIndexChanged+=(s,e)=>BuildHomeCards();homeAdvanced.CheckedChanged+=(s,e)=>BuildHomeCards();homeFlow.SizeChanged+=(s,e)=>SizeHomeCards();
++  // Categorias abertas por padrão: com as avançadas desmarcadas a lista já é curta.
++  BuildHomeCards();homeSearch.TextChanged+=(s,e)=>ApplyHomeFilter();homeRisk.SelectedIndexChanged+=(s,e)=>ApplyHomeFilter();homeAdvanced.CheckedChanged+=(s,e)=>ApplyHomeFilter();homeFlow.SizeChanged+=(s,e)=>SizeHomeCards();
+ 
+  }
+  static string AdvancedCategory(Item item){string text=(item.Category+" "+item.ReviewTitle).ToLowerInvariant();return text.Contains("energia")||text.Contains("power")?"Energia":text.Contains("rede")||text.Contains("dns")||text.Contains("tcp")?"Rede":text.Contains("mouse")||text.Contains("tecl")||text.Contains("input")?"Input Lag":text.Contains("game")||text.Contains("jog")||text.Contains("fps")?"FPS":text.Contains("disco")||text.Contains("ssd")||text.Contains("ntfs")?"SSD":text.Contains("serviço")||text.Contains("segundo plano")?"Processos":"Windows";}
+  void BuildHomeCards(){
+   var saved=homeChecks.Where(x=>x.Value.Checked).Select(x=>x.Key).ToArray();bool first=homeChecks.Count==0;
+-  homeFlow.SuspendLayout();foreach(Control control in homeFlow.Controls.Cast<Control>().ToArray())control.Dispose();homeCards.Clear();homeChecks.Clear();homeColumns.Clear();homeLayoutWidth=0;
++  homeFlow.SuspendLayout();foreach(Control control in homeFlow.Controls.Cast<Control>().ToArray())control.Dispose();
++  // Cartão filtrado fica fora de qualquer coluna; sem isto ele escaparia do Dispose acima.
++  foreach(var previous in homeCards)previous.Dispose();
++  homeCards.Clear();homeChecks.Clear();homeColumns.Clear();homeLayoutWidth=0;
+   var primary=new HashSet<string>(PrimaryOptions().Select(o=>o.Id));
+   foreach(string category in HomeCategories){
+    var options=homeOptions.Values.Where(o=>o.Category==category).ToArray();
+    var card=new Surface{Padding=new Padding(16,10,16,10),Margin=new Padding(0,0,12,12),Name="home-category-"+category};homeCards.Add(card);homeFlow.Controls.Add(card);
+    var body=new TableLayoutPanel{Dock=DockStyle.Top,AutoSize=true,ColumnCount=1,Margin=Padding.Empty};card.Controls.Add(body);
+-   var header=Theme.Button((collapsedHome.Contains(category)?"+ ":"− ")+category);header.Name="home-collapse-"+category;header.Height=32;header.Dock=DockStyle.Top;header.Click+=(s,e)=>{if(!collapsedHome.Add(category))collapsedHome.Remove(category);BuildHomeCards();};body.Controls.Add(header);
++   var header=Theme.Button((collapsedHome.Contains(category)?"+ ":"− ")+category);header.Name="home-collapse-"+category;header.Height=32;header.Dock=DockStyle.Top;header.Click+=(s,e)=>{if(!collapsedHome.Add(category))collapsedHome.Remove(category);ApplyHomeFilter();};body.Controls.Add(header);
+    foreach(var option in options){
+     var row=new TableLayoutPanel{Height=productPrefs==null||productPrefs.Compact?32:40,Dock=DockStyle.Top,ColumnCount=1,Margin=Padding.Empty,Name="home-row-"+option.Id,Visible=HomeVisible(option,primary)&&!collapsedHome.Contains(category)};
+-    var check=new ReadableCheckBox{Text=option.Title+(!option.Diagnostic&&OptionInfo.For(App.Items.Single(i=>i.Id==option.Id)).Classification=="Manual"?" · Manual":""),Dock=DockStyle.Fill,Margin=new Padding(0,0,5,0),ForeColor=Theme.Text,BackColor=Theme.Card,Font=Theme.Font(9.5f),Name="home-check-"+option.Id,AccessibleName=option.Title};homeChecks.Add(option.Id,check);row.Controls.Add(check,0,0);
+-    
+-    string id=option.Id;check.Checked=first?!option.Diagnostic&&App.Items.Any(i=>i.Id==id&&i.DefaultSelected):saved.Contains(id);
++    var check=new ReadableCheckBox{Text=option.Title+(!option.Diagnostic&&OptionInfo.For(App.ById(option.Id)).Classification=="Manual"?" · Manual":""),Dock=DockStyle.Fill,Margin=new Padding(0,0,5,0),ForeColor=Theme.Text,BackColor=Theme.Card,Font=Theme.Font(9.5f),Name="home-check-"+option.Id,AccessibleName=option.Title};homeChecks.Add(option.Id,check);row.Controls.Add(check,0,0);
++    string id=option.Id;var defaults=App.ById(id);check.Checked=first?!option.Diagnostic&&defaults!=null&&defaults.DefaultSelected:saved.Contains(id);
+     check.CheckedChanged+=(s,e)=>{check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;check.Invalidate();if(!homeSync)UpdateHome();};check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;
+     body.Controls.Add(row);
+    }
+-   foreach(var link in CategoryTools(category)){string target=link.Value;var button=Theme.Button(link.Key);button.Visible=false;button.Height=34;button.Dock=DockStyle.Top;button.Margin=new Padding(0,5,0,0);button.Click+=(s,e)=>{if(target.StartsWith("ms-settings:"))OpenLocal(target);else if(target=="dfrgui.exe")OpenSystem(target,"");else ShowPage(target);};body.Controls.Add(button);}
+-   int visibleRows=collapsedHome.Contains(category)?0:options.Count(o=>HomeVisible(o,primary));card.Height=52+(productPrefs==null||productPrefs.Compact?32:40)*visibleRows+39*(collapsedHome.Contains(category)||!String.IsNullOrWhiteSpace(homeSearch.Text)?0:CategoryTools(category).Count);
++   foreach(var link in CategoryTools(category)){string target=link.Value;var button=Theme.Button(link.Key);button.Name="home-tool-"+category+"-"+link.Key;button.Height=34;button.Dock=DockStyle.Top;button.Margin=new Padding(0,5,0,0);button.Click+=(s,e)=>{if(target.StartsWith("ms-settings:"))OpenLocal(target);else if(target=="dfrgui.exe")OpenSystem(target,"");else ShowPage(target);};body.Controls.Add(button);}
+   }
+-  homeFlow.ResumeLayout();SizeHomeCards();UpdateHome();
++  homeFlow.ResumeLayout();ApplyHomeFilter();
++ }
++ // Filtra sem destruir e recriar 131 controles: só alterna Visible e recalcula alturas.
++ // Chamado a cada tecla da busca, por isso não pode alocar por opção.
++ void ApplyHomeFilter(){
++  if(homeFlow==null)return;
++  var primary=new HashSet<string>(PrimaryOptions().Select(o=>o.Id));
++  int rowHeight=productPrefs==null||productPrefs.Compact?32:40;
++  bool searching=homeSearch!=null&&!String.IsNullOrWhiteSpace(homeSearch.Text);
++  hiddenHome.Clear();hiddenCards.Clear();homeFlow.SuspendLayout();
++  try{
++   foreach(var card in homeCards){
++    string category=card.Name.Substring("home-category-".Length);
++    bool collapsed=collapsedHome.Contains(category);
++    int visibleRows=0;
++    foreach(Control child in card.Controls[0].Controls){
++     if(child.Name!=null&&child.Name.StartsWith("home-row-",StringComparison.Ordinal)){
++      string id=child.Name.Substring("home-row-".Length);
++      bool matches=HomeVisible(homeOptions[id],primary);
++      if(!matches)hiddenHome.Add(id);
++      child.Visible=matches&&!collapsed;
++      if(child.Visible)visibleRows++;
++      continue;
++     }
++     if(child.Name!=null&&child.Name.StartsWith("home-tool-",StringComparison.Ordinal))child.Visible=!collapsed&&!searching;
++     else if(child.Name!=null&&child.Name.StartsWith("home-collapse-",StringComparison.Ordinal))child.Text=(collapsed?"+ ":"− ")+category;
++    }
++    int tools=collapsed||searching?0:CategoryTools(category).Count;
++    card.Height=52+rowHeight*visibleRows+39*tools;
++    bool showCard=collapsed||visibleRows>0;
++    card.Visible=showCard;if(!showCard)hiddenCards.Add(card.Name);
++   }
++  }finally{homeFlow.ResumeLayout();}
++  // Sentinela impossível: SizeHomeCards ignora a chamada quando a largura não mudou,
++  // e 0 é uma largura alcançável quando o painel ainda não foi dimensionado.
++  homeLayoutWidth=Int32.MinValue;SizeHomeCards();UpdateHome();
+  }
+  bool HomeVisible(HomeOption option,HashSet<string> primary){
++  // A caixa "opções avançadas" deixa de ser decorativa: sem ela a página abre com as
++  // opções curadas de PrimaryOptions em vez das 131 do catálogo inteiro.
++  if(homeAdvanced!=null&&!homeAdvanced.Checked&&!primary.Contains(option.Id))return false;
+   string query=homeSearch==null?"":homeSearch.Text.Trim();
+   if(query.Length>0&&(option.Title+" "+option.Category+" "+option.Id).IndexOf(query,StringComparison.CurrentCultureIgnoreCase)<0)return false;
+-  string risk=homeRisk==null?"Todos os riscos":Convert.ToString(homeRisk.SelectedItem);if(risk=="Favoritos")return favorites.Contains(option.Id);return risk=="Todos os riscos"||(option.Diagnostic?risk=="Baixo":OptionInfo.For(App.Items.Single(i=>i.Id==option.Id)).Risk==risk);
++  string risk=homeRisk==null?"Todos os riscos":Convert.ToString(homeRisk.SelectedItem);if(risk=="Favoritos")return favorites.Contains(option.Id);return risk=="Todos os riscos"||(option.Diagnostic?risk=="Baixo":OptionInfo.For(App.ById(option.Id)).Risk==risk);
+  }
+  Dictionary<string,string> CategoryTools(string category){var result=new Dictionary<string,string>();
+   if(category=="FPS"){result.Add("Comparar FPS e frametime","FPS e stutter");result.Add("Ajustar GPU por jogo","Perfis de jogos");}
+@@ -110,17 +154,31 @@
+    foreach(var column in homeColumns)column.Dispose();homeColumns.Clear();
+    int count=width>=1420?3:width>=720?2:1;int cardWidth=Math.Max(280,width/count-12);var heights=new int[count];
+    for(int n=0;n<count;n++){var column=new FlowLayoutPanel{FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,Width=cardWidth,MinimumSize=new Size(cardWidth,0),MaximumSize=new Size(cardWidth,0),Margin=new Padding(0,0,12,0)};homeColumns.Add(column);homeFlow.Controls.Add(column);}
+-   foreach(var card in homeCards){int column=Array.IndexOf(heights,heights.Min());card.Width=cardWidth;card.Margin=new Padding(0,0,0,12);homeColumns[column].Controls.Add(card);heights[column]+=card.Height+12;}
++   foreach(var card in homeCards){if(hiddenCards.Contains(card.Name))continue;int column=Array.IndexOf(heights,heights.Min());card.Width=cardWidth;card.Margin=new Padding(0,0,0,12);homeColumns[column].Controls.Add(card);heights[column]+=card.Height+12;}
+   }finally{homeFlow.ResumeLayout();arrangingHome=false;}
+  }
+  async Task ShowHomeDetails(HomeOption option){
+   string text;
+   if(option.Diagnostic)text=ReviewedDiagnostics.Detail(option.Id)+"\r\n\r\nCompatibilidade: Windows 10/11. Somente leitura; resultados no Histórico. Não altera configurações e não exige desfazer.\r\nFonte: "+ReviewedDiagnostics.Source(option.Id);
+-  else{var item=App.Items.Single(i=>i.Id==option.Id);var info=OptionInfo.For(item);text=String.Join("\r\n",item.Review??new string[0])+"\r\n\r\nClassificação: "+info.Classification+"\r\nRisco: "+info.Risk+"\r\nCompatibilidade: "+info.Compatibility+"\r\n"+info.AutomaticReason+"\r\n"+info.Restart+"\r\n\r\nBackup: "+App.RecordsRoot+"\r\nDesfazer: valores, tipos e ausência anteriores restaurados pelo Histórico. Mudanças posteriores são preservadas.\r\n\r\nFonte: "+item.Url+"\r\nID preservado: "+item.Id;}
++  else{var item=App.ById(option.Id);var info=OptionInfo.For(item);text=String.Join("\r\n",item.Review??new string[0])+"\r\n\r\nClassificação: "+info.Classification+"\r\nRisco: "+info.Risk+"\r\nCompatibilidade: "+info.Compatibility+"\r\n"+info.AutomaticReason+"\r\n"+info.Restart+"\r\n\r\nBackup: "+App.RecordsRoot+"\r\nDesfazer: valores, tipos e ausência anteriores restaurados pelo Histórico. Mudanças posteriores são preservadas.\r\n\r\nFonte: "+item.Url+"\r\nID preservado: "+item.Id;}
+   await InlineReview(option.Title,text,false);
+  }
+- bool HomeBulkSafe(HomeOption option){if(option.Diagnostic)return true;var item=App.Items.First(i=>i.Id==option.Id);return ExtremeProfile.Groups().Where(g=>g.Selected).SelectMany(g=>g.Items).Contains(option.Id)&&ExtremeProfile.IsReviewed(item);}
+- void SetHomeSelection(bool selected){homeSync=true;foreach(var pair in homeChecks){var item=App.Items.FirstOrDefault(i=>i.Id==pair.Key);var info=item==null?null:OptionInfo.For(item);pair.Value.Checked=selected&&item!=null&&!pair.Value.Text.Contains("Diagnóstico")&&info!=null&&ExtremeProfile.IsReviewed(item)&&info.Classification!="Manual";}homeSync=false;UpdateHome();}
++ bool HomeBulkSafe(HomeOption option){if(option.Diagnostic)return true;var item=App.ById(option.Id);return item!=null&&ExtremeProfile.Groups().Where(g=>g.Selected).SelectMany(g=>g.Items).Contains(option.Id)&&ExtremeProfile.IsReviewed(item);}
++ // "Selecionar tudo" marca o que está VISÍVEL no filtro atual: marcar em silêncio uma
++ // opção que a pessoa não pode ver foi o que tornou a página escondida perigosa.
++ // O teste de diagnóstico passa a usar HomeOption.Diagnostic; o antigo Text.Contains
++ // ("Diagnóstico") nunca casava, porque nenhum título de diagnóstico contém a palavra.
++ void SetHomeSelection(bool selected){
++  homeSync=true;
++  foreach(var pair in homeChecks){
++   var option=homeOptions[pair.Key];
++   var item=option.Diagnostic?null:App.ById(pair.Key);
++   var info=item==null?null:OptionInfo.For(item);
++   pair.Value.Checked=selected&&item!=null&&!hiddenHome.Contains(pair.Key)
++    &&info!=null&&ExtremeProfile.IsReviewed(item)&&info.Classification!="Manual";
++  }
++  homeSync=false;UpdateHome();
++ }
+  void UpdateHome(){if(homeCount==null)return;bool enabled=ready&&machine.Windows&&!busy&&!scanning&&!resourceScanning&&!easyRunning;
+   foreach(var check in homeChecks.Values)check.Enabled=enabled;
+   foreach(var button in homeActions)button.Enabled=enabled;
+@@ -130,9 +188,26 @@
+   var undoButton=homeActions.FirstOrDefault(b=>b.Name=="home-undo");if(undoButton!=null)undoButton.Enabled=enabled&&records.Any(App.CanUndo);
+   var restoreButton=homeActions.FirstOrDefault(b=>b.Name=="home-restore-selection");if(restoreButton!=null)restoreButton.Enabled=enabled&&records.Any(App.CanUndo)&&HomePayload(false).Length>0;
+  }
+- string[] ResolveHomeConflicts(IEnumerable<string> ids){var accepted=new List<Item>();foreach(string id in ids.Distinct()){var item=App.Items.FirstOrDefault(i=>i.Id==id);if(item==null)continue;try{App.UniqueOperations(accepted.Concat(new[]{item}));accepted.Add(item);}catch{}}return accepted.Select(i=>i.Id).ToArray();}
++ string[] ResolveHomeConflicts(IEnumerable<string> ids){var accepted=new List<Item>();foreach(string id in ids.Distinct()){var item=App.ById(id);if(item==null)continue;try{App.UniqueOperations(accepted.Concat(new[]{item}));accepted.Add(item);}catch{}}return accepted.Select(i=>i.Id).ToArray();}
++ // Conjunto do botão Ultra: os itens dos grupos MARCADOS de ExtremeProfile.
++ // Antes era "todo item que passa em IsReviewed", o que incluía native-power — cujo
++ // grupo "Energia para desempenho" vem desmarcado — e dezenas de opções que a tela de
++ // perfil não anuncia. OptionInfo.Automatic sempre leu os grupos; agora as duas
++ // respostas coincidem, que é o que UnifiedUiTests já exigia.
++ internal static string[] ExtremeIds(){
++  var ids=new List<string>();
++  foreach(var group in ExtremeProfile.Groups()){
++   if(!group.Selected)continue;
++   foreach(string id in group.Items){
++    string canonical=CatalogIds.Canonical(id);
++    var item=App.ById(canonical);
++    if(item!=null&&ExtremeProfile.IsReviewed(item))ids.Add(canonical);
++   }
++  }
++  return ids.ToArray();
++ }
+  internal string[] HomePayload(bool extreme){var selected=homeChecks.Where(x=>x.Value.Checked&&!homeOptions[x.Key].Diagnostic).Select(x=>x.Key);
+-  if(!extreme)return ResolveHomeConflicts(selected);var allowed=new HashSet<string>(CatalogIds.NativeItems().Where(ExtremeProfile.IsReviewed).Select(i=>i.Id));return ResolveHomeConflicts(selected.Concat(allowed).Where(allowed.Contains));
++  if(!extreme)return ResolveHomeConflicts(selected);return ResolveHomeConflicts(ExtremeIds());
+  }
+  async Task RunHome(bool extreme){
+   if(busy||scanning||resourceScanning||easyRunning||!machine.Windows)return;
+@@ -141,9 +216,9 @@
+ #if TESTS
+   if(TestHomeApply!=null){await TestHomeApply(extreme,ids,diagnostics);return;}
+ #endif
+-  string review=String.Join("\r\n",ids.Select(id=>"• "+App.Items.Single(i=>i.Id==id).ReviewTitle).Concat(diagnostics.Select(id=>"• "+ReviewedDiagnostics.Title(id))));
++  string review=String.Join("\r\n",ids.Select(id=>"• "+App.ById(id).ReviewTitle).Concat(diagnostics.Select(id=>"• "+ReviewedDiagnostics.Title(id))));
+   string policy="Cada ajuste tem backup, verificação e restauração individual em caso de falha. Valores sem permissão são ignorados; os demais continuam. Desfazer restaura os ajustes aplicados deste conjunto. Diagnósticos fazem somente leitura.";
+-  var manual=ids.Select(id=>App.Items.Single(i=>i.Id==id)).Where(i=>OptionInfo.For(i).Classification=="Manual"||OptionInfo.For(i).Risk!="Baixo").ToList();
++  var manual=ids.Select(App.ById).Where(i=>OptionInfo.For(i).Classification=="Manual"||OptionInfo.For(i).Risk!="Baixo").ToList();
+   if(manual.Count>0)review+="\r\n\r\nOPÇÕES MANUAIS / COM RISCO\r\n"+String.Join("\r\n\r\n",manual.Select(i=>i.ReviewTitle+": "+String.Join(" ",i.Review??new string[0])));
+   if(!await InlineReview(extreme?"Otimização extrema":"Aplicar selecionadas",review+"\r\n\r\n"+policy,true))return;
+   if(ids.Length>0&&!await Elevated(extreme?"--extreme":"--apply-many",String.Join(",",ids)))return;
+@@ -165,12 +240,18 @@
+  async Task RunQuickProfile(){
+   if(busy||scanning||resourceScanning||easyRunning||!machine.Windows)return;
+   homeSync=true;
+-  foreach(var pair in homeChecks){var option=homeOptions[pair.Key];if(option.Diagnostic){pair.Value.Checked=false;continue;}var item=App.Items.FirstOrDefault(i=>i.Id==pair.Key);var info=item==null?null:OptionInfo.For(item);pair.Value.Checked=item!=null&&item.DefaultSelected&&info.Risk=="Baixo"&&info.Automatic;}
++  foreach(var pair in homeChecks){var option=homeOptions[pair.Key];if(option.Diagnostic){pair.Value.Checked=false;continue;}var item=App.ById(pair.Key);var info=item==null?null:OptionInfo.For(item);pair.Value.Checked=item!=null&&item.DefaultSelected&&info.Risk=="Baixo"&&info.Automatic;}
+   homeSync=false;UpdateHome();await RunHome(false);
+  }
+  async Task RunUltraProfile(){
+   if(busy||scanning||resourceScanning||easyRunning||!machine.Windows)return;
+-  SetHomeSelection(true);await RunHome(true);
++  // Deixa a tela mostrar exatamente o que o perfil vai aplicar, em vez de marcar tudo
++  // e aplicar outra coisa. A prévia de RunHome lista o mesmo conjunto.
++  var ids=new HashSet<string>(ExtremeIds(),StringComparer.Ordinal);
++  homeSync=true;
++  foreach(var pair in homeChecks)pair.Value.Checked=ids.Contains(pair.Key);
++  homeSync=false;UpdateHome();
++  await RunHome(true);
+  }
+  void PopulateToolDirectory(FlowLayoutPanel flow){
+   var title=Theme.Label("Ferramentas integradas · opções e BATs revisados",11,Theme.Accent,true);title.Width=700;title.Height=30;flow.Controls.Add(title);
+--- a/codigo-fonte/LukeOptimizer/source/ProductInterface.cs
++++ b/codigo-fonte/LukeOptimizer/source/ProductInterface.cs
+@@ -53,9 +53,9 @@
+  static string MemoryText(MemorySnapshot m){return "RAM usada: "+SystemTelemetry.Format(m.UsedBytes)+" · total: "+SystemTelemetry.Format(m.TotalBytes)+" · disponível: "+SystemTelemetry.Format(m.AvailableBytes)+Environment.NewLine+"Livre: "+SystemTelemetry.Format(m.FreeBytes)+" · cache: "+SystemTelemetry.Format(m.CacheBytes)+" · standby: "+SystemTelemetry.Format(m.StandbyBytes)+" · comprimida: "+SystemTelemetry.Format(m.CompressedBytes)+Environment.NewLine+"Commit: "+SystemTelemetry.Format(m.CommitBytes)+" / "+SystemTelemetry.Format(m.CommitLimitBytes)+" · handles: "+m.Handles+Environment.NewLine+m.Note;}
+  void BuildMemoryManager(){
+   var page=Page("Memory Manager");var root=Rows(112,-1,46,44);page.Controls.Add(root);memoryInfo=Theme.ReadBox();memoryInfo.Name="memory-info";memoryInfo.Text="Working set é a memória residente de um processo. Remover páginas pode causar releituras e piorar a resposta momentaneamente. Nenhum processo é encerrado.\r\nA limpeza global de standby exige mecanismos não documentados para este uso e permanece indisponível. Comprimida: sem provedor confiável integrado.";root.Controls.Add(memoryInfo,0,0);
+-  memoryList=new CheckableList{CheckBoxes=true,ShowItemToolTips=true,Name="memory-processes",Visible=false};memoryList.Columns.Add("Processo / PID",240);memoryList.Columns.Add("RAM (MB)",100);memoryList.Columns.Add("Disponibilidade / motivo",500);FitProductList(memoryList,new[]{0.32,0.15,0.53});root.Controls.Add(memoryList,0,1);memoryList.ItemCheck+=(s,e)=>{if(e.NewValue==CheckState.Checked&&memoryList.Items[e.Index].Tag is ProcessToken&&!String.IsNullOrEmpty(((ProcessToken)memoryList.Items[e.Index].Tag).Protection))e.NewValue=CheckState.Unchecked;};
++  memoryList=new CheckableList{CheckBoxes=true,ShowItemToolTips=true,Name="memory-processes"};memoryList.Columns.Add("Processo / PID",240);memoryList.Columns.Add("RAM (MB)",100);memoryList.Columns.Add("Disponibilidade / motivo",500);FitProductList(memoryList,new[]{0.32,0.15,0.53});root.Controls.Add(memoryList,0,1);memoryList.ItemCheck+=(s,e)=>{if(e.NewValue==CheckState.Checked&&memoryList.Items[e.Index].Tag is ProcessToken&&!String.IsNullOrEmpty(((ProcessToken)memoryList.Items[e.Index].Tag).Protection))e.NewValue=CheckState.Unchecked;};
+   var bar=ProductBar();root.Controls.Add(bar,0,2);ProductButton(bar,"memory-oneclick","Liberar memória agora",async(s,e)=>await FreeMemoryOneClick(),true,240);
+-  var automatic=ProductBar();root.Controls.Add(automatic,0,3);automatic.Visible=false;memoryAutomatic=new CheckBox{Text="Automático só para a seleção atual",Width=285,Height=30,ForeColor=Theme.Text};automatic.Controls.Add(memoryAutomatic);memoryInterval=new NumericUpDown{Minimum=1,Maximum=1440,Value=productPrefs.MemoryIntervalMinutes,Width=70};automatic.Controls.Add(memoryInterval);automatic.Controls.Add(new Label{Text="minutos · desativado ao abrir o aplicativo",AutoSize=true,ForeColor=Theme.Muted,Padding=new Padding(0,5,0,0)});
++  var automatic=ProductBar();root.Controls.Add(automatic,0,3);memoryAutomatic=new CheckBox{Text="Automático só para a seleção atual",Width=285,Height=30,ForeColor=Theme.Text};automatic.Controls.Add(memoryAutomatic);memoryInterval=new NumericUpDown{Minimum=1,Maximum=1440,Value=productPrefs.MemoryIntervalMinutes,Width=70};automatic.Controls.Add(memoryInterval);automatic.Controls.Add(new Label{Text="minutos · desativado ao abrir o aplicativo",AutoSize=true,ForeColor=Theme.Muted,Padding=new Padding(0,5,0,0)});
+   memoryAutomatic.CheckedChanged+=async(s,e)=>{if(memoryAutomatic.Checked&&!await Confirm("Limpar os working sets dos processos atualmente marcados a cada "+memoryInterval.Value+" minutos? Isso pode aumentar falhas de página e reduzir desempenho. Processos novos não entram automaticamente.","Limpeza automática opcional"))memoryAutomatic.Checked=false;nextMemoryRun=DateTime.UtcNow.AddMinutes((double)memoryInterval.Value);};
+  }
+  async Task RefreshMemory(){if(productRunning||busy)return;productRunning=true;try{var selection=memoryList.CheckedItems.Cast<ListViewItem>().Select(i=>(ProcessToken)i.Tag).ToArray();var data=await Task.Run(()=>ResourceMonitor.ScanProcesses());var mem=await Task.Run(()=>{var m=SystemTelemetry.Memory();SystemTelemetry.OptionalMemory(m);return m;});memoryList.BeginUpdate();memoryList.Items.Clear();foreach(var p in data.OrderByDescending(p=>p.MemoryMB)){var item=new ListViewItem(p.Name+" / "+p.Pid){Tag=p,ToolTipText=p.Name+" · "+p.Path+" · "+p.Protection,Checked=selection.Any(old=>ResourceMonitor.SameIdentity(old,p))&&String.IsNullOrEmpty(p.Protection),ForeColor=String.IsNullOrEmpty(p.Protection)?Theme.Text:Theme.Muted};item.SubItems.Add(p.MemoryKnown?p.MemoryMB.ToString("0"):"Indisponível");item.SubItems.Add(String.IsNullOrEmpty(p.Protection)?"Elegível · seleção manual":p.Protection);memoryList.Items.Add(item);}memoryList.EndUpdate();memoryInfo.Text=MemoryText(mem);}catch(Exception e){memoryInfo.Text=ErrorHelp.For(e).FriendlyError+" "+e.Message;}finally{productRunning=false;}}
+@@ -67,11 +67,14 @@
+  async Task QuickCleanupOneClick(){
+   if(productRunning||busy||!ready)return;
+   foreach(ListViewItem row in storageCategories.Items)row.Checked=true;
+-  cleanupAge.Value=0;
+-  footer.Text="Analisando todos os temporários e caches seguros…";
++  // Respeita a idade mínima escolhida na tela em vez de zerá-la em silêncio.
++  int age=(int)cleanupAge.Value;
++  footer.Text=age>0
++   ?"Analisando temporários e caches seguros sem uso há "+age+" dia(s)…"
++   :"Analisando todos os temporários e caches seguros, sem filtro de idade…";
+   await ScanStorage();
+   if(cleanupPreview!=null&&cleanupPreview.Files.Count>0)await RunStorage(false);
+-  else footer.Text="Nenhum temporário elegível foi encontrado.";
++  else footer.Text="Nenhum temporário elegível foi encontrado com a idade mínima atual.";
+  }
+  async Task FreeMemoryOneClick(){
+   if(productRunning||busy||!ready)return;
+@@ -90,21 +93,29 @@
+  }
+  void BuildStorageManager(){
+   var page=Page("Temporários");var root=Rows(148,60,-1,42,40);page.Controls.Add(root);storageCategories=new CheckableList{CheckBoxes=true,Name="cleanup-categories"};storageCategories.Columns.Add("Categoria",310);storageCategories.Columns.Add("Caminho",380);storageCategories.Columns.Add("Impacto",400);foreach(var c in StorageManager.Categories()){var row=new ListViewItem(c.Name){Tag=c,ForeColor=Theme.Text};row.SubItems.Add(c.Root);row.SubItems.Add(c.Warning);storageCategories.Items.Add(row);}storageCategories.Dock=DockStyle.None;storageCategories.Visible=false;page.Controls.Add(storageCategories);
+-  int categoryRows=Math.Max(1,(storageCategories.Items.Count+1)/2);var categoryGrid=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=categoryRows,AutoScroll=true,Margin=Padding.Empty,Visible=false};categoryGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));categoryGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));for(int n=0;n<categoryRows;n++)categoryGrid.RowStyles.Add(new RowStyle(SizeType.Absolute,34));root.Controls.Add(categoryGrid,0,0);
++  int categoryRows=Math.Max(1,(storageCategories.Items.Count+1)/2);var categoryGrid=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=categoryRows,AutoScroll=true,Margin=Padding.Empty};categoryGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));categoryGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));for(int n=0;n<categoryRows;n++)categoryGrid.RowStyles.Add(new RowStyle(SizeType.Absolute,34));root.Controls.Add(categoryGrid,0,0);
+   var categoryChecks=new List<CheckBox>();for(int n=0;n<storageCategories.Items.Count;n++){var row=storageCategories.Items[n];var category=(CleanupCategory)row.Tag;var cell=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,Margin=new Padding(0,0,8,2)};cell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));cell.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,56));var check=new ReadableCheckBox{Text=category.Name,Dock=DockStyle.Fill,Font=Theme.Font(9),ForeColor=Theme.Text,AccessibleName=category.Name};categoryChecks.Add(check);check.CheckedChanged+=(s,e)=>row.Checked=check.Checked;productTips.SetToolTip(check,category.Root+"\r\n"+category.Warning+"\r\nAdministrador: "+category.Administrator);cell.Controls.Add(check,0,0);var folder=Theme.Button("Pasta");folder.Font=Theme.Font(8);folder.Dock=DockStyle.Fill;folder.Margin=Padding.Empty;folder.Click+=(s,e)=>OpenLocal(category.Root);cell.Controls.Add(folder,1,0);categoryGrid.Controls.Add(cell,n%2,n/2);}storageCategories.ItemChecked+=(s,e)=>{if(e.Item.Index>=0&&e.Item.Index<categoryChecks.Count&&categoryChecks[e.Item.Index].Checked!=e.Item.Checked)categoryChecks[e.Item.Index].Checked=e.Item.Checked;};
+   storageInfo=Theme.ReadBox();storageInfo.Text="Limpar temporários";root.Controls.Add(storageInfo,0,1);
+   storageFiles=new CheckableList{CheckBoxes=false,ShowItemToolTips=true,Name="cleanup-preview"};storageFiles.Columns.Add("Arquivo",380);storageFiles.Columns.Add("Bytes",110);storageFiles.Columns.Add("Última alteração",180);FitProductList(storageFiles,new[]{0.63,0.14,0.23});root.Controls.Add(storageFiles,0,2);
+-  var bar=ProductBar();root.Controls.Add(bar,0,3);ProductButton(bar,"cleanup-oneclick","Limpar todos os temporários",async(s,e)=>await CleanAllTemporariesOneClick(),true,245);cleanupAge=new NumericUpDown{Minimum=0,Maximum=3650,Value=0,Width=70,Visible=false};bar.Controls.Add(cleanupAge);
++  var bar=ProductBar();root.Controls.Add(bar,0,3);ProductButton(bar,"cleanup-oneclick","Limpar todos os temporários",async(s,e)=>await CleanAllTemporariesOneClick(),true,245);  // O seletor estava oculto e travado em 0, o que anula o corte por data em
++  // StorageManager.Scan: o botão de um clique limpava temporários de QUALQUER idade
++  // sem que a pessoa pudesse ver ou mudar isso. Volta visível, com o padrão salvo.
++  cleanupAge=new NumericUpDown{Minimum=0,Maximum=3650,Value=Math.Max(0,Math.Min(3650,productPrefs.CleanupAgeDays)),Width=70,BackColor=Theme.Card,ForeColor=Theme.Text,AccessibleName="Idade mínima em dias"};bar.Controls.Add(cleanupAge);
++  bar.Controls.Add(new Label{Text="dias de idade mínima (0 = sem filtro de idade)",AutoSize=true,ForeColor=Theme.Muted,Padding=new Padding(4,10,0,0)});
++  cleanupAge.ValueChanged+=(s,e)=>{int days=(int)cleanupAge.Value;if(days<1)return;productPrefs.CleanupAgeDays=days;try{productPrefs.Save();}catch(Exception error){footer.Text="Preferência de idade não salva: "+error.Message;}};
+   var actions=ProductBar();root.Controls.Add(actions,0,4);ProductButton(actions,"cleanup-recycle","Abrir Lixeira",(s,e)=>OpenLocal("shell:RecycleBinFolder"),false,135);
+  }
+  async Task CleanAllTemporariesOneClick(){
+   if(productRunning||busy||!ready)return;
+   foreach(ListViewItem row in storageCategories.Items)row.Checked=true;
+-  cleanupAge.Value=0;
+-  footer.Text="Analisando todos os temporários e caches seguros…";
++  // Respeita a idade mínima escolhida na tela em vez de zerá-la em silêncio.
++  int age=(int)cleanupAge.Value;
++  footer.Text=age>0
++   ?"Analisando temporários e caches seguros sem uso há "+age+" dia(s)…"
++   :"Analisando todos os temporários e caches seguros, sem filtro de idade…";
+   await ScanStorage();
+   if(cleanupPreview!=null&&cleanupPreview.Files.Count>0)await RunStorage(false);
+-  else footer.Text="Nenhum temporário elegível foi encontrado.";
++  else footer.Text="Nenhum temporário elegível foi encontrado com a idade mínima atual.";
+  }
+  async Task ScanStorage(){if(productRunning||busy)return;var ids=storageCategories.CheckedItems.Cast<ListViewItem>().Select(i=>((CleanupCategory)i.Tag).Id).ToArray();int age=(int)cleanupAge.Value;productRunning=true;productCancel.Dispose();productCancel=new CancellationTokenSource();try{cleanupPreview=await Task.Run(()=>StorageManager.Scan(ids,age,productCancel.Token));storageFiles.BeginUpdate();storageFiles.Items.Clear();foreach(var f in cleanupPreview.Files){var row=new ListViewItem(f.Path){Tag=f,ToolTipText=f.Path,Checked=true,ForeColor=Theme.Text};row.SubItems.Add(f.Bytes.ToString());row.SubItems.Add(new DateTime(f.Modified,DateTimeKind.Utc).ToLocalTime().ToString("g"));storageFiles.Items.Add(row);}storageFiles.EndUpdate();storageInfo.Text=cleanupPreview.Files.Count+" arquivo(s) · "+SystemTelemetry.Format(cleanupPreview.Files.Sum(f=>f.Bytes))+" · prévia válida por 15 min. "+(cleanupPreview.Truncated?"Análise limitada por tempo/quantidade/profundidade. ":"")+String.Join("; ",cleanupPreview.Notes);}catch(Exception e){storageInfo.Text=ErrorHelp.For(e).FriendlyError+" "+e.Message;}finally{productRunning=false;}}
+  async Task RunStorage(bool simulation){if(productRunning||busy||cleanupPreview==null)return;var selected=new CleanupPreview{AgeDays=cleanupPreview.AgeDays,Time=cleanupPreview.Time,Files=cleanupPreview.Files.ToList()};if(selected.Files.Count==0)return;
+--- a/codigo-fonte/LukeOptimizer/tests/ProductUiTests.cs
++++ b/codigo-fonte/LukeOptimizer/tests/ProductUiTests.cs
+@@ -8,7 +8,10 @@
+   if(pages.Count!=27||nav.Count!=9||homeChecks.Count!=131||App.Items.Count!=673)throw new Exception("v6 preserved inventory mismatch");
+   if(memoryAutomatic.Checked||storageCategories.CheckedItems.Count!=0)throw new Exception("v6 new operations must be opt-in");
+   footer.Text="TESTE DE INTERFACE · sem otimizações reais";
+-  if(storageCategories.Items.Count!=8||memoryInterval.Minimum<1)throw new Exception("v6 module controls missing");
++  // Era "!=8", número congelado quando havia 8 categorias; hoje StorageManager traz 14
++  // e o teste falhava por desatualização. A invariante é a grade refletir o catálogo.
++  if(storageCategories.Items.Count!=StorageManager.Categories().Count||memoryInterval.Minimum<1)throw new Exception("v6 module controls missing");
++  TestVisibility();
+   string[] targets={"Painel","Memory Manager","Temporários","Avançado / Alto Impacto","Resultados","Configurações"};
+   foreach(var size in new[]{new Size(1080,720),new Size(1920,1080),new Size(2560,1440)}){
+    Size=size;foreach(string target in targets){ShowPage(target);PerformLayout();Application.DoEvents();if(pages[target].ClientSize.Width<700||pages[target].Height<460)throw new Exception("v6 collapsed page "+target);
+@@ -25,4 +28,57 @@
+   using(var bitmap=new Bitmap(Width,Height)){DrawToBitmap(bitmap,new Rectangle(Point.Empty,Size));bitmap.Save(Path.Combine(folder,"v6-layout-scale125.png"));}
+   Console.WriteLine("V6 UI passed: six new pages; 1080x720, 1920x1080, 2560x1440; synthetic layout scale 125%; profiles, density, opt-in and advanced descriptions. Actual monitor DPI requires manual validation.");
+  }
++ // Contar controles na árvore — como o teste de inventário faz — não detecta um pai com
++ // Visible=false, que foi exatamente como a grade de 131 opções sumiu em 6.1.2.
++ //
++ // Control.Visible é EFETIVO: percorre os pais até o Form. A janela do smoke test nunca
++ // é exibida, então uma asserção absoluta daria falso negativo para tudo. A comparação
++ // é feita contra um controle-referência da mesma página que nunca foi escondido: se a
++ // referência está visível, os demais têm de estar. Quando a janela não está realizada
++ // a referência também é falsa e a checagem não acusa nada — nunca há falso positivo.
++ // A asserção absoluta exige exibir a janela no UiSmoke; validar isso no Windows antes.
++ static void SameVisibility(Control baseline,Control control,string message){
++  if(baseline.Visible&&!control.Visible)throw new Exception(message);
++ }
++ internal void TestVisibility(){
++  ShowPage("Otimizações");PerformLayout();Application.DoEvents();
++  var reference=(Button)Controls.Find("home-apply",true).Single();   // nunca teve Visible=false
++  SameVisibility(reference,homeFlow,"6.2 a grade de opções está invisível (regressão de 6.1.2)");
++  SameVisibility(reference,homeSearch,"6.2 a busca de opções está invisível");
++  SameVisibility(reference,homeRisk,"6.2 o filtro de risco está invisível");
++  SameVisibility(reference,homeCount,"6.2 o contador de seleção está invisível");
++  SameVisibility(reference,homeAdvanced,"6.2 a caixa de opções avançadas está invisível");
++
++  // Independente de a janela estar exibida: o filtro é estado próprio, não Control.Visible.
++  bool advancedBefore=homeAdvanced.Checked;
++  homeAdvanced.Checked=false;PerformLayout();Application.DoEvents();
++  int curated=homeChecks.Count-hiddenHome.Count;
++  if(curated<8)throw new Exception("6.2 apenas "+curated+" opção(ões) na lista curada");
++  if(hiddenHome.Count==0)throw new Exception("6.2 a caixa de opções avançadas não filtra nada");
++  homeAdvanced.Checked=true;PerformLayout();Application.DoEvents();
++  int all=homeChecks.Count-hiddenHome.Count;
++  if(all!=homeChecks.Count)throw new Exception("6.2 opções avançadas marcadas ainda escondem itens ("+all+")");
++  if(all<=curated)throw new Exception("6.2 a caixa de opções avançadas não amplia a lista ("+curated+" -> "+all+")");
++  homeAdvanced.Checked=advancedBefore;PerformLayout();Application.DoEvents();
++
++  ShowPage("Temporários");PerformLayout();Application.DoEvents();
++  reference=(Button)Controls.Find("cleanup-oneclick",true).Single();
++  SameVisibility(reference,cleanupAge,"6.2 o seletor de idade mínima está invisível");
++  SameVisibility(reference,storageFiles,"6.2 a prévia de limpeza está invisível");
++  if(cleanupAge.Value<1)throw new Exception("6.2 a limpeza de um clique ficou sem filtro de idade");
++  int categoryChecks=CountChecks(pages["Temporários"],reference.Visible);
++  if(categoryChecks<StorageManager.Categories().Count)throw new Exception("6.2 as categorias de limpeza estão invisíveis ("+categoryChecks+")");
++
++  ShowPage("Memory Manager");PerformLayout();Application.DoEvents();
++  reference=(Button)Controls.Find("memory-oneclick",true).Single();
++  SameVisibility(reference,memoryList,"6.2 a lista de processos está invisível");
++  SameVisibility(reference,memoryInterval,"6.2 o intervalo do modo automático está invisível");
++ }
++ // Com a janela realizada exige visibilidade efetiva; sem ela, conta a presença na árvore.
++ static int CountChecks(Control parent,bool realized){
++  int total=0;
++  if(parent is CheckBox&&(!realized||parent.Visible))total++;
++  foreach(Control child in parent.Controls)total+=CountChecks(child,realized);
++  return total;
++ }
+ }

@@ -100,3 +100,25 @@ Depois disso, na ordem de retorno sobre esforço:
   documentado pela Microsoft. Usamos o Policy CSP `Storage`, que é.
 - Desativar overlays de Discord/Steam/NVIDIA por Registro: não existe política
   oficial. Viram **passo guiado**, registrado como `sugerido`.
+
+---
+
+## Estado da implementação
+
+| Etapa | Estado | Onde |
+|---|---|---|
+| 1 · reexibir a interface escondida | **aplicada** | `docs/evolucao-6.2/patches/etapa-1-2.patch` · `opt.zip` |
+| 2 · `App.ById` + caches + filtro sem rebuild | **aplicada** | idem |
+| 3 · perfis por cenário | proposta | `03-perfis-por-cenario.md` |
+| 4 · badges, navegação, dashboard, toasts | proposta | `04-ui-ux.md` |
+| 5 · limpezas e diagnósticos | proposta | `05-limpezas-e-diagnosticos.md` |
+| 6 · módulos novos | proposta | `06-modulos-novos.md` |
+| 7 · testes | parcial (visibilidade e contagem de categorias) | `07-testes-e-robustez.md` |
+
+**O `.exe` dentro de `opt.zip` continua sendo o antigo.** As etapas 1 e 2 estão
+só no código-fonte; não há `csc.exe` nem mono no ambiente onde o patch foi
+produzido. Compile com `codigo-fonte\LukeOptimizer\COMPILAR.cmd` no Windows.
+Detalhes e pendências em `ETAPA-1-2-NOTAS.txt`.
+
+O patch aplica na raiz `LukeOptimizer-6.1.2` com `patch -p1 -i etapa-1-2.patch`
+e foi verificado: reproduz a árvore alterada byte a byte.

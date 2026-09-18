@@ -1,0 +1,68 @@
+LukeOptimizer 6.1.2 — etapas 1 e 2 aplicadas ao CODIGO-FONTE
+============================================================
+
+ATENCAO: OS .EXE DESTE PACOTE AINDA SAO OS ANTIGOS.
+
+As alteracoes estao apenas em codigo-fonte/LukeOptimizer/. Elas NAO foram
+compiladas: o ambiente onde o patch foi produzido nao tem csc.exe nem mono.
+Executar native/LukeOptimizer-6.1.2.exe ou ABRIR.cmd agora roda o binario
+antigo, sem nenhuma das correcoes abaixo.
+
+PARA OBTER O BINARIO COM AS CORRECOES
+-------------------------------------
+1. Extraia este ZIP numa pasta local do Windows 10/11 x64.
+2. Abra codigo-fonte\LukeOptimizer\ e execute COMPILAR.cmd
+   (equivale a VALIDAR-5.4.ps1: compila, roda os testes de engine, roda o
+   smoke test de interface e so entao publica o executavel).
+3. Se a compilacao passar mas algum teste falhar, o executavel anterior e
+   preservado de proposito. Leia verificacao\atual\tests.log e ui.log.
+
+O QUE MUDOU
+-----------
+Etapa 1 - a interface escondida voltou a aparecer:
+ - A grade das 131 opcoes da pagina Otimizacoes (homeFlow) nascia com
+   Visible=false e nunca era reexibida. Selecionar tudo, Aplicar
+   selecionadas e Otimizacao Ultra operavam sobre caixas invisiveis.
+ - Voltaram tambem: busca por texto, filtro de risco, contador de
+   selecao, botao Simular selecao e os atalhos por categoria.
+ - As categorias deixaram de nascer todas recolhidas.
+ - A caixa "opcoes avancadas" deixou de ser decorativa: desmarcada, a
+   pagina abre com as ~18 opcoes curadas; marcada, mostra as 131.
+ - Pagina Temporarios: a grade de categorias de limpeza voltou a aparecer.
+ - Pagina Temporarios: o seletor de idade minima estava oculto e travado
+   em 0, o que anula o corte por data em StorageManager.Scan. Ou seja, o
+   botao de um clique limpava temporarios de QUALQUER idade sem que a
+   pessoa pudesse ver ou mudar isso. Agora aparece, usa o padrao salvo
+   (7 dias) e o valor escolhido e respeitado.
+ - Pagina Memory Manager: lista de processos e intervalo do modo
+   automatico voltaram a aparecer.
+ - Selecionar tudo passou a marcar somente o que esta visivel no filtro.
+
+Etapa 2 - custo da interface:
+ - App.ById: indice por Id em vez de App.Items.Single(...), que varria
+   673 itens uma vez por opcao, 131 vezes por tecla digitada na busca.
+ - OptionInfo.For passou a memorizar o resultado (e puro por item).
+ - ExtremeProfile.Groups() passou a ser calculado uma vez.
+ - Filtrar deixou de destruir e recriar 131 controles: ApplyHomeFilter so
+   alterna visibilidade e recalcula alturas. Efeito colateral bom: a
+   selecao para de ser perdida e restaurada a cada tecla.
+
+Correcao de honestidade incluida junto (fora do escopo pedido):
+ - O botao Otimizacao Ultra aplicava TODO item aprovado por
+   ExtremeProfile.IsReviewed - inclusive native-power, cujo grupo
+   "Energia para desempenho" vem DESMARCADO na tela de perfil, e
+   native-mouse. Eram cerca de 38 alteracoes onde a tela anuncia 8.
+   Agora Ultra aplica exatamente os itens dos grupos MARCADOS, que e o
+   que OptionInfo ja informava na ficha de cada opcao e o que
+   tests\UnifiedUiTests.cs ja exigia ("Extreme allowed unsafe item").
+
+PENDENCIAS CONHECIDAS
+---------------------
+ - Os hashes em MANIFESTO-SHA256.json e SHA256SUMS*.txt estao
+   desatualizados para os .cs alterados. VALIDAR-5.4.ps1 chama
+   ATUALIZAR-HASHES.ps1 no fim e regenera tudo.
+ - Os tres grupos vazios de ExtremeProfile (background, windows,
+   services) continuam vazios. Com a correcao acima, Ultra passa a
+   aplicar 8 itens. Devolver amplitude de forma honesta e a etapa 3
+   (perfis por cenario), descrita em docs/evolucao-6.2/03-*.md.
+ - Nada aqui foi executado em Windows real. Validar antes de distribuir.
