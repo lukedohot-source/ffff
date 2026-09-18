@@ -1,0 +1,605 @@
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-18 11:07:06.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-18 23:04:34.366210499 +0000
+@@ -10,14 +10,40 @@
+ using System.Windows.Forms;
+ 
+ static class Theme {
+- internal static Color Bg=Color.FromArgb(15,16,18),Side=Color.FromArgb(20,21,24),Card=Color.FromArgb(27,29,33),Line=Color.FromArgb(65,68,74),Text=Color.FromArgb(245,246,248),Muted=Color.FromArgb(180,185,194),Accent=Color.FromArgb(255,208,48),Amber=Color.FromArgb(244,191,112),Red=Color.FromArgb(248,139,143),Blue=Color.FromArgb(139,190,241);
++ // Paleta única do aplicativo. Selection/Hover/Alt/HeroFill/HeroText/CheckFill existiam
++ // como Color.FromArgb fixos espalhados por cinco arquivos, o que tornava impossível
++ // trocar de cor sem caçar cada um. Agora todos saem daqui.
++ // Line desenha bordas; Disabled preenche botao desligado. Eram a mesma cor, e clarear
++ // a borda escurecia o texto do botao desligado — agora cada papel tem a sua.
++ internal static Color Bg,Side,Card,Line,Disabled,Text,Muted,Accent,Amber,Red,Contrast,Selection,Hover,Alt,HeroFill,HeroText,CheckFill;
++ internal static bool BlueSkin;
++ static Theme(){Apply(true);}
++ // Apply(false) devolve a pele âmbar original; nada mais no código precisa mudar.
++ internal static void Apply(bool blue){
++  BlueSkin=blue;
++  Text=Color.FromArgb(238,243,250);Red=Color.FromArgb(248,139,143);Amber=Color.FromArgb(244,191,112);
++  if(blue){
++   Bg=Color.FromArgb(12,16,24);Side=Color.FromArgb(16,21,32);Card=Color.FromArgb(22,29,43);
++   Line=Color.FromArgb(70,90,120);Disabled=Color.FromArgb(38,48,66);Muted=Color.FromArgb(165,178,197);
++   Accent=Color.FromArgb(88,166,255);            // 6,6:1 sobre Card e 7,5:1 contra Bg em botão primário
++   Contrast=Color.FromArgb(236,150,205);         // serie secundaria: 108 graus de matiz do acento e longe do ambar de aviso
++   Selection=Color.FromArgb(28,52,84);Hover=Color.FromArgb(30,42,62);Alt=Color.FromArgb(18,26,40);
++   HeroFill=Color.FromArgb(24,34,52);HeroText=Color.FromArgb(186,206,235);CheckFill=Color.FromArgb(8,12,20);
++  }else{
++   Bg=Color.FromArgb(15,16,18);Side=Color.FromArgb(20,21,24);Card=Color.FromArgb(27,29,33);
++   Line=Color.FromArgb(65,68,74);Disabled=Color.FromArgb(65,68,74);Muted=Color.FromArgb(180,185,194);
++   Accent=Color.FromArgb(255,208,48);Contrast=Color.FromArgb(139,190,241);
++   Selection=Color.FromArgb(62,55,27);Hover=Color.FromArgb(39,49,62);Alt=Color.FromArgb(25,33,44);
++   HeroFill=Color.FromArgb(34,35,39);HeroText=Color.FromArgb(191,214,203);CheckFill=Color.FromArgb(3,2,5);
++  }
++ }
+  internal static Font Font(float size,bool bold=false){return new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular);}
+  internal static Label Label(string text,float size,Color color,bool bold=false){var label=size>=20?(Label)new HeadingLabel():new Label();label.Text=text;label.Font=Font(size,bold);label.ForeColor=color;label.AutoSize=false;label.Dock=DockStyle.Fill;label.TextAlign=ContentAlignment.MiddleLeft;label.AutoEllipsis=size<20;label.Margin=Padding.Empty;return label;}
+  internal static ActionButton Button(string text,bool primary=false){return new ActionButton {Text=text,Primary=primary,Height=40,Width=175,Font=Font(10,true),Margin=new Padding(0,0,10,0),Cursor=Cursors.Hand,AccessibleName=text};}
+  internal static TextBox ReadBox(){return new TextBox {Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Dock=DockStyle.Fill,BackColor=Card,ForeColor=Text,BorderStyle=BorderStyle.None,Font=Font(10),Margin=Padding.Empty};}
+  internal static Color StatusColor(string s){if(s=="Conferido"||s=="Valores conferidos"||s=="Plano ativo"||s=="aplicado"||s=="desfeito"||s=="Revisado")return Accent;if(s.Contains("erro")||s.Contains("Erro")||s.Contains("falha")||s=="Alto risco")return Red;if(s=="Parcial"||s=="Condicional"||s=="Nome incorreto"||s=="Não comprovado"||s=="Substituído")return Amber;return Muted;}
+  internal static void DrawCheck(Graphics g,Rectangle box,bool selected,bool enabled){
+-  using(var fill=new SolidBrush(Color.FromArgb(3,2,5)))g.FillRectangle(fill,box);
++  using(var fill=new SolidBrush(CheckFill))g.FillRectangle(fill,box);
+   using(var border=new Pen(enabled?(selected?Accent:Muted):Line,selected?2:1))g.DrawRectangle(border,box);
+   if(selected)using(var tick=new Pen(enabled?Accent:Muted,Math.Max(2,box.Width/7f))){tick.StartCap=tick.EndCap=LineCap.Round;g.DrawLines(tick,new[]{new Point(box.X+box.Width/5,box.Y+box.Height/2),new Point(box.X+box.Width*2/5,box.Y+box.Height*3/4),new Point(box.X+box.Width*4/5,box.Y+box.Height/4)});}
+  }
+@@ -47,20 +73,20 @@
+  public ActionButton(){FlatStyle=FlatStyle.Flat;FlatAppearance.BorderSize=0;SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer,true);BackColor=Theme.Card;ForeColor=Theme.Text;}
+  protected override void OnMouseEnter(EventArgs e){hover=true;Invalidate();base.OnMouseEnter(e);}
+  protected override void OnMouseLeave(EventArgs e){hover=false;Invalidate();base.OnMouseLeave(e);}
+- protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Parent==null?Theme.Bg:Parent.BackColor);Color c=!Enabled?Theme.Line:Primary?Theme.Accent:Active?Color.FromArgb(62,55,27):hover?Color.FromArgb(39,49,62):Theme.Card;using(var path=Theme.Round(new Rectangle(0,0,Math.Max(1,Width-1),Math.Max(1,Height-1)),8))using(var b=new SolidBrush(c))g.FillPath(b,path);TextRenderer.DrawText(g,Text,Font,ClientRectangle,!Enabled?Theme.Muted:Primary?Theme.Bg:Active?Theme.Accent:Theme.Text,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);if(Focused)ControlPaint.DrawFocusRectangle(g,new Rectangle(4,4,Width-8,Height-8),Theme.Text,c);}
++ protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Parent==null?Theme.Bg:Parent.BackColor);Color c=!Enabled?Theme.Disabled:Primary?Theme.Accent:Active?Theme.Selection:hover?Theme.Hover:Theme.Card;using(var path=Theme.Round(new Rectangle(0,0,Math.Max(1,Width-1),Math.Max(1,Height-1)),8))using(var b=new SolidBrush(c))g.FillPath(b,path);TextRenderer.DrawText(g,Text,Font,ClientRectangle,!Enabled?Theme.Muted:Primary?Theme.Bg:Active?Theme.Accent:Theme.Text,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);if(Focused)ControlPaint.DrawFocusRectangle(g,new Rectangle(4,4,Width-8,Height-8),Theme.Text,c);}
+ }
+ class CatalogList : ListView {
+  ImageList rowHeight;
+  public CatalogList(){DoubleBuffered=true;View=View.Details;FullRowSelect=true;MultiSelect=false;HideSelection=false;BackColor=Theme.Card;ForeColor=Theme.Text;BorderStyle=BorderStyle.None;Font=Theme.Font(10);Dock=DockStyle.Fill;OwnerDraw=true;rowHeight=new ImageList {ImageSize=new Size(1,36)};SmallImageList=rowHeight;}
+  protected override void OnDrawColumnHeader(DrawListViewColumnHeaderEventArgs e){using(var b=new SolidBrush(Theme.Side))e.Graphics.FillRectangle(b,e.Bounds);TextRenderer.DrawText(e.Graphics,e.Header.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-16,e.Bounds.Height),Theme.Muted,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);}
+  protected override void OnDrawItem(DrawListViewItemEventArgs e){}
+- protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){bool selected=e.Item.Selected;using(var b=new SolidBrush(selected?Color.FromArgb(62,55,27):e.ItemIndex%2==0?Theme.Card:Color.FromArgb(25,33,44)))e.Graphics.FillRectangle(b,e.Bounds);Color color=e.ColumnIndex>=2?Theme.StatusColor(e.SubItem.Text):Theme.Text;TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-18,e.Bounds.Height),color,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.SingleLine);}
++ protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){bool selected=e.Item.Selected;using(var b=new SolidBrush(selected?Theme.Selection:e.ItemIndex%2==0?Theme.Card:Theme.Alt))e.Graphics.FillRectangle(b,e.Bounds);Color color=e.ColumnIndex>=2?Theme.StatusColor(e.SubItem.Text):Theme.Text;TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-18,e.Bounds.Height),color,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.SingleLine);}
+  protected override void Dispose(bool disposing){if(disposing)rowHeight.Dispose();base.Dispose(disposing);}
+ }
+ 
+ class CheckableList : CatalogList {
+  protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){
+-  using(var brush=new SolidBrush(e.Item.Selected?Color.FromArgb(36,53,74):Theme.Card))e.Graphics.FillRectangle(brush,e.Bounds);
++  using(var brush=new SolidBrush(e.Item.Selected?Theme.Selection:Theme.Card))e.Graphics.FillRectangle(brush,e.Bounds);
+   int inset=12;
+   if(e.ColumnIndex==0&&CheckBoxes){Theme.DrawCheck(e.Graphics,new Rectangle(e.Bounds.X+9,e.Bounds.Y+(e.Bounds.Height-20)/2,20,20),e.Item.Checked,Enabled);inset=38;}
+   TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+inset,e.Bounds.Y,Math.Max(1,e.Bounds.Width-inset-8),e.Bounds.Height),e.Item.ForeColor,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);
+@@ -100,12 +126,20 @@
+  }
+  Panel Page(string name){var p=new Panel {Dock=DockStyle.Fill,BackColor=Theme.Bg};host.Controls.Add(p);pages[name]=p;return p;}
+  TableLayoutPanel Rows(params float[] heights){var p=new TableLayoutPanel {Dock=DockStyle.Fill,RowCount=heights.Length,ColumnCount=1,Margin=Padding.Empty};foreach(float h in heights)p.RowStyles.Add(h<0?new RowStyle(SizeType.Percent,100):new RowStyle(SizeType.Absolute,h));return p;}
+- void ShowPage(string key){if(key=="Avançado / Alto Impacto"||key=="Energia avançada"||key=="Ajustes manuais")key="Otimizações";if(ready&&!App.IsUiTest()&&(key=="Apps e RAM"||key=="Manutenção"))BeginInvoke((Action)(async()=>await RefreshResources()));foreach(var p in pages)p.Value.Visible=p.Key==key;pages[key].BringToFront();foreach(var n in nav){n.Value.Active=n.Key==key;n.Value.Invalidate();}title.Text=key;subtitle.Text=key=="Otimizações"?"Selecione. Aplique. Acompanhe no histórico.":key=="Ferramentas"?"Todas as funções do Luke Optimizer.":key=="Catálogo"?"Busque um nome e veja o que cada item faz. As opções nativas têm backup.":key=="Otimização máxima"?"Escolha os ajustes. O modo fácil usa esta seleção.":key=="Seus 14 BATs"?"Conteúdo preservado, efeitos explicados e integração revisada.":key=="Apps e RAM"?"Consumo real, seleção explícita e fechamento sem apagar cache útil.":key=="Manutenção"?"Inicialização, serviços, temporários e foco — sempre opcionais.":key=="Diagnóstico"?"Leituras do seu PC e limites do que foi verificado.":key=="Histórico"?"Resultados por etapa e restauração dos valores anteriores.":"Seu PC, com ações claras e resultados verificáveis.";}
++ // "Avançado / Alto Impacto" foi consolidado em "Otimizações" e não existe mais como
++ // página; traduzir esse nome aposentado é legítimo. "Energia avançada" e "Ajustes
++ // manuais" EXISTEM em pages e estavam na mesma lista, então TODA tentativa de abri-las
++ // caía em Otimizações em silêncio: os botões que Ferramentas cria para cada página, os
++ // itens Action="page" de performance-library.json, a navegação do modo embutido e o
++ // mapa do V5Bridge apontavam para telas que nunca apareciam. Duas páginas inteiras eram
++ // código morto visível. A regra passa a ser estrutural em vez de uma lista de nomes:
++ // só cai em Otimizações o que não é página de verdade.
++ void ShowPage(string key){if(!pages.ContainsKey(key))key="Otimizações";if(ready&&!App.IsUiTest()&&(key=="Apps e RAM"||key=="Manutenção"))BeginInvoke((Action)(async()=>await RefreshResources()));foreach(var p in pages)p.Value.Visible=p.Key==key;pages[key].BringToFront();foreach(var n in nav){n.Value.Active=n.Key==key;n.Value.Invalidate();}title.Text=key;subtitle.Text=key=="Otimizações"?"Selecione. Aplique. Acompanhe no histórico.":key=="Ferramentas"?"Todas as funções do Luke Optimizer.":key=="Catálogo"?"Busque um nome e veja o que cada item faz. As opções nativas têm backup.":key=="Otimização máxima"?"Escolha os ajustes. O modo fácil usa esta seleção.":key=="Seus 14 BATs"?"Conteúdo preservado, efeitos explicados e integração revisada.":key=="Apps e RAM"?"Consumo real, seleção explícita e fechamento sem apagar cache útil.":key=="Manutenção"?"Inicialização, serviços, temporários e foco — sempre opcionais.":key=="Diagnóstico"?"Leituras do seu PC e limites do que foi verificado.":key=="Histórico"?"Resultados por etapa e restauração dos valores anteriores.":"Seu PC, com ações claras e resultados verificáveis.";}
+  void BuildDashboard(){
+   var page=Page("Visão geral");var grid=Rows(214,112,-1);page.Controls.Add(grid);
+-  var hero=new Surface {Dock=DockStyle.Fill,Fill=Color.FromArgb(34,35,39),BackColor=Color.FromArgb(34,35,39),Padding=new Padding(25,17,25,17),Margin=new Padding(0,0,0,16)};grid.Controls.Add(hero,0,0);
++  var hero=new Surface {Dock=DockStyle.Fill,Fill=Theme.HeroFill,BackColor=Theme.HeroFill,Padding=new Padding(25,17,25,17),Margin=new Padding(0,0,0,16)};grid.Controls.Add(hero,0,0);
+   var heroGrid=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=2};heroGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,67));heroGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,33));hero.Controls.Add(heroGrid);
+-  var heroText=Rows(25,48,42,-1);heroGrid.Controls.Add(heroText,0,0);heroText.Controls.Add(Theme.Label("PERFIL REVISADO  /  BACKUP AUTOMÁTICO",9,Theme.Accent,true),0,0);heroText.Controls.Add(Theme.Label("Seu PC, no controle.",27,Theme.Text,true),0,1);heroText.Controls.Add(Theme.Label("Aplique os ajustes compatíveis e acompanhe cada resultado.",11,Color.FromArgb(191,214,203)),0,2);
++  var heroText=Rows(25,48,42,-1);heroGrid.Controls.Add(heroText,0,0);heroText.Controls.Add(Theme.Label("PERFIL REVISADO  /  BACKUP AUTOMÁTICO",9,Theme.Accent,true),0,0);heroText.Controls.Add(Theme.Label("Seu PC, no controle.",27,Theme.Text,true),0,1);heroText.Controls.Add(Theme.Label("Aplique os ajustes compatíveis e acompanhe cada resultado.",11,Theme.HeroText),0,2);
+   var launch=Theme.Button("Otimização máxima  →",true);launch.Width=237;launch.Height=43;launch.Click+=(s,e)=>ShowPage("Otimização máxima");heroText.Controls.Add(launch,0,3);
+   var aside=Rows(55,45,-1);aside.Padding=new Padding(26,15,0,5);heroGrid.Controls.Add(aside,1,0);aside.Controls.Add(Theme.Label(Builtins.Create().Count.ToString(),28,Theme.Accent,true),0,0);aside.Controls.Add(Theme.Label("ajustes no perfil\r\n6 pré-selecionados",10,Theme.Text),0,1);heroHint=Theme.Label("A compatibilidade será\r\nconferida neste PC.",9,Theme.Muted);aside.Controls.Add(heroHint,0,2);
+   var metrics=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=4,RowCount=1};for(int n=0;n<4;n++)metrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,25));grid.Controls.Add(metrics,0,1);
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs	2026-09-18 12:33:15.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs	2026-09-18 23:07:07.566206995 +0000
+@@ -45,6 +45,7 @@
+   actions.Controls.Add(HomeButton("home-clean","Limpar temporários",async(s,e)=>await QuickCleanupOneClick(),176,true));
+   actions.Controls.Add(HomeButton("home-memory","Liberar RAM",async(s,e)=>await FreeMemoryOneClick(),158,true));
+   actions.Controls.Add(HomeButton("home-processes","Reduzir processos",async(s,e)=>await RunProcessReduction(),174,true));
++  actions.Controls.Add(HomeButton("home-processes-deep","Reduzir processos: extremo",async(s,e)=>await RunProcessReduction("extremo"),228));
+   actions.Controls.Add(HomeButton("home-gaming-session","Sessão de jogo",async(s,e)=>await RunGamingSessionProfile(),168,true));
+   actions.Controls.Add(HomeButton("home-apps","Remover apps",(s,e)=>ShowPage("Remover apps"),150));
+   actions.Controls.Add(HomeButton("home-extreme","Otimização Ultra",async(s,e)=>await RunUltraProfile(),187,true));
+@@ -53,7 +54,22 @@
+   var clear=HomeButton("home-clear","Limpar seleção",(s,e)=>SetHomeSelection(false),140);second.Controls.Add(clear);
+   var apply=HomeButton("home-apply","Aplicar selecionadas",async(s,e)=>await RunHome(false),170,true);second.Controls.Add(apply);
+   var undo=HomeButton("home-undo","Desfazer",async(s,e)=>await HomeUndoClick(),140);second.Controls.Add(undo);
+-  var restore=HomeButton("home-restore-selection","Restaurar seleção",async(s,e)=>{var rec=records.FirstOrDefault(App.CanUndo);if(rec==null)return;var ids=HomePayload(false);if(ids.Length>0)await Elevated("--restore-selection",rec.Id+"|"+String.Join(",",ids));},170);second.Controls.Add(restore);
++  // Restaurar reescreve o Windows com valores gravados antes: é alteração real, com
++  // elevação, e segue a mesma regra de todo o resto da página — revisar antes de aplicar.
++  // Este botão era o único que ia direto para a elevação, sem dizer QUAL backup usaria
++  // nem O QUE mudaria. Aplicar, Ultra, remoção de apps e ajustes manuais todos revisam.
++  var restore=HomeButton("home-restore-selection","Restaurar seleção",async(s,e)=>{
++   var rec=records.FirstOrDefault(App.CanUndo);if(rec==null)return;
++   var ids=HomePayload(false);if(ids.Length==0)return;
++   var chosen=ids.Select(App.ById).Where(i=>i!=null).ToArray();
++   DateTime when;string stamp=DateTime.TryParse(rec.Time,out when)?when.ToLocalTime().ToString("dd/MM/yyyy HH:mm"):rec.Time;
++   string text="Backup: "+rec.Name+" · "+stamp+"\r\n\r\n"+
++    "Estas configurações voltam ao valor gravado nesse backup:\r\n"+
++    String.Join("\r\n",chosen.Select(i=>"· "+i.ReviewTitle).ToArray())+
++    "\r\n\r\nSe outro programa alterou algum desses valores depois do backup, a restauração recusa sobrescrever e informa, em vez de apagar a mudança em silêncio.\r\nRequer administrador.";
++   if(!await InlineReview("Confirmar restauração da seleção",text,true))return;
++   await Elevated("--restore-selection",rec.Id+"|"+String.Join(",",ids));
++  },170);second.Controls.Add(restore);
+   var windowDetails=HomeButton("home-details-native-window","Detalhes da otimização selecionada",async(s,e)=>{var item=App.ById("native-window");if(item!=null)await ShowHomeDetails(new HomeOption(item.Id,item.ReviewTitle,"Windows"));},220);second.Controls.Add(windowDetails);
+   
+   var third=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true,Margin=Padding.Empty};top.Controls.Add(third,0,2);
+@@ -85,7 +101,7 @@
+     var row=new TableLayoutPanel{Height=productPrefs==null||productPrefs.Compact?32:40,Dock=DockStyle.Top,ColumnCount=1,Margin=Padding.Empty,Name="home-row-"+option.Id,Visible=HomeVisible(option,primary)&&!collapsedHome.Contains(category)};
+     var check=new ReadableCheckBox{Text=option.Title+(!option.Diagnostic&&OptionInfo.For(App.ById(option.Id)).Classification=="Manual"?" · Manual":""),Dock=DockStyle.Fill,Margin=new Padding(0,0,5,0),ForeColor=Theme.Text,BackColor=Theme.Card,Font=Theme.Font(9.5f),Name="home-check-"+option.Id,AccessibleName=option.Title};homeChecks.Add(option.Id,check);row.Controls.Add(check,0,0);
+     string id=option.Id;var defaults=App.ById(id);check.Checked=first?!option.Diagnostic&&defaults!=null&&defaults.DefaultSelected:saved.Contains(id);
+-    check.CheckedChanged+=(s,e)=>{check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;check.Invalidate();if(!homeSync)UpdateHome();};check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;
++    check.CheckedChanged+=(s,e)=>{check.BackColor=check.Checked?Theme.Selection:Theme.Card;check.Invalidate();if(!homeSync)UpdateHome();};check.BackColor=check.Checked?Theme.Selection:Theme.Card;
+     body.Controls.Add(row);
+    }
+    foreach(var link in CategoryTools(category)){string target=link.Value;var button=Theme.Button(link.Key);button.Name="home-tool-"+category+"-"+link.Key;button.Height=34;button.Dock=DockStyle.Top;button.Margin=new Padding(0,5,0,0);button.Click+=(s,e)=>{if(target.StartsWith("ms-settings:"))OpenLocal(target);else if(target=="dfrgui.exe")OpenSystem(target,"");else ShowPage(target);};body.Controls.Add(button);}
+@@ -110,8 +126,16 @@
+       string id=child.Name.Substring("home-row-".Length);
+       bool matches=HomeVisible(homeOptions[id],primary);
+       if(!matches)hiddenHome.Add(id);
+-      child.Visible=matches&&!collapsed;
+-      if(child.Visible)visibleRows++;
++      // NUNCA reler child.Visible aqui. O getter devolve a visibilidade EFETIVA: ele sobe
++      // até o formulário e devolve false se qualquer ancestral estiver escondido. Como o
++      // cartão é ancestral da linha, reler travava a página: uma passada com o cartão
++      // escondido fazia toda linha ler false, visibleRows ficava 0, o cartão se escondia
++      // de novo e nunca mais voltava. A primeira passada roda dentro de BuildHomeCards,
++      // antes de Show(), quando NADA está efetivamente visível — então as 9 categorias
++      // nasciam escondidas e a tela Otimizações abria vazia. Vale o valor recém-decidido.
++      bool rowVisible=matches&&!collapsed;
++      child.Visible=rowVisible;
++      if(rowVisible)visibleRows++;
+       continue;
+      }
+      if(child.Name!=null&&child.Name.StartsWith("home-tool-",StringComparison.Ordinal))child.Visible=!collapsed&&!searching;
+@@ -154,7 +178,11 @@
+    foreach(var column in homeColumns)column.Dispose();homeColumns.Clear();
+    int count=width>=1420?3:width>=720?2:1;int cardWidth=Math.Max(280,width/count-12);var heights=new int[count];
+    for(int n=0;n<count;n++){var column=new FlowLayoutPanel{FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,Width=cardWidth,MinimumSize=new Size(cardWidth,0),MaximumSize=new Size(cardWidth,0),Margin=new Padding(0,0,12,0)};homeColumns.Add(column);homeFlow.Controls.Add(column);}
+-   foreach(var card in homeCards){if(hiddenCards.Contains(card.Name))continue;int column=Array.IndexOf(heights,heights.Min());card.Width=cardWidth;card.Margin=new Padding(0,0,0,12);homeColumns[column].Controls.Add(card);heights[column]+=card.Height+12;}
++   // A largura é atribuída ANTES do desvio: um cartão filtrado para fora continua com a
++   // largura da coluna atual, então ele reaparece já no tamanho certo quando a busca é
++   // limpa, em vez de voltar com os 200 px padrão de Panel e só se ajustar no próximo
++   // redimensionamento da janela.
++   foreach(var card in homeCards){card.Width=cardWidth;card.Margin=new Padding(0,0,0,12);if(hiddenCards.Contains(card.Name))continue;int column=Array.IndexOf(heights,heights.Min());homeColumns[column].Controls.Add(card);heights[column]+=card.Height+12;}
+   }finally{homeFlow.ResumeLayout();arrangingHome=false;}
+  }
+  async Task ShowHomeDetails(HomeOption option){
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs	2026-09-14 12:07:18.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs	2026-09-18 22:51:06.876675790 +0000
+@@ -8,6 +8,30 @@
+  static string Key(RegOp op){return (op.Hive+"\\"+op.Key+"\\"+op.Name).ToLowerInvariant();}
+  static RegOp Copy(RegOp op){return new RegOp{Hive=op.Hive,Key=op.Key,Name=op.Name,Kind=op.Kind,Data=op.Data,Delete=op.Delete};}
+  static void Assert(bool ok,string message){checks++;if(!ok)throw new Exception("FAILED: "+message);Console.WriteLine("PASS "+message);}
++ // Um teste cuja PREMISSA nao existe neste sistema nao pode virar PASS nem sumir: vira
++ // SKIP com o motivo, e o total final diz quantos foram pulados. Afrouxar a asseracao
++ // para ela passar no Linux seria apagar a garantia que vale no Windows.
++ static readonly List<string> skips=new List<string>();
++ static void Skip(string message,string why){skips.Add(message+" ("+why+")");Console.WriteLine("SKIP "+message+" -- "+why);}
++ // No Windows, um leitor com FileShare.Read impede MoveFileEx de substituir o arquivo.
++ // Em POSIX nao ha trava obrigatoria: o rename sempre vence e nenhum leitor bloqueia
++ // nada. Em vez de supor a plataforma, mede-se o comportamento real deste runtime.
++ // GameProfiles exige caminho com letra de unidade (full[1]==':') e arquivo existente.
++ // Fora do Windows nao existe "C:\", entao a fixture nao pode ser construida. Medimos
++ // a capacidade em vez de supor a plataforma.
++ static bool WindowsDrivePaths(){
++  try{string full=Path.GetFullPath(Path.Combine(App.DataRoot,"x.exe"));return full.Length>3&&full[1]==':';}catch{return false;}
++ }
++ static bool ReplacementBlockedByReaders(){
++  string probe=Path.Combine(App.DataRoot,"lock-probe.tmp");
++  try{
++   AtomicStore.Write(probe,"a");
++   using(new FileStream(probe,FileMode.Open,FileAccess.Read,FileShare.Read)){
++    try{AtomicStore.Write(probe,"b");return false;}catch{return true;}
++   }
++  }catch{return true;}
++  finally{foreach(string leftover in new[]{probe,probe+".lock"})try{File.Delete(leftover);}catch{}}
++ }
+  static void Reset(){
+   foreach(string p in Directory.GetFiles(App.RecordsRoot,"*.json"))File.Delete(p);
+   registry=new Dictionary<string,RegOp>();native=new Dictionary<string,string>{{"window","1"},{"client","1"},{"menuanim","1"},{"combo","1"},{"list","1"},{"tooltip","1"},{"selection","1"},{"menu","400"},{"mouse","6,10,1"}};
+@@ -53,7 +77,8 @@
+   Reset();App.TestCapture=op=>{throw new UnauthorizedAccessException("test access denied");};legacyBatch=App.Items.Where(i=>new[]{"native-window","native-capture"}.Contains(i.Id)).ToList();ExpectFailure(()=>App.ApplyTransaction(legacyBatch,"Perfil","teste de snapshot"),"unreadable registry aborts before mutation");Assert(native["window"]=="1"&&Last().Status=="falhou antes de alterar","snapshot failure makes no changes");
+   Reset();App.ApplyMaximum(new[]{"native-mouse"});record=Last();Assert(native["mouse"]=="0,0,0","optional mouse acceleration uses its own snapshot");App.Undo(record.Id);Assert(native["mouse"]=="6,10,1","all mouse acceleration parameters restored exactly");
+   RunV3Tests();RunV4Tests();RunV5Tests();RunV52Tests();RunV53Tests();RunV54Tests();RunRegressionTests();RunV6Tests();
+-  Console.WriteLine("TOTAL: "+checks+" checks passed (logic only; not an FPS or live Windows mutation test)");
++  Console.WriteLine("TOTAL: "+checks+" checks passed, "+skips.Count+" skipped (logic only; not an FPS or live Windows mutation test)");
++  foreach(string s in skips)Console.WriteLine("  skipped: "+s);
+   return 0;
+  }catch(Exception e){Console.Error.WriteLine(e);return 1;}}
+ }
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/V3Tests.cs	2026-09-14 01:53:54.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/V3Tests.cs	2026-09-18 22:47:59.332134862 +0000
+@@ -6,8 +6,18 @@
+  static ProcessToken Token(string name="chrome") {return new ProcessToken {Pid=50001,Started=123456,Session=7,UserSid=App.Sid,Name=name,Path=@"C:\Apps\"+name+".exe"};}
+  static void RunV3Tests() {
+   var token=Token();Assert(ResourceMonitor.Protection(token,123,7,@"C:\Windows")=="","known user app is selectable");
+-  foreach(string name in new[]{"svchost","lsass","csrss","explorer","MsMpEng","System","audiodg","cs2","steam","OneDrive","EasyAntiCheat","RuntimeBroker","SearchIndexer"})
++  // Sempre protegidos, em qualquer nivel: shell, sessao, seguranca, anticheat e jogos.
++  foreach(string name in new[]{"svchost","lsass","csrss","explorer","MsMpEng","System","audiodg","cs2","EasyAntiCheat","RuntimeBroker","SearchIndexer"})
+    Assert(ResourceMonitor.Protection(Token(name),123,7,@"C:\Windows")!="","protected process cannot be closed: "+name);
++  // steam e OneDrive deixaram de ser intocaveis e passaram a ser fechaveis POR NIVEL.
++  // O contrato que substitui o antigo: eles existem, mas nunca no nivel 1 - e o botao
++  // de um clique so alcanca o nivel 1, entao nenhum dos dois entra nele.
++  foreach(string name in new[]{"steam","OneDrive"}){
++   Assert(ResourceMonitor.Protection(Token(name),123,7,@"C:\Windows")=="","tiered process is selectable when explicitly chosen: "+name);
++   Assert(!ResourceMonitor.WithinTier(name,"leve"),"tiered process never reachable from the one-click tier: "+name);
++   Assert(ResourceMonitor.Tier(name)!="","tiered process declares a tier: "+name);
++  }
++  Assert(ResourceMonitor.WithinTier("OneDrive","agressivo")&&!ResourceMonitor.WithinTier("steam","agressivo"),"launcher needs the extreme tier; synchronization needs only the aggressive one");
+   token=Token();token.Pid=123;Assert(ResourceMonitor.Protection(token,123,7,@"C:\Windows")!="","optimizer cannot terminate itself");
+   token=Token();token.Session=8;Assert(ResourceMonitor.Protection(token,123,7,@"C:\Windows")!="","other Windows session protected");
+   token=Token();token.UserSid="S-1-5-18";Assert(ResourceMonitor.Protection(token,123,7,@"C:\Windows")!="","SYSTEM-owned process protected even with recognized name");
+@@ -24,7 +34,11 @@
+   Assert(ResourceMonitor.Compare(new ResourceSample{MemoryKnown=true,AvailableMB=100},new ResourceSample{MemoryKnown=true,AvailableMB=90}).Contains("-10"),"negative RAM delta is retained, not hidden");
+   Assert(ResourceMonitor.Compare(null,null).Contains("não comparável"),"missing samples never reported as improvement");
+   Assert(ResourceMonitor.Focusable.Contains("cs2")&&!ResourceMonitor.Closable.Contains("cs2"),"gaming focus allowlist is separate from closure allowlist");
+-  Assert(!ResourceMonitor.Closable.Contains("OneDrive"),"sync client preserved by RAM closure");
++  // O contrato antigo ("OneDrive nunca entra na lista") caiu junto com os niveis.
++  // O que entra no lugar: fechar sincronizacao continua fora do caminho de um clique,
++  // e o nivel que a alcanca precisa dizer, por escrito, o que para de funcionar.
++  Assert(ResourceMonitor.Tier("OneDrive")=="agressivo","sync client sits above the one-click tier");
++  Assert(ResourceMonitor.TierWarning("agressivo").Contains("OneDrive")&&ResourceMonitor.TierWarning("agressivo").Contains("param de sincronizar"),"the tier that closes a sync client names it and says synchronization stops");
+   Assert(App.StartupExecutable(@"""C:\Program Files\Spotify\Spotify.exe"" --minimized")==@"C:\Program Files\Spotify\Spotify.exe","quoted startup executable parsed without running it");
+   Assert(App.StartupExecutable("cmd.exe /c anything")=="","nonabsolute startup launcher rejected");
+   Assert(!App.StartupAllowed(@"C:\Windows\System32\cmd.exe /c Spotify.exe"),"shell wrapper not authorized for startup changes");
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/V4Tests.cs	2026-09-14 01:53:54.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/V4Tests.cs	2026-09-18 22:51:06.876879710 +0000
+@@ -9,9 +9,14 @@
+  static FrameSummary Summary(params double[] values){var c=new FrameCapture{File="test.csv"};var stream=new FrameStream{Key="game",Metric="FrameTime",Frames=values.ToList()};c.Streams.Add(stream);return FrameAnalysis.Summarize(c,stream,100,0);}
+  static void RunV4Tests(){
+   string atomicFile=Path.Combine(App.DataRoot,"atomic-store.txt");AtomicStore.Write(atomicFile,"original");
+-  using(var locked=new FileStream(atomicFile,FileMode.Open,FileAccess.Read,FileShare.Read))ExpectFailure(()=>AtomicStore.Write(atomicFile,"replacement"),"locked history file causes atomic save to fail");
+-  Assert(File.ReadAllText(atomicFile)=="original","failed atomic save preserves the complete previous file");
+-  Assert(Directory.GetFiles(App.DataRoot,"*.pending").Length==0,"failed atomic write cleans only its own temporary file");
++  // A premissa deste bloco -- um leitor aberto impedir a substituicao -- so existe onde
++  // o sistema tem trava obrigatoria de arquivo. Em POSIX o rename sempre vence. Medimos
++  // o runtime em vez de supor a plataforma, e pulamos em voz alta em vez de afrouxar.
++  if(ReplacementBlockedByReaders()){
++   using(var locked=new FileStream(atomicFile,FileMode.Open,FileAccess.Read,FileShare.Read))ExpectFailure(()=>AtomicStore.Write(atomicFile,"replacement"),"locked history file causes atomic save to fail");
++   Assert(File.ReadAllText(atomicFile)=="original","failed atomic save preserves the complete previous file");
++   Assert(Directory.GetFiles(App.DataRoot,"*.pending").Length==0,"failed atomic write cleans only its own temporary file");
++  }else Skip("locked history file causes atomic save to fail","este sistema nao tem trava obrigatoria de arquivo; a garantia vale no Windows e nao pode ser conferida aqui");
+   AtomicStore.Write(atomicFile,"replacement");Assert(File.ReadAllText(atomicFile)=="replacement","atomic replacement succeeds after lock release");
+   Task concurrentWrite;
+   using(var gate=AtomicStore.Acquire(atomicFile))using(var sharedFile=new FileStream(atomicFile,FileMode.Open,FileAccess.Read,FileShare.Read|FileShare.Delete))using(var reader=new StreamReader(sharedFile)){
+@@ -22,8 +27,35 @@
+   var library=PerformanceLibrary.Load();Assert(library.Count>=70&&library.Select(x=>x.Id).Distinct().Count()==library.Count,"original performance library preserved and unique");
+   Assert(library.All(x=>(x.Action=="catalog"||x.Source.StartsWith("https://"))&&!String.IsNullOrWhiteSpace(x.Effect)&&!String.IsNullOrWhiteSpace(x.Tradeoff)),"every option identifies effects, limits and reference");
+   Assert(library.Where(x=>x.Action=="native").All(x=>Builtins.Create().Concat(V5Options.Items()).Concat(V5InputItems.Create()).Concat(ImportedOptions.Items()).Concat(ExtraSettings.Items()).Concat(ReviewedFeatures.Items()).Any(i=>i.Id==x.Target)),"library native actions resolve to trusted items");
+-  Assert(App.OptionalServices.Count==10&&!App.OptionalServices.Keys.Any(x=>new[]{"WinDefend","wuauserv","BITS","Audiosrv","Dhcp","SysMain"}.Contains(x)),"expanded optional service list excludes essential security and device services");
+-  Assert(ResourceMonitor.Closable.Count>=40&&!ResourceMonitor.Closable.Contains("OneDrive")&&!ResourceMonitor.Closable.Contains("steam")&&!ResourceMonitor.Closable.Contains("explorer"),"expanded process list preserves synchronization, launcher and shell");
++  // A contagem deixou de ser fixa (era 10, hoje 41). O que precisa continuar valendo é
++  // que nada essencial entre na lista, que todo serviço tenha nível e descrição, e que
++  // a lista protegida e a opcional nunca se cruzem — é o que ValidateServiceCatalog confere.
++  App.ValidateServiceCatalog();
++  Assert(App.OptionalServices.Count>=10&&!App.OptionalServices.Keys.Any(x=>App.ProtectedServices.Contains(x)),"optional service list never contains a protected service");
++  Assert(new[]{"WinDefend","wuauserv","BITS","Audiosrv","Dhcp","SysMain","Dnscache","PlugPlay","CryptSvc","VSS","Schedule","Themes"}.All(x=>App.ProtectedServices.Contains(x)&&!App.OptionalServices.ContainsKey(x)),"security, update, network, audio and core services stay out of reach");
++  Assert(App.ServicesInTier("leve").All(n=>App.ServiceTier(n)=="leve")&&App.ServicesInTier("agressivo").All(n=>App.ServiceTier(n)!="extremo")&&App.ServicesInTier("extremo").Length==App.OptionalServices.Count,"service tiers nest: leve subset of agressivo subset of extremo");
++  Assert(App.ServicesInTier("leve").Length>0&&App.ServicesInTier("leve").Length<App.ServicesInTier("agressivo").Length&&App.ServicesInTier("agressivo").Length<App.ServicesInTier("extremo").Length,"each service tier adds services");
++  ExpectFailure(()=>App.ServicesInTier("tudo"),"unknown service tier rejected");
++  ExpectFailure(()=>App.DisableOptionalServices(new[]{"Dnscache"}),"protected service rejected by tier-aware allowlist");
++  // Launchers e sincronização passaram a ser fecháveis, mas só nos níveis 2 e 3, nunca
++  // no nível 1 nem na ação de um clique. O shell continua fora de qualquer nível.
++  Assert(ResourceMonitor.Closable.Count>=40&&!ResourceMonitor.Closable.Contains("explorer")&&!ResourceMonitor.Closable.Contains("csrss")&&!ResourceMonitor.Closable.Contains("dwm"),"shell and session processes are never closable");
++  Assert(ResourceMonitor.Tier("OneDrive")=="agressivo"&&ResourceMonitor.Tier("steam")=="extremo"&&ResourceMonitor.Tier("chrome")=="leve"&&ResourceMonitor.Tier("explorer")=="","synchronization, launcher and user apps are tiered, shell has no tier");
++  Assert(!ResourceMonitor.WithinTier("steam","leve")&&!ResourceMonitor.WithinTier("steam","agressivo")&&ResourceMonitor.WithinTier("steam","extremo"),"launcher only reachable at the extreme tier");
++  Assert(!ResourceMonitor.WithinTier("OneDrive","leve")&&ResourceMonitor.WithinTier("OneDrive","agressivo"),"synchronization only reachable from the aggressive tier up");
++  Assert(!ResourceMonitor.WithinTier("explorer","extremo"),"a process outside the allowlist belongs to no tier");
++  Assert(new[]{"leve","agressivo","extremo"}.All(t=>!String.IsNullOrWhiteSpace(ResourceMonitor.TierWarning(t))&&!String.IsNullOrWhiteSpace(App.ServiceTierWarning(t))),"every tier states what is lost");
++  // Um nome genérico casa com processo alheio: "Agent" é backup, monitoramento e EDR
++  // corporativo; "Sync" é meia dúzia de produtos. Nada disso pode virar app fechável.
++  Assert(!ResourceMonitor.Closable.Contains("Agent")&&!ResourceMonitor.Closable.Contains("Sync")&&!ResourceMonitor.Closable.Contains("Update")&&!ResourceMonitor.Closable.Contains("Service")&&!ResourceMonitor.Closable.Contains("Host")&&!ResourceMonitor.Closable.Contains("Client"),"generic process names never enter the closable list");
++  // Closable já é um HashSet, então comparar com Distinct não provaria nada: um nome
++  // repetido entre níveis seria absorvido em silêncio e ficaria com o nível errado.
++  // Somar os arrays de origem é o que expõe a sobreposição.
++  Assert(ResourceMonitor.TierSourceCount("leve")+ResourceMonitor.TierSourceCount("agressivo")+ResourceMonitor.TierSourceCount("extremo")==ResourceMonitor.Closable.Count,"the three process tiers do not overlap");
++  ExpectFailure(()=>ResourceMonitor.TierSourceCount("tudo"),"unknown process tier rejected");
++  ReopenTests();
++  NetworkToolsTests();
++  FrameworkSurfaceTests();
+   var parts=FrameAnalysis.ParseLine("\"a,b\",\"x\"\"y\",3",',');Assert(parts.SequenceEqual(new[]{"a,b","x\"y","3"}),"CSV parser handles quoted delimiters and escaped quotes");
+   ExpectFailure(()=>FrameAnalysis.ParseLine("\"unfinished",','),"unclosed CSV quotes rejected");
+   ExpectFailure(()=>Csv("Application,GPUTime\ngame,8"),"GPU duration is not falsely treated as frame interval");
+@@ -68,17 +100,133 @@
+   ExpectFailure(()=>GameProfiles.ValidateExecutable(@"\\server\share\game.exe",false),"UNC game paths rejected");
+   ExpectFailure(()=>GameProfiles.ValidateExecutable(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"System32","cmd.exe"),false),"Windows system executable excluded from game profile");
+   ExpectFailure(()=>GameProfiles.ValidateExecutable("game.exe",false),"relative game path rejected");
+-  Reset();string gameExe=Path.Combine(App.DataRoot,"fake-game.exe");File.WriteAllText(gameExe,"test fixture: never executed");
+-  var game=new GameProfile{Id=Guid.NewGuid().ToString("N"),Name="Fixture",Executable=gameExe,TargetFps=144,HighGpu=true,DisableFullscreen=true,Notes="teste",CloseApps=new[]{"chrome"}};
+-  GameProfiles.Save(game);Assert(GameProfiles.Load().Any(p=>p.Id==game.Id&&p.CloseApps[0]=="chrome"),"game profile local persistence round trip");
+-  var gpuOp=GameProfiles.StringOp(@"Software\Microsoft\DirectX\UserGpuPreferences",gameExe,"Other=1;GpuPreference=1;");registry[Key(gpuOp)]=Copy(gpuOp);
+-  App.ApplyGameProfile(App.SaveRequest(new OperationRequest{Game=game}));record=Last();Assert(record.Status=="aplicado"&&record.Values.Count==2,"per-game preferences applied as a backed-up transaction");
+-  Assert(registry[Key(gpuOp)].Data=="Other=1;GpuPreference=2;","per-game transaction keeps existing GPU fields");App.Undo(record.Id);Assert(registry.Count==1&&registry[Key(gpuOp)].Data==gpuOp.Data,"per-game undo restores original values and removes previously absent flags");
+-  var expected=new List<RegOp>();var operations=GameProfiles.Operations(game,expected);registry[Key(gpuOp)].Data="Other=2;";
+-  ExpectFailure(()=>App.ApplyTransaction(new[]{new Item{Id="test-game",Name="Game",ReviewTitle="Game",Native=true,ActionCode="gameprofile",Operations=operations.ToArray(),Expected=expected.ToArray()}},"Integrado","Game"),"per-game race detected before overwriting a newer preference");
+-  Assert(registry[Key(gpuOp)].Data=="Other=2;","newer GPU preference preserved");
+-  game.CloseApps=new[]{"explorer"};ExpectFailure(()=>GameProfiles.Save(game),"profile cannot add protected process to closing list");
+-  game.CloseApps=new string[0];game.TargetFps=1001;ExpectFailure(()=>GameProfiles.Save(game),"invalid target FPS rejected");
++  // O perfil por jogo exige caminho com letra de unidade e arquivo real; a fixture so
++  // pode ser montada no Windows. Pular em voz alta, nunca relaxar ValidateExecutable.
++  if(WindowsDrivePaths()){
++   Reset();string gameExe=Path.Combine(App.DataRoot,"fake-game.exe");File.WriteAllText(gameExe,"test fixture: never executed");
++   var game=new GameProfile{Id=Guid.NewGuid().ToString("N"),Name="Fixture",Executable=gameExe,TargetFps=144,HighGpu=true,DisableFullscreen=true,Notes="teste",CloseApps=new[]{"chrome"}};
++   GameProfiles.Save(game);Assert(GameProfiles.Load().Any(p=>p.Id==game.Id&&p.CloseApps[0]=="chrome"),"game profile local persistence round trip");
++   var gpuOp=GameProfiles.StringOp(@"Software\Microsoft\DirectX\UserGpuPreferences",gameExe,"Other=1;GpuPreference=1;");registry[Key(gpuOp)]=Copy(gpuOp);
++   App.ApplyGameProfile(App.SaveRequest(new OperationRequest{Game=game}));record=Last();Assert(record.Status=="aplicado"&&record.Values.Count==2,"per-game preferences applied as a backed-up transaction");
++   Assert(registry[Key(gpuOp)].Data=="Other=1;GpuPreference=2;","per-game transaction keeps existing GPU fields");App.Undo(record.Id);Assert(registry.Count==1&&registry[Key(gpuOp)].Data==gpuOp.Data,"per-game undo restores original values and removes previously absent flags");
++   var expected=new List<RegOp>();var operations=GameProfiles.Operations(game,expected);registry[Key(gpuOp)].Data="Other=2;";
++   ExpectFailure(()=>App.ApplyTransaction(new[]{new Item{Id="test-game",Name="Game",ReviewTitle="Game",Native=true,ActionCode="gameprofile",Operations=operations.ToArray(),Expected=expected.ToArray()}},"Integrado","Game"),"per-game race detected before overwriting a newer preference");
++   Assert(registry[Key(gpuOp)].Data=="Other=2;","newer GPU preference preserved");
++   game.CloseApps=new[]{"explorer"};ExpectFailure(()=>GameProfiles.Save(game),"profile cannot add protected process to closing list");
++   game.CloseApps=new string[0];game.TargetFps=1001;ExpectFailure(()=>GameProfiles.Save(game),"invalid target FPS rejected");
++  }else Skip("per-game profile persistence, transaction, undo and validation","este sistema nao tem caminhos com letra de unidade; a fixture do jogo so existe no Windows");
++  Reset();
++ }
++ // Sobrecargas que EXISTEM no compilador mas NÃO no .NET Framework 4.8.
++ //
++ // String.Trim/TrimStart/TrimEnd(char) só entraram no .NET Core 2.0. Compilando com um
++ // Roslyn moderno contra assemblies de referência novos, a chamada liga na sobrecarga de
++ // char e o binário quebra em tempo de execução com MissingMethodException — foi o que
++ // aconteceu no executável distribuído: "Método não encontrado: String.TrimEnd(Char)"
++ // derrubava a varredura de processos e a tela mostrava "Medição incompleta".
++ //
++ // O código agora usa TrimEnd(new[]{c}), que liga na sobrecarga params char[] em qualquer
++ // compilador. Estas chamadas rodam de verdade: se alguém reintroduzir a forma de um char
++ // e o binário for compilado assim, o teste estoura aqui em vez de na mão do usuário.
++ static void FrameworkSurfaceTests(){
++  // Within normaliza separadores e corta a barra final com TrimEnd -- e essa chamada
++  // que quebrava em tempo de execucao. Caminhos literais, nunca pastas do sistema: o
++  // teste precisa exercitar a mesma linha em qualquer plataforma.
++  Assert(ResourceMonitor.Within(@"C:\Windows\system32\x.exe",@"C:\Windows\"),"ResourceMonitor.Within executes on this runtime, trailing separator included");
++  Assert(ResourceMonitor.Within("C:/Windows/system32/x.exe",@"C:\Windows"),"ResourceMonitor.Within normalizes separators before comparing");
++  Assert(!ResourceMonitor.Within(@"C:\Apps\fora.exe",@"C:\Windows"),"ResourceMonitor.Within rejects a path outside the folder");
++  Assert(!ResourceMonitor.Within(@"C:\WindowsApps\x.exe",@"C:\Windows"),"ResourceMonitor.Within does not match a sibling folder by name prefix");
++  // SafePath usa o mesmo TrimEnd e e a ultima barreira antes de excluir arquivo.
++  string sandbox=Path.Combine(Path.GetTempPath(),"lo-safepath-"+Guid.NewGuid().ToString("N"));
++  Directory.CreateDirectory(sandbox);
++  try{
++   string inner=Path.Combine(sandbox,"a.tmp");File.WriteAllText(inner,"x");
++   Assert(TempCleaner.SafePath(inner,sandbox),"TempCleaner.SafePath executes and accepts a file inside its own root");
++   Assert(!TempCleaner.SafePath(sandbox,sandbox),"TempCleaner.SafePath refuses the root directory itself");
++   Assert(!TempCleaner.SafePath(Path.Combine(sandbox,"..","fora.tmp"),sandbox),"TempCleaner.SafePath refuses an escape through the parent directory");
++  }finally{try{Directory.Delete(sandbox,true);}catch{}}
++  string volume=Path.GetPathRoot(Path.GetFullPath(Path.GetTempPath()));
++  Assert(!TempCleaner.SafePath(volume,volume),"TempCleaner.SafePath refuses the volume root");
++  // As mesmas sobrecargas em forma de asseracao direta, uma por uso real no projeto.
++  Assert("a\\".TrimEnd(new[]{'\\'})=="a","TrimEnd(params char[]) is the overload this build binds to");
++  Assert("\uFEFFms".TrimStart(new[]{'\uFEFF'})=="ms","TrimStart(params char[]) is the overload this build binds to");
++ }
++ // Rede: o cliente escolhe um Id, nunca um executável ou argumento. E o catálogo tem de
++ // declarar honestamente quem derruba a conexão e quem exige reiniciar, porque é isso
++ // que a confirmação mostra antes de executar.
++ static void NetworkToolsTests(){
++  ExpectFailure(()=>NetworkTools.Resolve("netsh int ip reset"),"network action outside the allowlist rejected");
++  ExpectFailure(()=>NetworkTools.Resolve("net-flushdns ; calc.exe"),"network action id with injection rejected");
++  ExpectFailure(()=>NetworkTools.Resolve(""),"empty network action id rejected");
++  var actions=NetworkTools.Actions();
++  Assert(actions.Select(a=>a.Id).Distinct().Count()==actions.Count,"network action ids are unique");
++  Assert(actions.All(a=>a.Executable=="ipconfig.exe"||a.Executable=="netsh.exe"),"network actions only run ipconfig or netsh");
++  Assert(actions.All(a=>a.Executable.IndexOf('\\')<0&&a.Executable.IndexOf('/')<0),"network executables are resolved by App.SystemExe, never by path");
++  Assert(actions.All(a=>a.Arguments.IndexOfAny(new[]{'&','|','>','<','^','"'})<0),"network arguments carry no shell metacharacters");
++  Assert(actions.All(a=>a.TimeoutSeconds>0&&a.TimeoutSeconds<=3600),"every network action has a usable timeout");
++  Assert(actions.All(a=>a.Administrator),"every network action declares that it needs administrator");
++  Assert(actions.All(a=>!String.IsNullOrWhiteSpace(a.Effect)&&!String.IsNullOrWhiteSpace(a.Tradeoff)&&a.Source.StartsWith("https://learn.microsoft.com/")),"every network action states effect, cost and an official source");
++  // As duas destrutivas têm de estar marcadas, senão a confirmação mente.
++  var winsock=NetworkTools.Resolve("net-winsock");var reset=NetworkTools.Resolve("net-ipreset");
++  Assert(winsock.NeedsRestart&&winsock.Disconnects&&!String.IsNullOrEmpty(winsock.BackupArguments),"winsock reset declares restart, disconnect and a backup dump");
++  Assert(reset.NeedsRestart&&reset.Disconnects&&!String.IsNullOrEmpty(reset.BackupArguments),"tcp/ip reset declares restart, disconnect and a backup dump");
++  Assert(!NetworkTools.Resolve("net-flushdns").NeedsRestart&&!NetworkTools.Resolve("net-flushdns").Disconnects,"flushing the dns cache claims neither restart nor disconnect");
++  Assert(NetworkTools.Resolve("net-renew").Disconnects&&!NetworkTools.Resolve("net-renew").NeedsRestart,"renewing the address declares the drop but not a restart");
++  Assert(actions.Count(a=>a.NeedsRestart)==2,"only the two repairs require a restart");
++  // Nenhuma ação de rede entra na cadeia de desfazer: não há como reverter estes comandos.
++  Assert(!App.CanUndo(new Record{Kind="Rede",Status="aplicado",Values=new List<SavedValue>{new SavedValue()}}),"network actions stay out of the undo chain");
++  // Elevação: ações pedem administrador, diagnósticos não.
++  Assert(App.ActionNeedsAdmin("--network-action","net-winsock"),"network action requests elevation");
++  Assert(!App.ActionNeedsAdmin("--network-diagnostic","netdiag-mtu"),"read-only network diagnostic never elevates");
++  ExpectFailure(()=>App.ActionNeedsAdmin("--network-diagnostic","netdiag-inventado"),"unknown network diagnostic rejected before elevation");
++  ExpectFailure(()=>App.ActionNeedsAdmin("--network-action","netsh firewall set opmode disable"),"unknown network action rejected before elevation");
++  // MTU: carga útil + 28 bytes de cabeçalho IPv4+ICMP, e a faixa sondada é a válida.
++  Assert(NetworkTools.MtuFromPayload(1472)==1500&&NetworkTools.MtuFromPayload(1464)==1492,"mtu arithmetic adds the 28 header bytes");
++  Assert(NetworkTools.MaxPayload==1472&&NetworkTools.MinPayload==548&&NetworkTools.HeaderBytes==28,"mtu probe stays inside the valid ipv4 range");
++  Assert(NetworkTools.Diagnostics.All(NetworkTools.IsDiagnostic)&&!NetworkTools.IsDiagnostic("net-winsock"),"diagnostics and actions are different sets");
++  Assert(NetworkTools.Diagnostics.All(d=>!String.IsNullOrWhiteSpace(NetworkTools.DiagnosticTitle(d))&&NetworkTools.DiagnosticDetail(d).Length>80),"every network diagnostic explains what it does and does not measure");
++  ExpectFailure(()=>NetworkTools.DiagnosticTitle("netdiag-inventado"),"unknown diagnostic title rejected");
++ }
++ // Reabrir apps fechados nunca deve virar "execute este caminho porque o registro mandou".
++ // Todo caminho é revalidado contra a mesma allowlist que autorizou o fechamento.
++ static void ReopenTests(){
++  Reset();
++  ExpectFailure(()=>App.ReopenClosedApps("nao-e-um-guid"),"reopen with malformed record id rejected");
++  ExpectFailure(()=>App.ReopenClosedApps(Guid.NewGuid().ToString("N")),"reopen of a missing record rejected");
++
++  Func<List<ClosedApp>,string,Record> store=(apps,kind)=>{
++   var r=new Record{Id=Guid.NewGuid().ToString("N"),ItemId="apps",Name="fixture",Time=DateTime.UtcNow.ToString("o"),
++    Kind=kind,Status="concluído",Message="",UserSid=App.Sid,Values=new List<SavedValue>(),
++    NativeValues=new List<NativeSaved>(),Steps=new List<StepResult>(),Schema=3,ClosedApps=apps};
++   App.Save(r);return r;
++  };
++
++  var wrongKind=store(new List<ClosedApp>{new ClosedApp{Name="chrome",Path=@"C:\Apps\chrome.exe",Tier="leve"}},"Serviços");
++  ExpectFailure(()=>App.ReopenClosedApps(wrongKind.Id),"reopen refuses a record that did not close applications");
++
++  var empty=store(new List<ClosedApp>(),"Apps e RAM");
++  ExpectFailure(()=>App.ReopenClosedApps(empty.Id),"reopen refuses a record with nothing to reopen");
++
++  var foreign=store(new List<ClosedApp>{new ClosedApp{Name="chrome",Path=@"C:\Apps\chrome.exe",Tier="leve"}},"Apps e RAM");
++  foreign.UserSid="S-1-0-0";App.Save(foreign);
++  ExpectFailure(()=>App.ReopenClosedApps(foreign.Id),"reopen refuses another account's record");
++
++  // Um registro adulterado não consegue lançar nada: cada entrada é recusada por um
++  // motivo próprio e o resultado fica "falhou", sem nenhum processo iniciado.
++  var tampered=store(new List<ClosedApp>{
++   new ClosedApp{Name="evil",Path=@"C:\Temp\evil.exe",Tier="leve"},                      // fora da allowlist
++   new ClosedApp{Name="chrome",Path=@"..\..\chrome.exe",Tier="leve"},                    // caminho relativo
++   new ClosedApp{Name="chrome",Path="C:\\Apps\\chrome.exe\" --disable-web-security",Tier="leve"}, // aspas no caminho
++   new ClosedApp{Name="chrome",Path=@"C:\Apps\payload.bat",Tier="leve"},                 // não é .exe
++   new ClosedApp{Name="chrome",Path=@"C:\Apps\naoexiste.exe",Tier="leve"}                // não existe
++  },"Apps e RAM");
++  var result=App.ReopenClosedApps(tampered.Id);
++  Assert(result.Status=="falhou"&&result.Steps.Count==5&&result.Steps.All(s=>s.Status=="ignorado"),"tampered reopen record launches nothing");
++  // O motivo exato das entradas 2 a 5 depende da plataforma (Path.IsPathRooted trata
++  // "C:\..." como relativo fora do Windows), então só a recusa pela allowlist é fixada.
++  Assert(result.Steps[0].Message.Contains("fora da lista"),"a process outside the allowlist is refused by name, before any path check");
++  Assert(result.Steps.All(s=>!String.IsNullOrWhiteSpace(s.Message)),"every refused reopen states a reason");
++  Assert(!App.CanUndo(result)&&!App.CanUndo(tampered),"closing and reopening apps stay outside the undo chain");
+   Reset();
+  }
+ }
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/V6Tests.cs	2026-09-14 17:18:04.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/V6Tests.cs	2026-09-18 22:55:39.431300582 +0000
+@@ -15,8 +15,12 @@
+   foreach(var error in mapped){var result=ErrorHelp.For(error.Key);Assert(result.ErrorCode==error.Value&&!String.IsNullOrEmpty(result.FriendlyError)&&!String.IsNullOrEmpty(result.Log),"v6 friendly structured error: "+error.Value);}
+   foreach(int build in new[]{10240,19045,22000,22631,26100,26200})Assert(PlatformSnapshot.SupportedBuild(build,true),"v6 compatibility matrix build "+build);
+   Assert(!PlatformSnapshot.SupportedBuild(9600,true)&&!PlatformSnapshot.SupportedBuild(26100,false),"v6 older Windows and 32-bit rejected");
+-  var memory=SystemTelemetry.Memory();Assert(memory.TotalBytes>0&&memory.AvailableBytes>=0&&memory.AvailableBytes<=memory.TotalBytes&&memory.UsedBytes+memory.AvailableBytes==memory.TotalBytes,"v6 real read-only memory quantities consistent");
+-  Assert(memory.CompressedBytes==null&&memory.StandbyBytes==null&&memory.FreeBytes==null,"v6 unavailable memory details never invented");
++  // SystemTelemetry.Memory chama GetPerformanceInfo em psapi.dll. Sem Windows nao ha o
++  // que medir: pular em voz alta e melhor que simular um numero que nao veio do sistema.
++  if(App.IsWindows){
++   var memory=SystemTelemetry.Memory();Assert(memory.TotalBytes>0&&memory.AvailableBytes>=0&&memory.AvailableBytes<=memory.TotalBytes&&memory.UsedBytes+memory.AvailableBytes==memory.TotalBytes,"v6 real read-only memory quantities consistent");
++   Assert(memory.CompressedBytes==null&&memory.StandbyBytes==null&&memory.FreeBytes==null,"v6 unavailable memory details never invented");
++  }else Skip("v6 real read-only memory quantities consistent","GetPerformanceInfo (psapi.dll) so existe no Windows");
+   var telemetry=new TelemetrySnapshot();SystemTelemetry.Score(telemetry);Assert(!telemetry.HealthScore.HasValue,"v6 no health score without measurements");telemetry.Memory=new MemorySnapshot{TotalBytes=1000,AvailableBytes=50};telemetry.CpuPercent=95;telemetry.RestartPending=true;SystemTelemetry.Score(telemetry);Assert(telemetry.HealthScore==40&&telemetry.HealthExplanation.Contains("não benchmark"),"v6 documented health formula and scope");
+   int progressCount=0;var simulated=ExecutionHub.Simulate(new[]{"native-window","native-capture"},CancellationToken.None,(completed,total)=>{Assert(completed==++progressCount&&total==2,"v6 real item progress");});
+   Assert(simulated.Completed==2&&simulated.Actions.All(a=>a.State=="não executada"&&!a.CanUndo)&&registry.Count==0&&native["window"]=="1"&&App.History().Count==0,"v6 simulation reads but never applies or creates undo");
+@@ -28,20 +32,26 @@
+   Reset();ExecutionControl.TestCancelled=()=>true;App.ApplyMany(new[]{"native-window","native-capture"});Assert(!Last().ChangesStarted&&native["window"]=="1"&&registry.Count==0,"v6 cancellation before first mutation");ExecutionControl.TestCancelled=null;
+   var request=ExecutionControl.Create(new[]{"native-window"},true,false);Assert(!ExecutionControl.NeedsAdmin(request.Id),"v6 simulation request needs no elevation");ExecutionControl.Run(request.Id);ExpectFailure(()=>ExecutionControl.Run(request.Id),"v6 request replay blocked");request.UserSid="S-1-0-0";ExpectFailure(()=>ExecutionControl.Validate(request),"v6 other-account request rejected");request.UserSid=App.Sid;request.Created=DateTime.UtcNow.AddHours(-1).ToString("o");ExpectFailure(()=>ExecutionControl.Validate(request),"v6 expired request rejected");
+   Reset();var pref=new ProductPreferences();pref.Profiles["Teste"]=new[]{"native-window","native-capture"};pref.Save();Assert(ProductPreferences.Load().Profiles["Teste"].Length==2&&ProductPreferences.Load().Compact,"v6 profile and preferences round trip");pref.MemoryIntervalMinutes=0;ExpectFailure(()=>pref.Save(),"v6 invalid automatic memory interval rejected");
+-  using(var self=Process.GetCurrentProcess()){var token=ResourceMonitor.Identify(self);var result=MemoryManager.Trim(new[]{token,token},false,CancellationToken.None);Assert(result.Count==1&&result[0].State=="ignorada"&&result[0].ErrorCode=="PROCESS_PROTECTED","v6 optimizer self-process protected; duplicate PID suppressed");token.Started--;result=MemoryManager.Trim(new[]{token},true,CancellationToken.None);Assert(result[0].State=="falhou","v6 reused process identity refused");}
++  if(App.IsWindows){
++   using(var self=Process.GetCurrentProcess()){var token=ResourceMonitor.Identify(self);var result=MemoryManager.Trim(new[]{token,token},false,CancellationToken.None);Assert(result.Count==1&&result[0].State=="ignorada"&&result[0].ErrorCode=="PROCESS_PROTECTED","v6 optimizer self-process protected; duplicate PID suppressed");token.Started--;result=MemoryManager.Trim(new[]{token},true,CancellationToken.None);Assert(result[0].State=="falhou","v6 reused process identity refused");}
++  }else Skip("v6 optimizer self-process protected; duplicate PID suppressed","SetProcessWorkingSetSizeEx e a identidade por PID+inicio dependem do Windows");
+   CleanupV6Tests();
+-  string fixture=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"ProcessFixture.exe");
+-  using(var child=Process.Start(new ProcessStartInfo(fixture){UseShellExecute=false,CreateNoWindow=true})){
+-   try{Thread.Sleep(500);var selected=ResourceMonitor.Identify(child);ResourceMonitor.Closable.Add(selected.Name);try{var trimmed=MemoryManager.Trim(new[]{selected},false,CancellationToken.None);Assert(trimmed[0].State=="aplicada"&&trimmed[0].BeforeBytes.HasValue&&trimmed[0].AfterBytes.HasValue,"v6 working-set API applied only to an owned disposable test process");}finally{ResourceMonitor.Closable.Remove(selected.Name);}}
+-   finally{if(!child.HasExited){child.Kill();child.WaitForExit(5000);}}
+-  }
+-  string childPid=Path.Combine(App.DataRoot,"job-child.txt");var nested=ManagedCommand.Run(fixture,"spawn "+App.Quote(childPid),2,CancellationToken.None);Assert(nested.TimedOut&&File.Exists(childPid),"v6 owned child spawned inside managed job");bool descendantRunning=false;try{using(var descendant=Process.GetProcessById(Int32.Parse(File.ReadAllText(childPid))))descendantRunning=!descendant.HasExited;}catch(ArgumentException){}Assert(!descendantRunning,"v6 timeout also terminates descendant; no orphan");
++  // Job object, ProcessFixture.exe, cmd.exe, ping.exe e contagem de handles do Windows.
++  // Nada disso tem equivalente aqui; o catalogo de comandos, que e logica pura, continua.
+   Assert(CommandTools.Catalog().Count==8&&CommandTools.Catalog().All(c=>c.TimeoutSeconds>0&&c.Source.StartsWith("https://learn.microsoft.com/")),"v6 all official diagnostics have timeout and technical source");
+   ExpectFailure(()=>CommandTools.Resolve("cmd /c anything"),"v6 command injection outside allowlist rejected");
+-  var command=ManagedCommand.Run(App.SystemExe("cmd.exe"),"/d /c echo LukeOptimizer-test",5,CancellationToken.None);Assert(command.ExitCode==0&&command.Output.Contains("LukeOptimizer-test")&&File.Exists(command.LogPath),"v6 real owned child output captured with job object");
+-  command=ManagedCommand.Run(App.SystemExe("ping.exe"),"-n 30 127.0.0.1",1,CancellationToken.None);Assert(command.TimedOut&&command.ExitCode!=0,"v6 timeout terminates owned diagnostic process");
+-  using(var cancel=new CancellationTokenSource()){cancel.CancelAfter(300);command=ManagedCommand.Run(App.SystemExe("ping.exe"),"-n 30 127.0.0.1",5,cancel.Token);Assert(command.Cancelled&&!command.TimedOut,"v6 cancellation terminates owned process");}
+-  int handlesBefore;using(var self=Process.GetCurrentProcess())handlesBefore=self.HandleCount;for(int n=0;n<8;n++)ManagedCommand.Run(App.SystemExe("cmd.exe"),"/d /c echo repeat",5,CancellationToken.None);GC.Collect();GC.WaitForPendingFinalizers();using(var self=Process.GetCurrentProcess())Assert(self.HandleCount<=handlesBefore+8,"v6 repeated command execution has bounded handle count");
++  if(App.IsWindows){
++   string fixture=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"ProcessFixture.exe");
++   using(var child=Process.Start(new ProcessStartInfo(fixture){UseShellExecute=false,CreateNoWindow=true})){
++    try{Thread.Sleep(500);var selected=ResourceMonitor.Identify(child);ResourceMonitor.Closable.Add(selected.Name);try{var trimmed=MemoryManager.Trim(new[]{selected},false,CancellationToken.None);Assert(trimmed[0].State=="aplicada"&&trimmed[0].BeforeBytes.HasValue&&trimmed[0].AfterBytes.HasValue,"v6 working-set API applied only to an owned disposable test process");}finally{ResourceMonitor.Closable.Remove(selected.Name);}}
++    finally{if(!child.HasExited){child.Kill();child.WaitForExit(5000);}}
++   }
++   string childPid=Path.Combine(App.DataRoot,"job-child.txt");var nested=ManagedCommand.Run(fixture,"spawn "+App.Quote(childPid),2,CancellationToken.None);Assert(nested.TimedOut&&File.Exists(childPid),"v6 owned child spawned inside managed job");bool descendantRunning=false;try{using(var descendant=Process.GetProcessById(Int32.Parse(File.ReadAllText(childPid))))descendantRunning=!descendant.HasExited;}catch(ArgumentException){}Assert(!descendantRunning,"v6 timeout also terminates descendant; no orphan");
++   var command=ManagedCommand.Run(App.SystemExe("cmd.exe"),"/d /c echo LukeOptimizer-test",5,CancellationToken.None);Assert(command.ExitCode==0&&command.Output.Contains("LukeOptimizer-test")&&File.Exists(command.LogPath),"v6 real owned child output captured with job object");
++   command=ManagedCommand.Run(App.SystemExe("ping.exe"),"-n 30 127.0.0.1",1,CancellationToken.None);Assert(command.TimedOut&&command.ExitCode!=0,"v6 timeout terminates owned diagnostic process");
++   using(var cancel=new CancellationTokenSource()){cancel.CancelAfter(300);command=ManagedCommand.Run(App.SystemExe("ping.exe"),"-n 30 127.0.0.1",5,cancel.Token);Assert(command.Cancelled&&!command.TimedOut,"v6 cancellation terminates owned process");}
++   int handlesBefore;using(var self=Process.GetCurrentProcess())handlesBefore=self.HandleCount;for(int n=0;n<8;n++)ManagedCommand.Run(App.SystemExe("cmd.exe"),"/d /c echo repeat",5,CancellationToken.None);GC.Collect();GC.WaitForPendingFinalizers();using(var self=Process.GetCurrentProcess())Assert(self.HandleCount<=handlesBefore+8,"v6 repeated command execution has bounded handle count");
++  }else Skip("v6 managed job object, owned child output, timeout, cancellation and handle budget","exige job object do Windows, ProcessFixture.exe, cmd.exe e ping.exe");
+   Directory.CreateDirectory(ExecutionHub.LogsRoot);string log=Path.Combine(ExecutionHub.LogsRoot,"execucao.log");File.WriteAllText(log,new string('x',2100000));ExecutionHub.Log("rotation","test");Assert(File.Exists(log+".1")&&new FileInfo(log).Length<10000,"v6 execution log rotates at 2 MiB");
+   Reset();
+  }
+@@ -51,12 +61,19 @@
+   try{
+    Action<string> create=name=>{string path=Path.Combine(root,name);File.WriteAllText(path,"fixture");File.SetCreationTimeUtc(path,DateTime.UtcNow.AddDays(-30));File.SetLastWriteTimeUtc(path,DateTime.UtcNow.AddDays(-30));File.SetLastAccessTimeUtc(path,DateTime.UtcNow.AddDays(-30));};create("old.tmp");create("locked.tmp");create("preserve.docx");File.WriteAllText(Path.Combine(root,"new.tmp"),"recent");
+    var preview=StorageManager.Scan(new[]{"test"},7,CancellationToken.None);Assert(preview.Files.Count==2&&preview.Files.All(f=>f.Path.EndsWith(".tmp")),"v6 preview excludes documents and recent files");
+-   using(var locked=new FileStream(Path.Combine(root,"locked.tmp"),FileMode.Open,FileAccess.ReadWrite,FileShare.None)){
+-    var result=StorageManager.Execute(preview,true,CancellationToken.None,null);Assert(result.Actions.Count(a=>a.ErrorCode=="FILE_LOCKED")==1&&File.Exists(Path.Combine(root,"old.tmp")),"v6 simulated cleanup detects locked file without deleting");
+-    preview=StorageManager.Scan(new[]{"test"},7,CancellationToken.None);result=StorageManager.Execute(preview,false,CancellationToken.None,null);Assert(result.Actions.Count(a=>a.State=="aplicada")==1&&result.Actions.Count(a=>a.State=="ignorada")==1&&!File.Exists(Path.Combine(root,"old.tmp"))&&File.Exists(Path.Combine(root,"locked.tmp")),"v6 permanent cleanup deletes fixture only, skips locked file");
+-   }
+-   var repeat=StorageManager.Execute(preview,false,CancellationToken.None,null);Assert(repeat.Actions.Any(a=>a.ErrorCode=="PATH_MISSING"||a.ErrorCode=="OPERATION_FAILED"),"v6 repeat cleanup reports vanished file without corruption");
++   // A exclusao permanente e Win32 puro: CreateFile + SetFileInformationByHandle com
++   // FILE_DISPOSITION_INFO, mais guarda contra junction em cada pasta do caminho. Nao ha
++   // equivalente fora do Windows, entao o que depende de apagar de verdade fica marcado
++   // como pulado. Reescrever para File.Delete testaria um codigo que o produto nao usa.
++   if(App.IsWindows){
++    using(var locked=new FileStream(Path.Combine(root,"locked.tmp"),FileMode.Open,FileAccess.ReadWrite,FileShare.None)){
++     var result=StorageManager.Execute(preview,true,CancellationToken.None,null);Assert(result.Actions.Count(a=>a.ErrorCode=="FILE_LOCKED")==1&&File.Exists(Path.Combine(root,"old.tmp")),"v6 simulated cleanup detects locked file without deleting");
++     preview=StorageManager.Scan(new[]{"test"},7,CancellationToken.None);result=StorageManager.Execute(preview,false,CancellationToken.None,null);Assert(result.Actions.Count(a=>a.State=="aplicada")==1&&result.Actions.Count(a=>a.State=="ignorada")==1&&!File.Exists(Path.Combine(root,"old.tmp"))&&File.Exists(Path.Combine(root,"locked.tmp")),"v6 permanent cleanup deletes fixture only, skips locked file");
++    }
++    var repeat=StorageManager.Execute(preview,false,CancellationToken.None,null);Assert(repeat.Actions.Any(a=>a.ErrorCode=="PATH_MISSING"||a.ErrorCode=="OPERATION_FAILED"),"v6 repeat cleanup reports vanished file without corruption");
++   }else Skip("v6 locked-file detection, permanent deletion and repeat-cleanup reporting","a exclusao usa FILE_DISPOSITION_INFO do Win32 e nao tem caminho equivalente aqui");
+    Assert(File.Exists(outside)&&File.Exists(Path.Combine(root,"preserve.docx"))&&File.Exists(Path.Combine(root,"new.tmp")),"v6 personal files, wrong extensions and recent files preserved");
++   // Revalidacao antes de excluir: logica pura, roda em qualquer plataforma.
+    create("changed.tmp");preview=StorageManager.Scan(new[]{"test"},7,CancellationToken.None);File.AppendAllText(Path.Combine(root,"changed.tmp"),"changed");var changed=StorageManager.Execute(preview,false,CancellationToken.None,null);Assert(changed.Actions.Any(a=>a.PathName()=="changed.tmp"&&a.State!="aplicada")&&File.Exists(Path.Combine(root,"changed.tmp")),"v6 changed file refused after preview");
+    preview.Time=DateTime.UtcNow.AddHours(-1).ToString("o");ExpectFailure(()=>StorageManager.Execute(preview,false,CancellationToken.None,null),"v6 stale cleanup preview rejected");
+    Assert(!TempCleaner.SafePath(outside,root)&&!TempCleaner.SafePath(root,root),"v6 traversal and root deletion refused");
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/UiSmoke.cs	2026-09-14 12:19:18.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/UiSmoke.cs	2026-09-18 23:07:53.857795428 +0000
+@@ -22,8 +22,12 @@
+    App.Items.AddRange(Builtins.Create());App.Items.AddRange(V5Options.Items());App.Items.AddRange(V5InputItems.Create());App.Items.AddRange(ImportedOptions.Items());App.Items.AddRange(ExtraSettings.Items());App.Items.AddRange(ReviewedFeatures.Items());ImportedScripts.Load();App.Items.AddRange(ImportedScripts.AsCatalogItems());Directory.CreateDirectory(App.RecordsRoot);
+    string folder=Path.GetFullPath(args.Length==0?"ui-smoke":args[0]);Directory.CreateDirectory(folder);
+    App.TestUiRendering=true;using(var form=new MainForm()){form.TestRender(folder);form.TestUnified(folder);form.TestFunctional(folder);form.TestProduct(folder);form.Close();form.Dispose();}
+-   App.ToolMode=true;App.TestMachine=new Machine{Windows=true,Build=26200,Edition="Professional"};
+-   using(var parent=new Form()){parent.CreateControl();EmbeddedInterface.Parent=parent.Handle;using(var form=new MainForm())form.TestEmbeddedRender(folder);EmbeddedInterface.Parent=IntPtr.Zero;}
++   // O modo embutido acopla a janela a um host por HWND e avisa por PostMessage do
++   // user32. Sem Windows nao ha essa mensagem; pular em voz alta em vez de fingir.
++   if(App.IsWindows){
++    App.ToolMode=true;App.TestMachine=new Machine{Windows=true,Build=26200,Edition="Professional"};
++    using(var parent=new Form()){parent.CreateControl();EmbeddedInterface.Parent=parent.Handle;using(var form=new MainForm())form.TestEmbeddedRender(folder);EmbeddedInterface.Parent=IntPtr.Zero;}
++   }else Console.WriteLine("SKIP UI embedded tool-mode render -- acoplamento por HWND e PostMessage do user32 so existem no Windows");
+    Console.WriteLine("UI smoke passed: navigation, filtering, forms, chart and offscreen rendering. No system settings changed.");return 0;
+   }catch(Exception e){Console.WriteLine(e.ToString());return 1;}
+  }
+@@ -62,6 +66,10 @@
+     using(var bitmap=new Bitmap(Width,Height)){DrawToBitmap(bitmap,new Rectangle(0,0,Width,Height));bitmap.Save(Path.Combine(directory,size.Width+"-"+Array.IndexOf(targets,page)+".png"));}
+    }
+   }
+-  if(pages.Count!=27||powerChecks.Count!=6||servicePicks.Count!=10)throw new Exception("Navigation/control count mismatch");
++  if(pages.Count!=27||powerChecks.Count!=6)throw new Exception("Navigation/control count mismatch");
++  // A contagem de servicos deixou de ser fixa (era 10, hoje 41). O numero cru envelhece
++  // a cada catalogo novo; o que precisa valer sempre e a tela renderizar exatamente um
++  // controle por servico opcional -- nem um a menos (opcao invisivel), nem um a mais.
++  if(servicePicks.Count!=App.OptionalServices.Count)throw new Exception("Service page must render exactly one control per optional service");
+  }
+ }
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/FunctionalUiTests.cs	2026-09-14 01:53:54.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/FunctionalUiTests.cs	2026-09-18 23:07:16.673011399 +0000
+@@ -1,6 +1,7 @@
+ ﻿using System;
+ using System.IO;
+ using System.Linq;
++using System.Reflection;
+ using System.Drawing;
+ using System.Threading;
+ using System.Threading.Tasks;
+@@ -9,6 +10,20 @@
+ 
+ public partial class MainForm {
+  void CheckUi(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS UI "+message);}
++ // Um teste de interface cuja premissa e um comportamento do WinForms do Windows nao
++ // pode virar PASS nem sumir: vira SKIP com o motivo escrito.
++ void SkipUi(string message,string why){Console.WriteLine("SKIP UI "+message+" -- "+why);}
++ // ListView.ItemCheck com veto (e.NewValue=Unchecked) e comportamento do WinForms do
++ // Windows; outras implementacoes podem nem levantar o evento em atribuicao direta.
++ // Medimos com uma lista descartavel em vez de supor a plataforma.
++ bool ItemCheckVetoHonoured(){
++  using(var probe=new ListView{CheckBoxes=true}){
++   probe.Items.Add(new ListViewItem("probe"));
++   probe.ItemCheck+=(s,e)=>{e.NewValue=CheckState.Unchecked;};
++   probe.Items[0].Checked=true;
++   return !probe.Items[0].Checked;
++  }
++ }
+  void FinishDialog(bool accept){((Button)Controls.Find(accept?"inline-accept":"inline-cancel",true).Single()).PerformClick();Application.DoEvents();}
+  void WaitUi(Func<bool> done){var until=DateTime.UtcNow.AddSeconds(8);while(!done()&&DateTime.UtcNow<until){Application.DoEvents();Thread.Sleep(10);}CheckUi(done(),"async UI operation completed within timeout");}
+  internal void TestFunctional(string directory){
+@@ -18,7 +33,14 @@
+   int requests=0;string lastAction=null,lastPayload=null;TestElevation=(action,payload)=>{requests++;lastAction=action;lastPayload=payload;return Task.FromResult(true);};
+   var apps=AppRemoval.Catalog();TestRemovalScan=()=>apps.Select((a,n)=>new AppRemovalState{App=a,Known=true,Installed=n<2,CanRemove=n==0,State=n==0?"Instalado":n==1?"Protegido pelo Windows":"Não instalado"}).ToList();
+   ShowPage("Remover apps");removalScanButton.PerformClick();CheckUi(removalStates.Count(s=>s.CanRemove)==1,"app scan updates individual eligibility");
+-  removalList.Items[1].Checked=true;CheckUi(!removalList.Items[1].Checked&&removalChecked.Count==0,"protected app cannot be selected");
++  // O que PROTEGE o app nao e a caixa: e removalChecked (fonte da verdade da tela), o
++  // filtro por CanRemove antes de elevar e a releitura do estado dentro do processo
++  // elevado. Essa parte e conferida sempre; so o veto visual depende da plataforma.
++  removalList.Items[1].Checked=true;
++  CheckUi(removalChecked.Count==0,"protected app never enters the selection that reaches elevation");
++  if(ItemCheckVetoHonoured())CheckUi(!removalList.Items[1].Checked,"protected app cannot be selected");
++  else SkipUi("protected app checkbox is visually refused","este WinForms nao honra o veto de ListView.ItemCheck em atribuicao direta");
++  removalList.Items[1].Checked=false;
+   removalList.Items[0].Checked=true;CheckUi(removalChecked.SetEquals(new[]{apps[0].Id}),"only explicitly checked removable app enters selection");
+   removalSearch.Text=apps.Last().Name;removalSearch.Clear();CheckUi(removalChecked.Count==1&&removalList.Items[0].Checked,"filtering preserves explicit app selection");
+   removalApplyButton.PerformClick();CheckUi(inlineOverlay!=null&&requests==0,"removal requires review before worker launch");FinishDialog(false);CheckUi(requests==0,"removal cancellation launches no worker");

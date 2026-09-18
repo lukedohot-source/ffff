@@ -1,0 +1,25 @@
+Gtk not found (missing LD_LIBRARY_PATH to libgtk-x11-2.0.so.0?), using built-in colorscheme
+Unified UI passed: 131 checkbox click/uncheck pairs; select all/clear/apply/extreme/undo/details; all 16 original pages; 3 sizes.
+PASS UI removal and manual pages are reachable
+PASS UI all 141 app definitions have visible checkboxes and no defaults
+PASS UI app scan updates individual eligibility
+PASS UI protected app never enters the selection that reaches elevation
+SKIP UI protected app checkbox is visually refused -- este WinForms nao honra o veto de ListView.ItemCheck em atribuicao direta
+PASS UI only explicitly checked removable app enters selection
+PASS UI filtering preserves explicit app selection
+PASS UI removal requires review before worker launch
+PASS UI removal cancellation launches no worker
+PASS UI confirmed removal launches only selected app IDs
+PASS UI stop button writes cancellation for its own request
+PASS UI manual tuning requires explicit field selection
+PASS UI manual tuning waits for review
+PASS UI manual apply sends selected decimal field only
+PASS UI selective restore reviews captured backup before launch
+PASS UI selective restore binds exact backup and chosen settings
+PASS UI async UI operation completed within timeout
+PASS UI verify current does not rewrite previous history
+PASS UI history export writes an actual TXT log
+Functional UI passed: removal scan/select/protection/review/cancel; manual tuning; selective restore; history verify/export; 2 sizes. No system setting changed.
+V6 UI passed: six new pages; 1080x720, 1920x1080, 2560x1440; synthetic layout scale 125%; profiles, density, opt-in and advanced descriptions. Actual monitor DPI requires manual validation.
+SKIP UI embedded tool-mode render -- acoplamento por HWND e PostMessage do user32 so existem no Windows
+UI smoke passed: navigation, filtering, forms, chart and offscreen rendering. No system settings changed.

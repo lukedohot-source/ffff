@@ -1,0 +1,1032 @@
+PASS contradictory settings rejected before mutation
+PASS identical registry writes deduplicated
+PASS menu profile preserves already faster values
+PASS external / unknown item cannot enter maximum profile
+PASS duplicate profile IDs rejected
+PASS six defaults; power and mouse are opt-in
+PASS SPI SET uses BOOL value, not address of BOOL
+PASS invalid SPI boolean rejected
+PASS full profile completes
+PASS registry, native preferences and power applied
+PASS all original values captured for batch undo
+PASS full undo restores exact pre-profile state
+PASS second apply is idempotent and preserves undo record
+PASS no-op does not hide the meaningful backup
+PASS mid-batch registry failure propagates
+PASS failure rolls back earlier native and registry writes
+PASS silent write failure detected by readback
+PASS readback failure restores previous values
+PASS rollback failure is reported
+PASS incomplete rollback keeps recoverable backup
+PASS retry completes interrupted restore
+PASS undo refuses later external modification
+PASS later user change is not overwritten
+PASS interrupted transaction is recoverable
+PASS recovery restores durable snapshot
+PASS undo order prevents older backup overwriting newer changes
+PASS power step skipped on battery-equipped device
+PASS compatible stages still run when power is skipped
+PASS missing power scheme never imported or forced
+PASS status reports stored values without claiming performance
+PASS partial configuration correctly detected
+PASS unreadable registry aborts before mutation
+PASS snapshot failure makes no changes
+PASS optional mouse acceleration uses its own snapshot
+PASS all mouse acceleration parameters restored exactly
+PASS known user app is selectable
+PASS protected process cannot be closed: svchost
+PASS protected process cannot be closed: lsass
+PASS protected process cannot be closed: csrss
+PASS protected process cannot be closed: explorer
+PASS protected process cannot be closed: MsMpEng
+PASS protected process cannot be closed: System
+PASS protected process cannot be closed: audiodg
+PASS protected process cannot be closed: cs2
+PASS protected process cannot be closed: EasyAntiCheat
+PASS protected process cannot be closed: RuntimeBroker
+PASS protected process cannot be closed: SearchIndexer
+PASS tiered process is selectable when explicitly chosen: steam
+PASS tiered process never reachable from the one-click tier: steam
+PASS tiered process declares a tier: steam
+PASS tiered process is selectable when explicitly chosen: OneDrive
+PASS tiered process never reachable from the one-click tier: OneDrive
+PASS tiered process declares a tier: OneDrive
+PASS launcher needs the extreme tier; synchronization needs only the aggressive one
+PASS optimizer cannot terminate itself
+PASS other Windows session protected
+PASS SYSTEM-owned process protected even with recognized name
+PASS Windows directory protected despite app-like filename
+PASS unreadable executable never eligible
+PASS identical captured process accepted
+PASS PID reuse rejected by start time
+PASS changed executable rejected
+PASS changed owner rejected
+PASS mixed protected group cannot be selected
+PASS CPU percentage uses system-time delta
+PASS zero interval is unknown, not fabricated zero load
+PASS counter reset is unknown
+PASS invalid CPU counter relationship rejected
+PASS negative RAM delta is retained, not hidden
+PASS missing samples never reported as improvement
+PASS gaming focus allowlist is separate from closure allowlist
+PASS sync client sits above the one-click tier
+PASS the tier that closes a sync client names it and says synchronization stops
+PASS quoted startup executable parsed without running it
+PASS nonabsolute startup launcher rejected
+PASS shell wrapper not authorized for startup changes
+PASS ambiguous updater wrapper preserved
+PASS recognized startup entry allowed
+PASS unknown startup entry preserved
+PASS multiline startup entry rejected
+PASS only old unused temporaries eligible
+PASS recently created file preserved
+PASS recently accessed file preserved
+PASS cleanup excludes .bak
+PASS cleanup excludes .sv$
+PASS cleanup excludes .ac$
+PASS cleanup excludes .dwl
+PASS cleanup excludes .json
+PASS cleanup excludes .db
+PASS cleanup excludes .exe
+PASS cleanup excludes .log
+PASS temporary extension allowlist case-insensitive
+PASS cleanup cannot escape its fixed root
+PASS request traversal rejected
+PASS fresh request bound to current user
+PASS expired request rejected
+PASS cross-user request rejected
+PASS selected startup entry removed with captured original
+PASS startup undo restores exact command string
+PASS stale startup command rejected before deletion
+PASS later startup command preserved
+PASS Defender not in service allowlist
+PASS unauthorized service request creates no transaction
+PASS critical service never configurable: wuauserv
+PASS critical service never configurable: BITS
+PASS critical service never configurable: Audiosrv
+PASS critical service never configurable: Dhcp
+PASS critical service never configurable: WlanSvc
+PASS critical service never configurable: SysMain
+PASS critical service never configurable: BFE
+PASS critical service never configurable: MpsSvc
+PASS critical service never configurable: Vanguard
+PASS duplicate service names rejected case-insensitively
+PASS service stop and disable are verified
+PASS service startup disabled
+PASS service undo restores exact startup and previous running state
+PASS previously stopped service stays stopped after undo
+PASS active service dependents block changes
+PASS dependent-service rejection preserves initial setting
+PASS service failure propagates
+PASS partial service failure rolls back earlier service
+PASS undo protects a later service startup change
+PASS later service choice preserved
+PASS all 14 uploaded BATs embedded as read-only reviews
+PASS none of the original BAT commands execute in maximum mode
+PASS every imported BAT has content, digest and findings
+PASS uploaded BAT cannot be smuggled into native profile
+SKIP locked history file causes atomic save to fail -- este sistema nao tem trava obrigatoria de arquivo; a garantia vale no Windows e nao pode ser conferida aqui
+PASS atomic replacement succeeds after lock release
+PASS history writer waits while a coordinated reader owns the file
+PASS open history reader keeps coherent previous version
+PASS history writer commits after reader releases the file
+PASS original performance library preserved and unique
+PASS every option identifies effects, limits and reference
+PASS library native actions resolve to trusted items
+PASS optional service list never contains a protected service
+PASS security, update, network, audio and core services stay out of reach
+PASS service tiers nest: leve subset of agressivo subset of extremo
+PASS each service tier adds services
+PASS unknown service tier rejected
+PASS protected service rejected by tier-aware allowlist
+PASS shell and session processes are never closable
+PASS synchronization, launcher and user apps are tiered, shell has no tier
+PASS launcher only reachable at the extreme tier
+PASS synchronization only reachable from the aggressive tier up
+PASS a process outside the allowlist belongs to no tier
+PASS every tier states what is lost
+PASS generic process names never enter the closable list
+PASS the three process tiers do not overlap
+PASS unknown process tier rejected
+PASS reopen with malformed record id rejected
+PASS reopen of a missing record rejected
+PASS reopen refuses a record that did not close applications
+PASS reopen refuses a record with nothing to reopen
+PASS reopen refuses another account's record
+PASS tampered reopen record launches nothing
+PASS a process outside the allowlist is refused by name, before any path check
+PASS every refused reopen states a reason
+PASS closing and reopening apps stay outside the undo chain
+PASS network action outside the allowlist rejected
+PASS network action id with injection rejected
+PASS empty network action id rejected
+PASS network action ids are unique
+PASS network actions only run ipconfig or netsh
+PASS network executables are resolved by App.SystemExe, never by path
+PASS network arguments carry no shell metacharacters
+PASS every network action has a usable timeout
+PASS every network action declares that it needs administrator
+PASS every network action states effect, cost and an official source
+PASS winsock reset declares restart, disconnect and a backup dump
+PASS tcp/ip reset declares restart, disconnect and a backup dump
+PASS flushing the dns cache claims neither restart nor disconnect
+PASS renewing the address declares the drop but not a restart
+PASS only the two repairs require a restart
+PASS network actions stay out of the undo chain
+PASS network action requests elevation
+PASS read-only network diagnostic never elevates
+PASS unknown network diagnostic rejected before elevation
+PASS unknown network action rejected before elevation
+PASS mtu arithmetic adds the 28 header bytes
+PASS mtu probe stays inside the valid ipv4 range
+PASS diagnostics and actions are different sets
+PASS every network diagnostic explains what it does and does not measure
+PASS unknown diagnostic title rejected
+PASS ResourceMonitor.Within executes on this runtime, trailing separator included
+PASS ResourceMonitor.Within normalizes separators before comparing
+PASS ResourceMonitor.Within rejects a path outside the folder
+PASS ResourceMonitor.Within does not match a sibling folder by name prefix
+PASS TempCleaner.SafePath executes and accepts a file inside its own root
+PASS TempCleaner.SafePath refuses the root directory itself
+PASS TempCleaner.SafePath refuses an escape through the parent directory
+PASS TempCleaner.SafePath refuses the volume root
+PASS TrimEnd(params char[]) is the overload this build binds to
+PASS TrimStart(params char[]) is the overload this build binds to
+PASS CSV parser handles quoted delimiters and escaped quotes
+PASS unclosed CSV quotes rejected
+PASS GPU duration is not falsely treated as frame interval
+PASS ambiguous duplicate metric rejected
+PASS nonfinite and nonpositive samples rejected
+PASS different processes, swapchains and generated frames never merged
+PASS semicolon CSV supports decimal comma and reports invalid rows
+PASS FPS uses total duration and percentiles preserve spikes
+PASS small-sample low definitions use ceiling and preserve worst interval
+PASS 1 percent low differs correctly from percentile reciprocal
+PASS long stutters and loading pauses are never silently removed
+PASS warmup trimmed by accumulated time
+PASS warmup that removes capture rejected
+PASS before/after FPS delta calculated
+PASS incomparable metrics do not claim gains
+PASS network input accepts hosts and rejects URLs and shell syntax
+PASS power snapshot stores original scheme and exact AC values
+PASS requested power changes applied in isolated backend
+PASS power undo restores exact original indexes
+PASS power profile reapplies after undo
+PASS power profile idempotent
+PASS power application blocked on battery
+PASS battery rejection leaves values unchanged
+PASS changed active plan rejected before power mutation
+PASS unknown power option rejected
+PASS partial power failure propagates
+PASS partial power failure rolls back earlier options
+PASS power undo preserves a subsequent user change
+PASS plan switch during power transaction aborts remaining steps
+PASS rollback restores original scheme values without switching away from user-selected scheme
+PASS malformed power scheme rejected
+PASS GPU setting preserves unrelated preferences
+PASS duplicate GPU preference tokens normalized
+PASS fullscreen option preserves unrelated compatibility flags
+PASS fullscreen token idempotent
+PASS UNC game paths rejected
+PASS Windows system executable excluded from game profile
+PASS relative game path rejected
+SKIP per-game profile persistence, transaction, undo and validation -- este sistema nao tem caminhos com letra de unidade; a fixture do jogo so existe no Windows
+PASS FilterKeys removes only enabled bit, keeping all timing and accessibility settings
+PASS StickyKeys change removes only hotkey flag
+PASS already disabled FilterKeys idempotent
+PASS repeat settings are within documented API ranges
+PASS malformed FilterKeys backup rejected
+PASS out-of-range FilterKeys time rejected
+PASS invalid keyboard repeat speed rejected
+PASS unknown keyboard API code rejected
+PASS v5-native-keyrepeat uses durable native backup
+PASS v5-native-keyrepeat restores exact native parameters
+PASS v5-native-filter uses durable native backup
+PASS v5-native-filter restores exact native parameters
+PASS v5-native-sticky uses durable native backup
+PASS v5-native-sticky restores exact native parameters
+PASS v5-native-edge-background explicit individual selection
+PASS v5-native-edge-background applied in isolated registry
+PASS v5-native-edge-background undo restores original values and types
+PASS v5-native-edge-startupboost explicit individual selection
+PASS v5-native-edge-startupboost applied in isolated registry
+PASS v5-native-edge-startupboost undo restores original values and types
+PASS v5-native-chrome-background explicit individual selection
+PASS v5-native-chrome-background applied in isolated registry
+PASS v5-native-chrome-background undo restores original values and types
+PASS v5-native-widgets-off explicit individual selection
+PASS v5-native-widgets-off applied in isolated registry
+PASS v5-native-widgets-off undo restores original values and types
+PASS v5-native-news-off explicit individual selection
+PASS v5-native-search-highlights-off explicit individual selection
+PASS v5-native-search-highlights-off applied in isolated registry
+PASS v5-native-search-highlights-off undo restores original values and types
+PASS v5-native-search-taskbar-hide explicit individual selection
+PASS v5-native-search-taskbar-hide applied in isolated registry
+PASS v5-native-search-taskbar-hide undo restores original values and types
+PASS v5-native-indexer-backoff explicit individual selection
+PASS v5-native-indexer-backoff applied in isolated registry
+PASS v5-native-indexer-backoff undo restores original values and types
+PASS v5-native-delivery-no-peers explicit individual selection
+PASS v5-native-delivery-no-peers applied in isolated registry
+PASS v5-native-delivery-no-peers undo restores original values and types
+PASS v5-native-theme-dark explicit individual selection
+PASS v5-native-theme-dark applied in isolated registry
+PASS v5-native-theme-dark undo restores original values and types
+PASS v5-native-theme-light explicit individual selection
+PASS v5-native-theme-light applied in isolated registry
+PASS v5-native-theme-light undo restores original values and types
+PASS v5-native-file-extensions explicit individual selection
+PASS v5-native-file-extensions applied in isolated registry
+PASS v5-native-file-extensions undo restores original values and types
+PASS v5-native-explorer-compact explicit individual selection
+PASS v5-native-explorer-compact applied in isolated registry
+PASS v5-native-explorer-compact undo restores original values and types
+PASS v5-native-third-party-suggestions-off explicit individual selection
+PASS v5-native-third-party-suggestions-off applied in isolated registry
+PASS v5-native-third-party-suggestions-off undo restores original values and types
+PASS v5-native-spotlight-off explicit individual selection
+PASS v5-native-firefox-telemetry explicit individual selection
+PASS v5-native-firefox-telemetry applied in isolated registry
+PASS v5-native-firefox-telemetry undo restores original values and types
+PASS v5-native-office-telemetry explicit individual selection
+PASS v5-native-office-telemetry applied in isolated registry
+PASS v5-native-office-telemetry undo restores original values and types
+PASS v5-native-repair-run explicit individual selection
+PASS v5-native-repair-run applied in isolated registry
+PASS v5-native-repair-run undo restores original values and types
+PASS v5-native-repair-controlpanel explicit individual selection
+PASS v5-native-repair-controlpanel applied in isolated registry
+PASS v5-native-repair-controlpanel undo restores original values and types
+PASS v5-native-repair-folderoptions explicit individual selection
+PASS v5-native-repair-folderoptions applied in isolated registry
+PASS v5-native-repair-folderoptions undo restores original values and types
+PASS v5-native-repair-contextmenu explicit individual selection
+PASS v5-native-repair-contextmenu applied in isolated registry
+PASS v5-native-repair-contextmenu undo restores original values and types
+PASS v5-native-repair-taskmgr explicit individual selection
+PASS v5-native-repair-taskmgr applied in isolated registry
+PASS v5-native-repair-taskmgr undo restores original values and types
+PASS v5-native-repair-regedit explicit individual selection
+PASS v5-native-repair-regedit applied in isolated registry
+PASS v5-native-repair-regedit undo restores original values and types
+PASS v5-native-repair-cmd explicit individual selection
+PASS v5-native-repair-cmd applied in isolated registry
+PASS v5-native-repair-cmd undo restores original values and types
+PASS network loss percentiles and consecutive variation handle missing replies
+PASS network comparison computes measured delta
+PASS DNS destination change prevents misleading comparison
+PASS unequal capture sizes rejected
+PASS no ping replies never reported as zero latency
+PASS jitter does not bridge dropped ping packets
+PASS network rejects URL before any probe
+PASS cancelled network capture makes no probe
+PASS native bridge selects valid network tool without elevation
+PASS native bridge cannot launch arbitrary tool
+PASS native bridge rejects unreviewed option
+PASS native bridge resolves library option for user review
+PASS native bridge also resolves native option id
+PASS library IDs unique
+PASS every direct library option resolves to actual engine implementation
+PASS known display ID converts to canonical target
+PASS Liquid resolves mixed checkboxes to actual implementations
+PASS Liquid rejects duplicate selection
+PASS Liquid rejects unknown executable before any writes
+PASS Liquid explains the theme conflict in Portuguese before backup or mutation
+PASS user preferences do not unnecessarily request UAC
+PASS machine policy requires elevation
+PASS Liquid reply path cannot escape fixed directory
+PASS wire format preserves tabs and newlines without injecting rows
+PASS Liquid headless apply succeeds with isolated Windows backends
+PASS headless response reflects actual transaction and both checked options
+PASS one selection creates one reversible transaction
+PASS Liquid history returns the actual backup ID
+PASS headless undo restores exact original state
+PASS Liquid rejects cross-account mutation
+PASS headless operation preserves compatible stages after individual failure
+PASS headless reply retains failed child audit and successful sibling
+PASS complete native selection accepts more than the old 32-item limit
+PASS audit proves absent-to-DWORD changes with independent readback
+PASS audit report includes before, requested and observed values
+PASS fresh verification detects external changes without rewriting history
+PASS no-op is never claimed as a change
+PASS undo preserves apply evidence and records restoration separately
+PASS access denied aborts transaction
+PASS permission failure includes exact target and does not claim a change
+PASS ignored write fails readback
+PASS ignored write is logged as unchanged
+PASS successful protocol apply
+PASS apply response refreshes cards without resetting verification
+PASS failed protocol apply
+PASS failed apply returns fresh states and its own record ID
+PASS HKCU policies request elevation
+PASS large Unicode audit report roundtrips beyond 32k
+PASS MMAgent adapter audited through native transaction
+PASS compression restores exact previous state
+PASS negative scheduler value rejected
+PASS undefined scheduler bits rejected
+PASS out of range MMCSS value rejected
+PASS manual control cannot select arbitrary registry key
+PASS manual decimal fields resolve to two fixed targets
+PASS opt-enableperiodicregistrybackup applies and reads every value in isolated backend
+PASS opt-enableperiodicregistrybackup restores previous values and types
+PASS opt-disablenetworkthrottling applies and reads every value in isolated backend
+PASS opt-disablenetworkthrottling restores previous values and types
+PASS opt-disablemediaplayersharing applies and reads every value in isolated backend
+PASS opt-disablemediaplayersharing restores previous values and types
+PASS opt-disableprintservice applies and reads every value in isolated backend
+PASS opt-disableprintservice restores previous values and types
+PASS opt-disablesuperfetch applies and reads every value in isolated backend
+PASS opt-disablesuperfetch restores previous values and types
+PASS opt-disablecompatibilityassistant applies and reads every value in isolated backend
+PASS opt-disablecompatibilityassistant restores previous values and types
+PASS opt-disablesearch applies and reads every value in isolated backend
+PASS opt-disablesearch restores previous values and types
+PASS opt-disableerrorreporting applies and reads every value in isolated backend
+PASS opt-disableerrorreporting restores previous values and types
+PASS opt-disablefaxservice applies and reads every value in isolated backend
+PASS opt-disablefaxservice restores previous values and types
+PASS opt-disableinsiderservice applies and reads every value in isolated backend
+PASS opt-disableinsiderservice restores previous values and types
+PASS opt-disablesensorservices applies and reads every value in isolated backend
+PASS opt-disablesensorservices restores previous values and types
+PASS opt-disablexboxlive applies and reads every value in isolated backend
+PASS opt-disablexboxlive restores previous values and types
+PASS opt-disablehomegroup applies and reads every value in isolated backend
+PASS opt-disablehomegroup restores previous values and types
+PASS opt-disablentfstimestamp applies and reads every value in isolated backend
+PASS opt-disablentfstimestamp restores previous values and types
+PASS opt-enablelegacyvolumeslider applies and reads every value in isolated backend
+PASS opt-enablelegacyvolumeslider restores previous values and types
+PASS opt-disablecortana applies and reads every value in isolated backend
+PASS opt-disablecortana restores previous values and types
+PASS opt-disableautomaticupdates applies and reads every value in isolated backend
+PASS opt-disableautomaticupdates restores previous values and types
+PASS opt-disablestoreupdates applies and reads every value in isolated backend
+PASS opt-disablestoreupdates restores previous values and types
+PASS opt-disableonedrive applies and reads every value in isolated backend
+PASS opt-disableonedrive restores previous values and types
+PASS opt-hidetaskbarsearch applies and reads every value in isolated backend
+PASS opt-hidetaskbarsearch restores previous values and types
+PASS opt-hidetaskbarweather applies and reads every value in isolated backend
+PASS opt-hidetaskbarweather restores previous values and types
+PASS opt-disablequickaccesshistory applies and reads every value in isolated backend
+PASS opt-disablequickaccesshistory restores previous values and types
+PASS opt-disablestartmenuads applies and reads every value in isolated backend
+PASS opt-disablestartmenuads restores previous values and types
+PASS opt-disablemypeople applies and reads every value in isolated backend
+PASS opt-disablemypeople restores previous values and types
+PASS opt-excludedrivers applies and reads every value in isolated backend
+PASS opt-excludedrivers restores previous values and types
+PASS opt-disablewindowsink applies and reads every value in isolated backend
+PASS opt-disablewindowsink restores previous values and types
+PASS opt-disablespellingandtypingfeatures applies and reads every value in isolated backend
+PASS opt-disablespellingandtypingfeatures restores previous values and types
+PASS opt-disablesmartscreen applies and reads every value in isolated backend
+PASS opt-disablesmartscreen restores previous values and types
+PASS opt-disablecloudclipboard applies and reads every value in isolated backend
+PASS opt-disablecloudclipboard restores previous values and types
+PASS opt-enablelongpaths applies and reads every value in isolated backend
+PASS opt-enablelongpaths restores previous values and types
+PASS opt-disablevirtualizationbasedsecurity applies and reads every value in isolated backend
+PASS opt-disablevirtualizationbasedsecurity restores previous values and types
+PASS opt-aligntaskbartoleft applies and reads every value in isolated backend
+PASS opt-aligntaskbartoleft restores previous values and types
+PASS opt-disablesnapassist applies and reads every value in isolated backend
+PASS opt-disablesnapassist restores previous values and types
+PASS opt-disablechat applies and reads every value in isolated backend
+PASS opt-disablechat restores previous values and types
+PASS opt-disableshowmoreoptions applies and reads every value in isolated backend
+PASS opt-disableshowmoreoptions restores previous values and types
+PASS opt-disabletpmcheck applies and reads every value in isolated backend
+PASS opt-disabletpmcheck restores previous values and types
+PASS opt-disablestickers applies and reads every value in isolated backend
+PASS opt-disablestickers restores previous values and types
+PASS opt-disableedgediscoverbar applies and reads every value in isolated backend
+PASS opt-disableedgediscoverbar restores previous values and types
+PASS opt-disableedgetelemetry applies and reads every value in isolated backend
+PASS opt-disableedgetelemetry restores previous values and types
+PASS opt-disablecopilotai applies and reads every value in isolated backend
+PASS opt-disablecopilotai restores previous values and types
+PASS opt-disablevisualstudiotelemetry applies and reads every value in isolated backend
+PASS opt-disablevisualstudiotelemetry restores previous values and types
+PASS opt-disablenvidiatelemetry applies and reads every value in isolated backend
+PASS opt-disablenvidiatelemetry restores previous values and types
+PASS opt-disablechrometelemetry applies and reads every value in isolated backend
+PASS opt-disablechrometelemetry restores previous values and types
+PASS opt-disablefirefoxtelemetry applies and reads every value in isolated backend
+PASS opt-disablefirefoxtelemetry restores previous values and types
+PASS opt-enableutctime applies and reads every value in isolated backend
+PASS opt-enableutctime restores previous values and types
+PASS opt-disablemodernstandby applies and reads every value in isolated backend
+PASS opt-disablemodernstandby restores previous values and types
+PASS opt-showalltrayicons applies and reads every value in isolated backend
+PASS opt-showalltrayicons restores previous values and types
+PASS opt-removecasttodevice applies and reads every value in isolated backend
+PASS opt-removecasttodevice restores previous values and types
+PASS opt-enableloginverbose applies and reads every value in isolated backend
+PASS opt-enableloginverbose restores previous values and types
+PASS opt-disablesmb1 applies and reads every value in isolated backend
+PASS opt-disablesmb1 restores previous values and types
+PASS opt-disablesmb2 applies and reads every value in isolated backend
+PASS opt-disablesmb2 restores previous values and types
+PASS opt-userhvci applies and reads every value in isolated backend
+PASS opt-userhvci restores previous values and types
+PASS opt-usersearchsuggestions applies and reads every value in isolated backend
+PASS opt-usersearchsuggestions restores previous values and types
+PASS opt-splitappendcompletion applies and reads every value in isolated backend
+PASS opt-splitappendcompletion restores previous values and types
+PASS opt-splitautosuggest applies and reads every value in isolated backend
+PASS opt-splitautosuggest restores previous values and types
+PASS opt-splitdisallowshaking applies and reads every value in isolated backend
+PASS opt-splitdisallowshaking restores previous values and types
+PASS opt-splithidden applies and reads every value in isolated backend
+PASS opt-splithidden restores previous values and types
+PASS opt-splitdisabledbygrouppolicy applies and reads every value in isolated backend
+PASS opt-splitdisabledbygrouppolicy restores previous values and types
+PASS opt-splituploaduseractivities applies and reads every value in isolated backend
+PASS opt-splituploaduseractivities restores previous values and types
+PASS opt-splitenableactivityfeed applies and reads every value in isolated backend
+PASS opt-splitenableactivityfeed restores previous values and types
+PASS opt-splitletappsactivatewithvoice applies and reads every value in isolated backend
+PASS opt-splitletappsactivatewithvoice restores previous values and types
+PASS opt-splitpreventhandwritingdatasharing applies and reads every value in isolated backend
+PASS opt-splitpreventhandwritingdatasharing restores previous values and types
+PASS opt-splitallowlinguisticdatacollection applies and reads every value in isolated backend
+PASS opt-splitallowlinguisticdatacollection restores previous values and types
+PASS opt-splitallowinputpersonalization applies and reads every value in isolated backend
+PASS opt-splitallowinputpersonalization restores previous values and types
+PASS opt-splitdonotshowfeedbacknotifications applies and reads every value in isolated backend
+PASS opt-splitdonotshowfeedbacknotifications restores previous values and types
+PASS opt-splitenablemmx applies and reads every value in isolated backend
+PASS opt-splitenablemmx restores previous values and types
+PASS opt-splitremotestartupdisabled applies and reads every value in isolated backend
+PASS opt-splitremotestartupdisabled restores previous values and types
+PASS opt-splitallowprojectiontopc applies and reads every value in isolated backend
+PASS opt-splitallowprojectiontopc restores previous values and types
+PASS pack-b6ffac10f7f4 applies and reads every value in isolated backend
+PASS pack-b6ffac10f7f4 restores previous values and types
+PASS pack-42de4cc8102e applies and reads every value in isolated backend
+PASS pack-42de4cc8102e restores previous values and types
+PASS pack-fe5aa1f631d0 applies and reads every value in isolated backend
+PASS pack-fe5aa1f631d0 restores previous values and types
+PASS pack-ecf7f01e174b applies and reads every value in isolated backend
+PASS pack-ecf7f01e174b restores previous values and types
+PASS pack-3c2c1523c0fa applies and reads every value in isolated backend
+PASS pack-3c2c1523c0fa restores previous values and types
+PASS pack-f06301afb713 applies and reads every value in isolated backend
+PASS pack-f06301afb713 restores previous values and types
+PASS pack-a137e56bbd0e applies and reads every value in isolated backend
+PASS pack-a137e56bbd0e restores previous values and types
+PASS pack-ad17e5deb1d8 applies and reads every value in isolated backend
+PASS pack-ad17e5deb1d8 restores previous values and types
+PASS pack-b8cef6963679 applies and reads every value in isolated backend
+PASS pack-b8cef6963679 restores previous values and types
+PASS pack-0b9181ab23ef applies and reads every value in isolated backend
+PASS pack-0b9181ab23ef restores previous values and types
+PASS pack-1b4dfbdca78f applies and reads every value in isolated backend
+PASS pack-1b4dfbdca78f restores previous values and types
+PASS pack-c8023d85a069 applies and reads every value in isolated backend
+PASS pack-c8023d85a069 restores previous values and types
+PASS pack-b77305149029 applies and reads every value in isolated backend
+PASS pack-b77305149029 restores previous values and types
+PASS pack-e8ea680d9741 applies and reads every value in isolated backend
+PASS pack-e8ea680d9741 restores previous values and types
+PASS pack-d1b3e7ae9f70 applies and reads every value in isolated backend
+PASS pack-d1b3e7ae9f70 restores previous values and types
+PASS pack-6dc6c301e7b8 applies and reads every value in isolated backend
+PASS pack-6dc6c301e7b8 restores previous values and types
+PASS pack-3d76b7e8529c applies and reads every value in isolated backend
+PASS pack-3d76b7e8529c restores previous values and types
+PASS pack-3b6ba7cc6df5 applies and reads every value in isolated backend
+PASS pack-3b6ba7cc6df5 restores previous values and types
+PASS pack-b735bf30fb1a applies and reads every value in isolated backend
+PASS pack-b735bf30fb1a restores previous values and types
+PASS pack-8098f03b75de applies and reads every value in isolated backend
+PASS pack-8098f03b75de restores previous values and types
+PASS pack-8f317bf49ced applies and reads every value in isolated backend
+PASS pack-8f317bf49ced restores previous values and types
+PASS all 141 uploaded debloat definitions available
+PASS debloat IDs unique
+PASS duplicate uninstall rejected
+PASS unknown uninstall target rejected
+PASS Appx matches exact names, never substrings
+PASS shared framework is not removable
+PASS Windows protected app is not removable
+PASS removal confirmed only by absence; no fake undo
+PASS uninstall log includes before and actual after
+PASS absent app never invokes uninstall
+PASS zero exit with app still installed is not success
+PASS readback can confirm absence while retaining installer diagnostic
+PASS cancel before next app makes no removal attempt
+PASS failed post-uninstall query never claims success
+PASS all 125 pre-existing native IDs preserved
+PASS all 532 originals plus 14 BATs accessible alongside the 228 previous library entries and 6 additions
+PASS every original catalog item has a main-screen entry
+PASS every library action has a UI handler
+PASS accepted alias v4-002 -> native-capture
+PASS accepted alias v4-001 -> native-gamemode
+PASS accepted alias v4-003 -> native-power
+PASS accepted alias v4-004 -> native-mouse
+PASS accepted alias v4-005 -> native-window
+PASS accepted alias v4-006 -> native-effects
+PASS accepted alias v4-007 -> native-menu
+PASS accepted alias v4-008 -> native-transparency
+PASS accepted alias v5-input-repeat -> v5-native-keyrepeat
+PASS accepted alias v5-input-filter -> v5-native-filter
+PASS accepted alias v5-input-sticky -> v5-native-sticky
+PASS accepted alias v5-option-edge-background -> v5-native-edge-background
+PASS accepted alias v5-option-edge-startupboost -> v5-native-edge-startupboost
+PASS accepted alias v5-option-chrome-background -> v5-native-chrome-background
+PASS accepted alias v5-option-widgets-off -> v5-native-widgets-off
+PASS accepted alias v5-option-news-off -> v5-native-news-off
+PASS accepted alias v5-option-search-highlights-off -> v5-native-search-highlights-off
+PASS accepted alias v5-option-search-taskbar-hide -> v5-native-search-taskbar-hide
+PASS accepted alias v5-option-indexer-backoff -> v5-native-indexer-backoff
+PASS accepted alias v5-option-delivery-no-peers -> v5-native-delivery-no-peers
+PASS accepted alias v5-option-theme-dark -> v5-native-theme-dark
+PASS accepted alias v5-option-theme-light -> v5-native-theme-light
+PASS accepted alias v5-option-file-extensions -> v5-native-file-extensions
+PASS accepted alias v5-option-explorer-compact -> v5-native-explorer-compact
+PASS accepted alias v5-option-third-party-suggestions-off -> v5-native-third-party-suggestions-off
+PASS accepted alias v5-option-spotlight-off -> v5-native-spotlight-off
+PASS accepted alias v5-option-firefox-telemetry -> v5-native-firefox-telemetry
+PASS accepted alias v5-option-office-telemetry -> v5-native-office-telemetry
+PASS accepted alias v5-option-repair-run -> v5-native-repair-run
+PASS accepted alias v5-option-repair-controlpanel -> v5-native-repair-controlpanel
+PASS accepted alias v5-option-repair-folderoptions -> v5-native-repair-folderoptions
+PASS accepted alias v5-option-repair-contextmenu -> v5-native-repair-contextmenu
+PASS accepted alias v5-option-repair-taskmgr -> v5-native-repair-taskmgr
+PASS accepted alias v5-option-repair-regedit -> v5-native-repair-regedit
+PASS accepted alias v5-option-repair-cmd -> v5-native-repair-cmd
+PASS accepted alias opt-enableperiodicregistrybackup -> opt-enableperiodicregistrybackup
+PASS accepted alias opt-disablenetworkthrottling -> opt-disablenetworkthrottling
+PASS accepted alias opt-disablemediaplayersharing -> opt-disablemediaplayersharing
+PASS accepted alias opt-disableprintservice -> opt-disableprintservice
+PASS accepted alias opt-disablesuperfetch -> opt-disablesuperfetch
+PASS accepted alias opt-disablecompatibilityassistant -> opt-disablecompatibilityassistant
+PASS accepted alias opt-disablesearch -> opt-disablesearch
+PASS accepted alias opt-disableerrorreporting -> opt-disableerrorreporting
+PASS accepted alias opt-disablefaxservice -> opt-disablefaxservice
+PASS accepted alias opt-disableinsiderservice -> opt-disableinsiderservice
+PASS accepted alias opt-disablesensorservices -> opt-disablesensorservices
+PASS accepted alias opt-disablexboxlive -> opt-disablexboxlive
+PASS accepted alias opt-disablehomegroup -> opt-disablehomegroup
+PASS accepted alias opt-disablentfstimestamp -> opt-disablentfstimestamp
+PASS accepted alias opt-enablelegacyvolumeslider -> opt-enablelegacyvolumeslider
+PASS accepted alias opt-disablecortana -> opt-disablecortana
+PASS accepted alias opt-disableautomaticupdates -> opt-disableautomaticupdates
+PASS accepted alias opt-disablestoreupdates -> opt-disablestoreupdates
+PASS accepted alias opt-disableonedrive -> opt-disableonedrive
+PASS accepted alias opt-hidetaskbarsearch -> opt-hidetaskbarsearch
+PASS accepted alias opt-hidetaskbarweather -> opt-hidetaskbarweather
+PASS accepted alias opt-disablequickaccesshistory -> opt-disablequickaccesshistory
+PASS accepted alias opt-disablestartmenuads -> opt-disablestartmenuads
+PASS accepted alias opt-disablemypeople -> opt-disablemypeople
+PASS accepted alias opt-excludedrivers -> opt-excludedrivers
+PASS accepted alias opt-disablewindowsink -> opt-disablewindowsink
+PASS accepted alias opt-disablespellingandtypingfeatures -> opt-disablespellingandtypingfeatures
+PASS accepted alias opt-disablesmartscreen -> opt-disablesmartscreen
+PASS accepted alias opt-disablecloudclipboard -> opt-disablecloudclipboard
+PASS accepted alias opt-enablelongpaths -> opt-enablelongpaths
+PASS accepted alias opt-disablevirtualizationbasedsecurity -> opt-disablevirtualizationbasedsecurity
+PASS accepted alias opt-aligntaskbartoleft -> opt-aligntaskbartoleft
+PASS accepted alias opt-disablesnapassist -> opt-disablesnapassist
+PASS accepted alias opt-disablechat -> opt-disablechat
+PASS accepted alias opt-disableshowmoreoptions -> opt-disableshowmoreoptions
+PASS accepted alias opt-disabletpmcheck -> opt-disabletpmcheck
+PASS accepted alias opt-disablestickers -> opt-disablestickers
+PASS accepted alias opt-disableedgediscoverbar -> opt-disableedgediscoverbar
+PASS accepted alias opt-disableedgetelemetry -> opt-disableedgetelemetry
+PASS accepted alias opt-disablecopilotai -> opt-disablecopilotai
+PASS accepted alias opt-disablevisualstudiotelemetry -> opt-disablevisualstudiotelemetry
+PASS accepted alias opt-disablenvidiatelemetry -> opt-disablenvidiatelemetry
+PASS accepted alias opt-disablechrometelemetry -> opt-disablechrometelemetry
+PASS accepted alias opt-disablefirefoxtelemetry -> opt-disablefirefoxtelemetry
+PASS accepted alias opt-enableutctime -> opt-enableutctime
+PASS accepted alias opt-disablemodernstandby -> opt-disablemodernstandby
+PASS accepted alias opt-showalltrayicons -> opt-showalltrayicons
+PASS accepted alias opt-removecasttodevice -> opt-removecasttodevice
+PASS accepted alias opt-enableloginverbose -> opt-enableloginverbose
+PASS accepted alias opt-disablesmb1 -> opt-disablesmb1
+PASS accepted alias opt-disablesmb2 -> opt-disablesmb2
+PASS accepted alias opt-userhvci -> opt-userhvci
+PASS accepted alias opt-usersearchsuggestions -> opt-usersearchsuggestions
+PASS accepted alias opt-splitappendcompletion -> opt-splitappendcompletion
+PASS accepted alias opt-splitautosuggest -> opt-splitautosuggest
+PASS accepted alias opt-splitdisallowshaking -> opt-splitdisallowshaking
+PASS accepted alias opt-splithidden -> opt-splithidden
+PASS accepted alias opt-splitdisabledbygrouppolicy -> opt-splitdisabledbygrouppolicy
+PASS accepted alias opt-splituploaduseractivities -> opt-splituploaduseractivities
+PASS accepted alias opt-splitenableactivityfeed -> opt-splitenableactivityfeed
+PASS accepted alias opt-splitletappsactivatewithvoice -> opt-splitletappsactivatewithvoice
+PASS accepted alias opt-splitpreventhandwritingdatasharing -> opt-splitpreventhandwritingdatasharing
+PASS accepted alias opt-splitallowlinguisticdatacollection -> opt-splitallowlinguisticdatacollection
+PASS accepted alias opt-splitallowinputpersonalization -> opt-splitallowinputpersonalization
+PASS accepted alias opt-splitdonotshowfeedbacknotifications -> opt-splitdonotshowfeedbacknotifications
+PASS accepted alias opt-splitenablemmx -> opt-splitenablemmx
+PASS accepted alias opt-splitremotestartupdisabled -> opt-splitremotestartupdisabled
+PASS accepted alias opt-splitallowprojectiontopc -> opt-splitallowprojectiontopc
+PASS accepted alias pack-b6ffac10f7f4 -> pack-b6ffac10f7f4
+PASS accepted alias pack-42de4cc8102e -> pack-42de4cc8102e
+PASS accepted alias pack-fe5aa1f631d0 -> pack-fe5aa1f631d0
+PASS accepted alias pack-ecf7f01e174b -> pack-ecf7f01e174b
+PASS accepted alias pack-3c2c1523c0fa -> pack-3c2c1523c0fa
+PASS accepted alias pack-f06301afb713 -> pack-f06301afb713
+PASS accepted alias pack-a137e56bbd0e -> pack-a137e56bbd0e
+PASS accepted alias pack-ad17e5deb1d8 -> pack-ad17e5deb1d8
+PASS accepted alias pack-b8cef6963679 -> pack-b8cef6963679
+PASS accepted alias pack-0b9181ab23ef -> pack-0b9181ab23ef
+PASS accepted alias pack-1b4dfbdca78f -> pack-1b4dfbdca78f
+PASS accepted alias pack-c8023d85a069 -> pack-c8023d85a069
+PASS accepted alias pack-b77305149029 -> pack-b77305149029
+PASS accepted alias pack-e8ea680d9741 -> pack-e8ea680d9741
+PASS accepted alias pack-d1b3e7ae9f70 -> pack-d1b3e7ae9f70
+PASS accepted alias pack-6dc6c301e7b8 -> pack-6dc6c301e7b8
+PASS accepted alias pack-3d76b7e8529c -> pack-3d76b7e8529c
+PASS accepted alias pack-3b6ba7cc6df5 -> pack-3b6ba7cc6df5
+PASS accepted alias pack-b735bf30fb1a -> pack-b735bf30fb1a
+PASS accepted alias pack-8098f03b75de -> pack-8098f03b75de
+PASS accepted alias pack-8f317bf49ced -> pack-8f317bf49ced
+PASS accepted alias extra-memory-compression -> extra-memory-compression
+PASS accepted alias reviewed54-native-dragoutline -> native-dragoutline
+PASS accepted alias reviewed54-native-cursorshadow -> native-cursorshadow
+PASS accepted alias v5-option-keyrepeat -> v5-native-keyrepeat
+PASS accepted alias v5-option-filter -> v5-native-filter
+PASS accepted alias v5-option-sticky -> v5-native-sticky
+PASS prefix alone never creates a native action
+PASS alias plus canonical duplicate rejected before writes
+PASS apply route accepts old display IDs
+PASS ID migration persisted in history
+PASS individual imported option no longer enters the obsolete eight-item profile
+PASS individual imported option restores absent values
+PASS legacy max route uses same canonical resolver
+PASS extreme plan has only unique implemented IDs
+PASS extreme excludes high-risk system security switches
+PASS extreme endpoint refuses smuggled risky option
+PASS extreme endpoint refuses experimental memory setting
+PASS all extreme steps logged on Core19045
+PASS extreme exact undo on Core19045
+PASS all extreme steps logged on Core22631
+PASS extreme exact undo on Core22631
+PASS all extreme steps logged on Core26200
+PASS extreme exact undo on Core26200
+PASS all extreme steps logged on Professional19045
+PASS extreme exact undo on Professional19045
+PASS all extreme steps logged on Professional22631
+PASS extreme exact undo on Professional22631
+PASS all extreme steps logged on Professional26200
+PASS extreme exact undo on Professional26200
+PASS all extreme steps logged on Enterprise19045
+PASS extreme exact undo on Enterprise19045
+PASS all extreme steps logged on Enterprise22631
+PASS extreme exact undo on Enterprise22631
+PASS all extreme steps logged on Enterprise26200
+PASS extreme exact undo on Enterprise26200
+PASS all extreme steps logged on Education19045
+PASS extreme exact undo on Education19045
+PASS all extreme steps logged on Education22631
+PASS extreme exact undo on Education22631
+PASS all extreme steps logged on Education26200
+PASS extreme exact undo on Education26200
+PASS durable backup exists before first registry write
+PASS extreme failure restores only failing option, preserving successes
+PASS selective restore changes only selected settings
+PASS selective restore is itself reversible
+PASS original full backup remains usable after undoing selective restoration
+PASS selective restore protects later external values
+PASS later external value preserved
+PASS restore rejects settings absent from selected backup
+PASS power restoration does not force high-performance compatibility rules
+PASS metadata complete: native-window
+PASS metadata complete: native-effects
+PASS metadata complete: native-menu
+PASS metadata complete: native-capture
+PASS metadata complete: native-gamemode
+PASS metadata complete: native-transparency
+PASS metadata complete: native-power
+PASS metadata complete: native-mouse
+PASS metadata complete: v5-native-edge-background
+PASS metadata complete: v5-native-edge-startupboost
+PASS metadata complete: v5-native-chrome-background
+PASS metadata complete: v5-native-widgets-off
+PASS metadata complete: v5-native-news-off
+PASS metadata complete: v5-native-search-highlights-off
+PASS metadata complete: v5-native-search-taskbar-hide
+PASS metadata complete: v5-native-indexer-backoff
+PASS metadata complete: v5-native-delivery-no-peers
+PASS metadata complete: v5-native-theme-dark
+PASS metadata complete: v5-native-theme-light
+PASS metadata complete: v5-native-file-extensions
+PASS metadata complete: v5-native-explorer-compact
+PASS metadata complete: v5-native-third-party-suggestions-off
+PASS metadata complete: v5-native-spotlight-off
+PASS metadata complete: v5-native-firefox-telemetry
+PASS metadata complete: v5-native-office-telemetry
+PASS metadata complete: v5-native-repair-run
+PASS metadata complete: v5-native-repair-controlpanel
+PASS metadata complete: v5-native-repair-folderoptions
+PASS metadata complete: v5-native-repair-contextmenu
+PASS metadata complete: v5-native-repair-taskmgr
+PASS metadata complete: v5-native-repair-regedit
+PASS metadata complete: v5-native-repair-cmd
+PASS metadata complete: v5-native-keyrepeat
+PASS metadata complete: v5-native-filter
+PASS metadata complete: v5-native-sticky
+PASS metadata complete: opt-enableperiodicregistrybackup
+PASS metadata complete: opt-disablenetworkthrottling
+PASS metadata complete: opt-disablemediaplayersharing
+PASS metadata complete: opt-disableprintservice
+PASS metadata complete: opt-disablesuperfetch
+PASS metadata complete: opt-disablecompatibilityassistant
+PASS metadata complete: opt-disablesearch
+PASS metadata complete: opt-disableerrorreporting
+PASS metadata complete: opt-disablefaxservice
+PASS metadata complete: opt-disableinsiderservice
+PASS metadata complete: opt-disablesensorservices
+PASS metadata complete: opt-disablexboxlive
+PASS metadata complete: opt-disablehomegroup
+PASS metadata complete: opt-disablentfstimestamp
+PASS metadata complete: opt-enablelegacyvolumeslider
+PASS metadata complete: opt-disablecortana
+PASS metadata complete: opt-disableautomaticupdates
+PASS metadata complete: opt-disablestoreupdates
+PASS metadata complete: opt-disableonedrive
+PASS metadata complete: opt-hidetaskbarsearch
+PASS metadata complete: opt-hidetaskbarweather
+PASS metadata complete: opt-disablequickaccesshistory
+PASS metadata complete: opt-disablestartmenuads
+PASS metadata complete: opt-disablemypeople
+PASS metadata complete: opt-excludedrivers
+PASS metadata complete: opt-disablewindowsink
+PASS metadata complete: opt-disablespellingandtypingfeatures
+PASS metadata complete: opt-disablesmartscreen
+PASS metadata complete: opt-disablecloudclipboard
+PASS metadata complete: opt-enablelongpaths
+PASS metadata complete: opt-disablevirtualizationbasedsecurity
+PASS metadata complete: opt-aligntaskbartoleft
+PASS metadata complete: opt-disablesnapassist
+PASS metadata complete: opt-disablechat
+PASS metadata complete: opt-disableshowmoreoptions
+PASS metadata complete: opt-disabletpmcheck
+PASS metadata complete: opt-disablestickers
+PASS metadata complete: opt-disableedgediscoverbar
+PASS metadata complete: opt-disableedgetelemetry
+PASS metadata complete: opt-disablecopilotai
+PASS metadata complete: opt-disablevisualstudiotelemetry
+PASS metadata complete: opt-disablenvidiatelemetry
+PASS metadata complete: opt-disablechrometelemetry
+PASS metadata complete: opt-disablefirefoxtelemetry
+PASS metadata complete: opt-enableutctime
+PASS metadata complete: opt-disablemodernstandby
+PASS metadata complete: opt-showalltrayicons
+PASS metadata complete: opt-removecasttodevice
+PASS metadata complete: opt-enableloginverbose
+PASS metadata complete: opt-disablesmb1
+PASS metadata complete: opt-disablesmb2
+PASS metadata complete: opt-userhvci
+PASS metadata complete: opt-usersearchsuggestions
+PASS metadata complete: opt-splitappendcompletion
+PASS metadata complete: opt-splitautosuggest
+PASS metadata complete: opt-splitdisallowshaking
+PASS metadata complete: opt-splithidden
+PASS metadata complete: opt-splitdisabledbygrouppolicy
+PASS metadata complete: opt-splituploaduseractivities
+PASS metadata complete: opt-splitenableactivityfeed
+PASS metadata complete: opt-splitletappsactivatewithvoice
+PASS metadata complete: opt-splitpreventhandwritingdatasharing
+PASS metadata complete: opt-splitallowlinguisticdatacollection
+PASS metadata complete: opt-splitallowinputpersonalization
+PASS metadata complete: opt-splitdonotshowfeedbacknotifications
+PASS metadata complete: opt-splitenablemmx
+PASS metadata complete: opt-splitremotestartupdisabled
+PASS metadata complete: opt-splitallowprojectiontopc
+PASS metadata complete: pack-b6ffac10f7f4
+PASS metadata complete: pack-42de4cc8102e
+PASS metadata complete: pack-fe5aa1f631d0
+PASS metadata complete: pack-ecf7f01e174b
+PASS metadata complete: pack-3c2c1523c0fa
+PASS metadata complete: pack-f06301afb713
+PASS metadata complete: pack-a137e56bbd0e
+PASS metadata complete: pack-ad17e5deb1d8
+PASS metadata complete: pack-b8cef6963679
+PASS metadata complete: pack-0b9181ab23ef
+PASS metadata complete: pack-1b4dfbdca78f
+PASS metadata complete: pack-c8023d85a069
+PASS metadata complete: pack-b77305149029
+PASS metadata complete: pack-e8ea680d9741
+PASS metadata complete: pack-d1b3e7ae9f70
+PASS metadata complete: pack-6dc6c301e7b8
+PASS metadata complete: pack-3d76b7e8529c
+PASS metadata complete: pack-3b6ba7cc6df5
+PASS metadata complete: pack-b735bf30fb1a
+PASS metadata complete: pack-8098f03b75de
+PASS metadata complete: pack-8f317bf49ced
+PASS metadata complete: extra-memory-compression
+PASS metadata complete: native-dragoutline
+PASS metadata complete: native-cursorshadow
+PASS every nonselected catalog entry has an explicit skipped reason
+PASS extreme persists ignored entries alongside applied result
+PASS loaded latency comparison derives actual difference
+PASS loaded latency comparison rejects changed adapter
+PASS bufferbloat instructions disclose manually generated load
+PASS route rejects URL before probing
+PASS cancelled route does not send packets
+PASS minimum instantaneous FPS is inverse worst frametime
+PASS 125 native IDs retained plus two documented API preferences
+PASS policy manual and never automatic: v5-native-edge-background
+PASS policy manual and never automatic: v5-native-edge-startupboost
+PASS policy manual and never automatic: v5-native-chrome-background
+PASS policy manual and never automatic: v5-native-widgets-off
+PASS policy manual and never automatic: v5-native-news-off
+PASS policy manual and never automatic: v5-native-search-highlights-off
+PASS policy manual and never automatic: v5-native-search-taskbar-hide
+PASS policy manual and never automatic: v5-native-indexer-backoff
+PASS policy manual and never automatic: v5-native-delivery-no-peers
+PASS policy manual and never automatic: v5-native-third-party-suggestions-off
+PASS policy manual and never automatic: v5-native-spotlight-off
+PASS policy manual and never automatic: v5-native-firefox-telemetry
+PASS policy manual and never automatic: v5-native-office-telemetry
+PASS policy manual and never automatic: v5-native-repair-run
+PASS policy manual and never automatic: v5-native-repair-controlpanel
+PASS policy manual and never automatic: v5-native-repair-folderoptions
+PASS policy manual and never automatic: v5-native-repair-contextmenu
+PASS policy manual and never automatic: v5-native-repair-taskmgr
+PASS policy manual and never automatic: v5-native-repair-regedit
+PASS policy manual and never automatic: v5-native-repair-cmd
+PASS policy manual and never automatic: opt-disablenetworkthrottling
+PASS policy manual and never automatic: opt-disablehomegroup
+PASS policy manual and never automatic: opt-disablecortana
+PASS policy manual and never automatic: opt-disableautomaticupdates
+PASS policy manual and never automatic: opt-disablestoreupdates
+PASS policy manual and never automatic: opt-disableonedrive
+PASS policy manual and never automatic: opt-disablestartmenuads
+PASS policy manual and never automatic: opt-excludedrivers
+PASS policy manual and never automatic: opt-disablewindowsink
+PASS policy manual and never automatic: opt-disablesmartscreen
+PASS policy manual and never automatic: opt-disablecloudclipboard
+PASS policy manual and never automatic: opt-disablechat
+PASS policy manual and never automatic: opt-disableedgediscoverbar
+PASS policy manual and never automatic: opt-disableedgetelemetry
+PASS policy manual and never automatic: opt-disablecopilotai
+PASS policy manual and never automatic: opt-disablevisualstudiotelemetry
+PASS policy manual and never automatic: opt-disablechrometelemetry
+PASS policy manual and never automatic: opt-disablefirefoxtelemetry
+PASS policy manual and never automatic: opt-enableloginverbose
+PASS policy manual and never automatic: opt-usersearchsuggestions
+PASS policy manual and never automatic: opt-splitdisabledbygrouppolicy
+PASS policy manual and never automatic: opt-splituploaduseractivities
+PASS policy manual and never automatic: opt-splitenableactivityfeed
+PASS policy manual and never automatic: opt-splitletappsactivatewithvoice
+PASS policy manual and never automatic: opt-splitpreventhandwritingdatasharing
+PASS policy manual and never automatic: opt-splitallowlinguisticdatacollection
+PASS policy manual and never automatic: opt-splitallowinputpersonalization
+PASS policy manual and never automatic: opt-splitdonotshowfeedbacknotifications
+PASS policy manual and never automatic: opt-splitenablemmx
+PASS policy manual and never automatic: opt-splitallowprojectiontopc
+PASS policy manual and never automatic: pack-b77305149029
+PASS policy manual and never automatic: pack-8f317bf49ced
+PASS extreme allowlist has no protected policy or machine registry/service writes
+PASS extreme rejects legacy optional service
+PASS preflight skips denied item and applies compatible items
+PASS denied item never starts writes and has a skipped history entry
+PASS one undo restores whole successful isolated batch
+PASS custom transaction skips denied item and applies compatible items
+PASS custom transaction records denied item and continues
+PASS custom transaction undo restores successful changes
+PASS silent refusal rolls back only failing child and continues
+PASS original transaction audit retained for each child
+PASS one durable history record with unique step IDs
+PASS exact undo after partial success
+PASS failed child rollback remains recoverable without reverting successes
+PASS retry recovers failed child and successful siblings
+PASS parent contains child backup before every registry write
+PASS interrupted parent recovers using durable flattened values
+PASS isolated undo protects later user changes
+PASS undo preflight checks whole parent before any restore
+PASS native-dragoutline backs up and verifies documented API
+PASS native-dragoutline exact API undo
+PASS native-cursorshadow backs up and verifies documented API
+PASS native-cursorshadow exact API undo
+PASS idle TCP sample makes no latency claim
+PASS TCP counter reset is not a negative result
+PASS TCP sample reports actual delta
+PASS diagnostics reject command injection
+PASS legacy Liquid extreme route uses same isolated runner
+PASS legacy schema without new fields remains exactly reversible
+PASS denied-only apply never creates a reversible change
+PASS denied evidence retains original request and reason, never claims already configured
+PASS undo after a denied no-op restores the previous actual change
+PASS old empty applied records cannot hide real backups
+PASS partial permission applies remaining values consistently, multiple=False
+PASS partial apply accurately reports denied target, multiple=False
+PASS partial permission undo restores all changed values, multiple=False
+PASS partial permission applies remaining values consistently, multiple=True
+PASS partial apply accurately reports denied target, multiple=True
+PASS partial permission undo restores all changed values, multiple=True
+PASS fully denied multi-selection remains a no-op
+PASS fully denied batch preserves previous undo target
+PASS stability diagnostic requests newest events first
+PASS stability query rejects arbitrary logs
+PASS removal cancellation request cannot escape its directory
+PASS removal route validates selected apps before launching
+PASS removal worker accepts exact catalog IDs and a unique cancellation token
+PASS explicit high-performance power selection requests required elevation
+PASS ordinary extreme user settings do not request elevation
+PASS v6 official diagnostic keeps correct privilege and timeout code
+PASS v6 friendly structured error: ACCESS_DENIED
+PASS v6 friendly structured error: CANCELLED
+PASS v6 friendly structured error: FILE_LOCKED
+PASS v6 friendly structured error: SERVICE_MISSING
+PASS v6 friendly structured error: PATH_MISSING
+PASS v6 friendly structured error: PATH_MISSING
+PASS v6 friendly structured error: TIMEOUT
+PASS v6 friendly structured error: COMMAND_MISSING
+PASS v6 friendly structured error: UNSUPPORTED
+PASS v6 friendly structured error: NETWORK_UNAVAILABLE
+PASS v6 friendly structured error: INVALID_INPUT
+PASS v6 compatibility matrix build 10240
+PASS v6 compatibility matrix build 19045
+PASS v6 compatibility matrix build 22000
+PASS v6 compatibility matrix build 22631
+PASS v6 compatibility matrix build 26100
+PASS v6 compatibility matrix build 26200
+PASS v6 older Windows and 32-bit rejected
+SKIP v6 real read-only memory quantities consistent -- GetPerformanceInfo (psapi.dll) so existe no Windows
+PASS v6 no health score without measurements
+PASS v6 documented health formula and scope
+PASS v6 real item progress
+PASS v6 real item progress
+PASS v6 simulation reads but never applies or creates undo
+PASS v6 JSON and TXT structured reports
+PASS v6 cancelled simulation executes zero items
+PASS v6 legacy backup gains per-action structured results
+PASS v6 structured record preserves exact rollback
+PASS v6 cancel mid-batch preserves finished item and skips next
+PASS v6 rollback after mid-batch cancellation
+PASS v6 cancellation before first mutation
+PASS v6 simulation request needs no elevation
+PASS v6 request replay blocked
+PASS v6 other-account request rejected
+PASS v6 expired request rejected
+PASS v6 profile and preferences round trip
+PASS v6 invalid automatic memory interval rejected
+SKIP v6 optimizer self-process protected; duplicate PID suppressed -- SetProcessWorkingSetSizeEx e a identidade por PID+inicio dependem do Windows
+PASS v6 preview excludes documents and recent files
+SKIP v6 locked-file detection, permanent deletion and repeat-cleanup reporting -- a exclusao usa FILE_DISPOSITION_INFO do Win32 e nao tem caminho equivalente aqui
+PASS v6 personal files, wrong extensions and recent files preserved
+PASS v6 changed file refused after preview
+PASS v6 stale cleanup preview rejected
+PASS v6 traversal and root deletion refused
+PASS v6 forged path outside category cannot be deleted
+PASS v6 all official diagnostics have timeout and technical source
+PASS v6 command injection outside allowlist rejected
+SKIP v6 managed job object, owned child output, timeout, cancellation and handle budget -- exige job object do Windows, ProcessFixture.exe, cmd.exe e ping.exe
+PASS v6 execution log rotates at 2 MiB
+TOTAL: 1019 checks passed, 6 skipped (logic only; not an FPS or live Windows mutation test)
+  skipped: locked history file causes atomic save to fail (este sistema nao tem trava obrigatoria de arquivo; a garantia vale no Windows e nao pode ser conferida aqui)
+  skipped: per-game profile persistence, transaction, undo and validation (este sistema nao tem caminhos com letra de unidade; a fixture do jogo so existe no Windows)
+  skipped: v6 real read-only memory quantities consistent (GetPerformanceInfo (psapi.dll) so existe no Windows)
+  skipped: v6 optimizer self-process protected; duplicate PID suppressed (SetProcessWorkingSetSizeEx e a identidade por PID+inicio dependem do Windows)
+  skipped: v6 locked-file detection, permanent deletion and repeat-cleanup reporting (a exclusao usa FILE_DISPOSITION_INFO do Win32 e nao tem caminho equivalente aqui)
+  skipped: v6 managed job object, owned child output, timeout, cancellation and handle budget (exige job object do Windows, ProcessFixture.exe, cmd.exe e ping.exe)
