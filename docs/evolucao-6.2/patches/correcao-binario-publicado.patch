@@ -1,19 +1,21 @@
 --- a/LukeOptimizer-6.1.2/ABRIR.cmd	2026-09-15 00:32:52.000000000 +0000
-+++ b/LukeOptimizer-6.1.2/ABRIR.cmd	2026-09-18 23:37:01.717265184 +0000
-@@ -9,6 +9,25 @@
++++ b/LukeOptimizer-6.1.2/ABRIR.cmd	2026-09-19 03:46:09.728820878 +0000
+@@ -9,6 +9,27 @@
  set "EXE=native\LukeOptimizer-6.1.2.exe"
  if not exist "%EXE%" goto missing
  
-+rem O executavel do pacote so muda quando COMPILAR.cmd e executado. Se o codigo-fonte
-+rem for mais recente que o binario, abrir aqui mostraria a versao antiga sem avisar --
-+rem que foi exatamente o que ja aconteceu. Compara as datas e avisa antes de abrir.
++rem O executavel do pacote so muda quando COMPILAR.cmd e executado. Para saber se o
++rem binario e o que passou nos testes, compara o hash dele com o carimbo que a
++rem compilacao grava. Comparar DATAS nao funciona: o ZIP guarda horario local sem
++rem fuso, entao extrair num fuso diferente deixa os fontes com data no futuro e o
++rem executavel recem-compilado parece antigo -- falso alarme a cada abertura.
 +set "STALE="
-+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='SilentlyContinue'; $e=Get-Item -LiteralPath 'native\LukeOptimizer-6.1.2.exe'; if (-not $e) { exit 0 }; $m=[datetime]::MinValue; foreach ($f in Get-ChildItem -Path 'codigo-fonte\LukeOptimizer' -Recurse -File) { if (('.cs','.json','.rsp') -contains $f.Extension -and $f.LastWriteTimeUtc -gt $m) { $m=$f.LastWriteTimeUtc } }; if ($m -gt $e.LastWriteTimeUtc) { exit 3 }; exit 0" >nul 2>&1
++powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='SilentlyContinue'; $exe='native\LukeOptimizer-6.1.2.exe'; $stamp=$exe + '.sha256'; if (-not (Test-Path -LiteralPath $exe)) { exit 0 }; if (-not (Test-Path -LiteralPath $stamp)) { exit 3 }; $expected=(Get-Content -LiteralPath $stamp -Raw).Trim(); $actual=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash; if ($expected -ne $actual) { exit 3 }; exit 0" >nul 2>&1
 +if errorlevel 3 set "STALE=1"
 +if defined STALE (
 +  echo.
-+  echo AVISO: o codigo-fonte deste pacote e mais recente que o executavel.
-+  echo Abrir agora mostraria a versao ANTIGA, sem as correcoes.
++  echo AVISO: este executavel nao e o que a ultima compilacao validada publicou.
++  echo Provavelmente o pacote ainda nao foi compilado neste PC.
 +  echo.
 +  echo Feche esta janela e execute primeiro:
 +  echo     codigo-fonte\LukeOptimizer\COMPILAR.cmd
@@ -27,17 +29,17 @@
  "%EXE%"
  set "RC=%ERRORLEVEL%"
 --- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-14 12:17:48.000000000 +0000
-+++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-18 23:35:43.578298419 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-19 03:46:09.728328038 +0000
 @@ -15,7 +15,7 @@
      Copy-Item -LiteralPath 'source\app.config' -Destination 'UiSmoke.exe.config' -Force
      Build @('/target:winexe','/win32manifest:source\app.manifest','/out:LukeOptimizer-Engine.new.exe','@compilacao.rsp') 'build.log'
      Build @('/target:exe','/out:ProcessFixture.exe','tests\ProcessFixture.cs') 'fixture-build.log'
 -    Build @('/define:TESTS','/target:exe','/main:EngineTests','/out:LukeOptimizer-Testes.exe','@compilacao.rsp','tests\EngineTests.cs','tests\V3Tests.cs','tests\V4Tests.cs','tests\V5Tests.cs','tests\V52Tests.cs','tests\V53Tests.cs','tests\V54Tests.cs','tests\RegressionTests.cs','tests\V6Tests.cs') 'tests-build.log'
-+    Build @('/define:TESTS','/target:exe','/main:EngineTests','/out:LukeOptimizer-Testes.exe','@compilacao.rsp','tests\EngineTests.cs','tests\V3Tests.cs','tests\V4Tests.cs','tests\V5Tests.cs','tests\V52Tests.cs','tests\V53Tests.cs','tests\V54Tests.cs','tests\RegressionTests.cs','tests\V6Tests.cs','tests\FoundationTests.cs') 'tests-build.log'
++    Build @('/define:TESTS','/target:exe','/main:EngineTests','/out:LukeOptimizer-Testes.exe','@compilacao.rsp','tests\EngineTests.cs','tests\V3Tests.cs','tests\V4Tests.cs','tests\V5Tests.cs','tests\V52Tests.cs','tests\V53Tests.cs','tests\V54Tests.cs','tests\RegressionTests.cs','tests\V6Tests.cs','tests\FoundationTests.cs','tests\NamingTests.cs') 'tests-build.log'
      & .\LukeOptimizer-Testes.exe *> (Join-Path $taskResults 'tests.log')
      if ($LASTEXITCODE -ne 0) { throw 'Testes de logica falharam. Executavel principal preservado.' }
      Build @('/define:TESTS','/target:exe','/main:UiSmoke','/out:UiSmoke.exe','@compilacao.rsp','tests\UiSmoke.cs','tests\UnifiedUiTests.cs','tests\FunctionalUiTests.cs','tests\ProductUiTests.cs') 'ui-build.log'
-@@ -28,6 +28,18 @@
+@@ -28,6 +28,24 @@
          Copy-Item -LiteralPath '.\LukeOptimizer-Engine.new.exe' -Destination '.\LukeOptimizer-Engine.exe' -Force
          Copy-Item -LiteralPath '.\LukeOptimizer-Engine.new.exe' -Destination (Join-Path $taskRoot 'native\LukeOptimizer-Engine.exe') -Force
          Copy-Item -LiteralPath '.\LukeOptimizer-Engine.new.exe' -Destination (Join-Path $taskRoot 'native\LukeOptimizer-v5.exe') -Force
@@ -52,6 +54,12 @@
 +        $taskBuilt = (Get-FileHash -LiteralPath '.\LukeOptimizer-Engine.new.exe' -Algorithm SHA256).Hash
 +        $taskShipped = (Get-FileHash -LiteralPath $taskLauncher -Algorithm SHA256).Hash
 +        if ($taskBuilt -ne $taskShipped) { throw 'O executavel aberto por ABRIR.cmd nao corresponde ao que foi compilado.' }
++        # Carimbo do que ESTA compilacao publicou. ABRIR.cmd compara o hash do executavel
++        # com este arquivo para saber se o binario e o que passou nos testes.
++        # Comparar DATAS nao servia: o ZIP guarda horario local sem fuso (formato DOS),
++        # entao ao extrair num fuso diferente os fontes ganham data no futuro e o
++        # executavel recem-compilado parece velho. Hash nao depende de relogio.
++        [IO.File]::WriteAllText(($taskLauncher + '.sha256'), $taskShipped.ToLowerInvariant(), (New-Object Text.UTF8Encoding($false)))
 +        Write-Output ('Publicado em native\LukeOptimizer-6.1.2.exe - SHA256 ' + $taskShipped.ToLowerInvariant())
      }
      & (Join-Path $taskRoot 'ATUALIZAR-HASHES.ps1')

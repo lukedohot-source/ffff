@@ -218,9 +218,19 @@ verificações puladas com o motivo de cada uma.
 
 **Clique duas vezes.** Sem administrador.
 
-Se o código-fonte for mais recente que o executável, ele agora **avisa antes de
-abrir** — exatamente para não repetir o "compilei e nada mudou". Se aparecer
-esse aviso, feche a janela e volte ao passo 3.
+Ele confere se o executável é **o mesmo que a última compilação validada
+publicou**, comparando o SHA-256 com o carimbo que o `COMPILAR.cmd` grava em
+`native\LukeOptimizer-6.1.2.exe.sha256`. Se não bater — tipicamente porque o
+pacote ainda não foi compilado neste PC — ele avisa antes de abrir.
+
+> **Por que hash e não data.** A primeira versão comparava a data do executável
+> com a dos arquivos `.cs`. Não funciona: o ZIP guarda horários em formato DOS,
+> **local e sem fuso**. Arquivos gravados em UTC, ao serem extraídos num PC em
+> UTC-3, ganham data até 3 horas no futuro — e o executável recém-compilado
+> passa a parecer mais velho que o próprio código que o gerou. Resultado: falso
+> alarme em toda abertura. Hash não depende de relógio nem de fuso.
+
+Se aparecer o aviso, feche a janela e volte ao passo 3.
 
 ### O que fazer na primeira abertura
 
