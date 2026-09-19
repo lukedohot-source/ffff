@@ -81,6 +81,36 @@ Isso **não é erro do pacote**. O próprio PowerShell sugere a correção no fi
 mensagem. A mesma regra vale para `.\ABRIR.cmd`, `.\DESBLOQUEAR.cmd` e
 `.\TESTAR.cmd`.
 
+### Rode um comando de cada vez — não cole um bloco inteiro
+
+`DESBLOQUEAR.cmd` e `ABRIR.cmd` terminam com **"Pressione qualquer tecla para
+continuar"**. Esse `pause` **consome a primeira tecla** do que estiver esperando
+no buffer — inclusive de um texto colado.
+
+Colar isto de uma vez:
+
+```powershell
+.\DESBLOQUEAR.cmd
+cd codigo-fonte\LukeOptimizer
+```
+
+faz o `pause` engolir o `c` do `cd`, e o PowerShell recebe `d
+codigo-fonte\LukeOptimizer` — que não existe. A partir daí as linhas seguintes
+se embaralham e os erros parecem ser do pacote, quando são do buffer de teclado.
+
+**Cole e execute uma linha por vez.** `COMPILAR.cmd` e `TESTAR.cmd` não pausam,
+então esses podem ser encadeados sem risco.
+
+### Atenção à pasta: `COMPILAR.cmd` não fica na raiz
+
+| Arquivo | Onde fica |
+|---|---|
+| `DESBLOQUEAR.cmd`, `ABRIR.cmd`, `DIAGNOSTICO.cmd` | **raiz** do pacote |
+| `COMPILAR.cmd`, `TESTAR.cmd` | `codigo-fonte\LukeOptimizer\` |
+
+Rodar `.\COMPILAR.cmd` na raiz dá "não é reconhecido" — é só entrar na pasta
+antes com `cd codigo-fonte\LukeOptimizer`.
+
 Ao final você deve ver a pasta `LukeOptimizer-6.1.2` com este conteúdo:
 
 ```
