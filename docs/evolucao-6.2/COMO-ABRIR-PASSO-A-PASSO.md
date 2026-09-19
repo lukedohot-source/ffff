@@ -58,6 +58,29 @@ C:\LukeOptimizer
 rede, OneDrive sincronizado, ou direto de dentro do ZIP (clicar duas vezes no
 ZIP e rodar de lá **não funciona** — o Windows usa uma pasta temporária).
 
+### Duplo clique ou terminal — os dois funcionam, mas o terminal exige `.\`
+
+Todos os passos abaixo dizem "clique duas vezes". Se você preferir o terminal,
+atenção a uma diferença:
+
+| Onde | Como executar |
+|---|---|
+| Explorador de Arquivos | duplo clique no `.cmd` |
+| **PowerShell** | `.\COMPILAR.cmd` — **o `.\` é obrigatório** |
+| Prompt de Comando (cmd) | `COMPILAR.cmd` — sem prefixo |
+
+Por segurança, o PowerShell **não executa nada da pasta atual** sem caminho
+explícito. Sem o `.\` ele responde:
+
+```
+O termo 'compilar.cmd' não é reconhecido como nome de cmdlet, função,
+arquivo de script ou programa operável.
+```
+
+Isso **não é erro do pacote**. O próprio PowerShell sugere a correção no fim da
+mensagem. A mesma regra vale para `.\ABRIR.cmd`, `.\DESBLOQUEAR.cmd` e
+`.\TESTAR.cmd`.
+
 Ao final você deve ver a pasta `LukeOptimizer-6.1.2` com este conteúdo:
 
 ```

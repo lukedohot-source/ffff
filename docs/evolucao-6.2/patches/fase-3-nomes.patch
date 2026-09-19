@@ -1,0 +1,609 @@
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-18 11:07:06.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-19 03:24:34.020070889 +0000
+@@ -10,14 +10,40 @@
+ using System.Windows.Forms;
+ 
+ static class Theme {
+- internal static Color Bg=Color.FromArgb(15,16,18),Side=Color.FromArgb(20,21,24),Card=Color.FromArgb(27,29,33),Line=Color.FromArgb(65,68,74),Text=Color.FromArgb(245,246,248),Muted=Color.FromArgb(180,185,194),Accent=Color.FromArgb(255,208,48),Amber=Color.FromArgb(244,191,112),Red=Color.FromArgb(248,139,143),Blue=Color.FromArgb(139,190,241);
++ // Paleta única do aplicativo. Selection/Hover/Alt/HeroFill/HeroText/CheckFill existiam
++ // como Color.FromArgb fixos espalhados por cinco arquivos, o que tornava impossível
++ // trocar de cor sem caçar cada um. Agora todos saem daqui.
++ // Line desenha bordas; Disabled preenche botao desligado. Eram a mesma cor, e clarear
++ // a borda escurecia o texto do botao desligado — agora cada papel tem a sua.
++ internal static Color Bg,Side,Card,Line,Disabled,Text,Muted,Accent,Amber,Red,Contrast,Selection,Hover,Alt,HeroFill,HeroText,CheckFill;
++ internal static bool BlueSkin;
++ static Theme(){Apply(true);}
++ // Apply(false) devolve a pele âmbar original; nada mais no código precisa mudar.
++ internal static void Apply(bool blue){
++  BlueSkin=blue;
++  Text=Color.FromArgb(238,243,250);Red=Color.FromArgb(248,139,143);Amber=Color.FromArgb(244,191,112);
++  if(blue){
++   Bg=Color.FromArgb(12,16,24);Side=Color.FromArgb(16,21,32);Card=Color.FromArgb(22,29,43);
++   Line=Color.FromArgb(70,90,120);Disabled=Color.FromArgb(38,48,66);Muted=Color.FromArgb(165,178,197);
++   Accent=Color.FromArgb(88,166,255);            // 6,6:1 sobre Card e 7,5:1 contra Bg em botão primário
++   Contrast=Color.FromArgb(236,150,205);         // serie secundaria: 108 graus de matiz do acento e longe do ambar de aviso
++   Selection=Color.FromArgb(28,52,84);Hover=Color.FromArgb(30,42,62);Alt=Color.FromArgb(18,26,40);
++   HeroFill=Color.FromArgb(24,34,52);HeroText=Color.FromArgb(186,206,235);CheckFill=Color.FromArgb(8,12,20);
++  }else{
++   Bg=Color.FromArgb(15,16,18);Side=Color.FromArgb(20,21,24);Card=Color.FromArgb(27,29,33);
++   Line=Color.FromArgb(65,68,74);Disabled=Color.FromArgb(65,68,74);Muted=Color.FromArgb(180,185,194);
++   Accent=Color.FromArgb(255,208,48);Contrast=Color.FromArgb(139,190,241);
++   Selection=Color.FromArgb(62,55,27);Hover=Color.FromArgb(39,49,62);Alt=Color.FromArgb(25,33,44);
++   HeroFill=Color.FromArgb(34,35,39);HeroText=Color.FromArgb(191,214,203);CheckFill=Color.FromArgb(3,2,5);
++  }
++ }
+  internal static Font Font(float size,bool bold=false){return new Font("Segoe UI",size,bold?FontStyle.Bold:FontStyle.Regular);}
+  internal static Label Label(string text,float size,Color color,bool bold=false){var label=size>=20?(Label)new HeadingLabel():new Label();label.Text=text;label.Font=Font(size,bold);label.ForeColor=color;label.AutoSize=false;label.Dock=DockStyle.Fill;label.TextAlign=ContentAlignment.MiddleLeft;label.AutoEllipsis=size<20;label.Margin=Padding.Empty;return label;}
+  internal static ActionButton Button(string text,bool primary=false){return new ActionButton {Text=text,Primary=primary,Height=40,Width=175,Font=Font(10,true),Margin=new Padding(0,0,10,0),Cursor=Cursors.Hand,AccessibleName=text};}
+  internal static TextBox ReadBox(){return new TextBox {Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Dock=DockStyle.Fill,BackColor=Card,ForeColor=Text,BorderStyle=BorderStyle.None,Font=Font(10),Margin=Padding.Empty};}
+  internal static Color StatusColor(string s){if(s=="Conferido"||s=="Valores conferidos"||s=="Plano ativo"||s=="aplicado"||s=="desfeito"||s=="Revisado")return Accent;if(s.Contains("erro")||s.Contains("Erro")||s.Contains("falha")||s=="Alto risco")return Red;if(s=="Parcial"||s=="Condicional"||s=="Nome incorreto"||s=="Não comprovado"||s=="Substituído")return Amber;return Muted;}
+  internal static void DrawCheck(Graphics g,Rectangle box,bool selected,bool enabled){
+-  using(var fill=new SolidBrush(Color.FromArgb(3,2,5)))g.FillRectangle(fill,box);
++  using(var fill=new SolidBrush(CheckFill))g.FillRectangle(fill,box);
+   using(var border=new Pen(enabled?(selected?Accent:Muted):Line,selected?2:1))g.DrawRectangle(border,box);
+   if(selected)using(var tick=new Pen(enabled?Accent:Muted,Math.Max(2,box.Width/7f))){tick.StartCap=tick.EndCap=LineCap.Round;g.DrawLines(tick,new[]{new Point(box.X+box.Width/5,box.Y+box.Height/2),new Point(box.X+box.Width*2/5,box.Y+box.Height*3/4),new Point(box.X+box.Width*4/5,box.Y+box.Height/4)});}
+  }
+@@ -47,20 +73,20 @@
+  public ActionButton(){FlatStyle=FlatStyle.Flat;FlatAppearance.BorderSize=0;SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer,true);BackColor=Theme.Card;ForeColor=Theme.Text;}
+  protected override void OnMouseEnter(EventArgs e){hover=true;Invalidate();base.OnMouseEnter(e);}
+  protected override void OnMouseLeave(EventArgs e){hover=false;Invalidate();base.OnMouseLeave(e);}
+- protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Parent==null?Theme.Bg:Parent.BackColor);Color c=!Enabled?Theme.Line:Primary?Theme.Accent:Active?Color.FromArgb(62,55,27):hover?Color.FromArgb(39,49,62):Theme.Card;using(var path=Theme.Round(new Rectangle(0,0,Math.Max(1,Width-1),Math.Max(1,Height-1)),8))using(var b=new SolidBrush(c))g.FillPath(b,path);TextRenderer.DrawText(g,Text,Font,ClientRectangle,!Enabled?Theme.Muted:Primary?Theme.Bg:Active?Theme.Accent:Theme.Text,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);if(Focused)ControlPaint.DrawFocusRectangle(g,new Rectangle(4,4,Width-8,Height-8),Theme.Text,c);}
++ protected override void OnPaint(PaintEventArgs e){var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;g.Clear(Parent==null?Theme.Bg:Parent.BackColor);Color c=!Enabled?Theme.Disabled:Primary?Theme.Accent:Active?Theme.Selection:hover?Theme.Hover:Theme.Card;using(var path=Theme.Round(new Rectangle(0,0,Math.Max(1,Width-1),Math.Max(1,Height-1)),8))using(var b=new SolidBrush(c))g.FillPath(b,path);TextRenderer.DrawText(g,Text,Font,ClientRectangle,!Enabled?Theme.Muted:Primary?Theme.Bg:Active?Theme.Accent:Theme.Text,TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);if(Focused)ControlPaint.DrawFocusRectangle(g,new Rectangle(4,4,Width-8,Height-8),Theme.Text,c);}
+ }
+ class CatalogList : ListView {
+  ImageList rowHeight;
+  public CatalogList(){DoubleBuffered=true;View=View.Details;FullRowSelect=true;MultiSelect=false;HideSelection=false;BackColor=Theme.Card;ForeColor=Theme.Text;BorderStyle=BorderStyle.None;Font=Theme.Font(10);Dock=DockStyle.Fill;OwnerDraw=true;rowHeight=new ImageList {ImageSize=new Size(1,36)};SmallImageList=rowHeight;}
+  protected override void OnDrawColumnHeader(DrawListViewColumnHeaderEventArgs e){using(var b=new SolidBrush(Theme.Side))e.Graphics.FillRectangle(b,e.Bounds);TextRenderer.DrawText(e.Graphics,e.Header.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-16,e.Bounds.Height),Theme.Muted,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);}
+  protected override void OnDrawItem(DrawListViewItemEventArgs e){}
+- protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){bool selected=e.Item.Selected;using(var b=new SolidBrush(selected?Color.FromArgb(62,55,27):e.ItemIndex%2==0?Theme.Card:Color.FromArgb(25,33,44)))e.Graphics.FillRectangle(b,e.Bounds);Color color=e.ColumnIndex>=2?Theme.StatusColor(e.SubItem.Text):Theme.Text;TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-18,e.Bounds.Height),color,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.SingleLine);}
++ protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){bool selected=e.Item.Selected;using(var b=new SolidBrush(selected?Theme.Selection:e.ItemIndex%2==0?Theme.Card:Theme.Alt))e.Graphics.FillRectangle(b,e.Bounds);Color color=e.ColumnIndex>=2?Theme.StatusColor(e.SubItem.Text):Theme.Text;TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+12,e.Bounds.Y,e.Bounds.Width-18,e.Bounds.Height),color,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.SingleLine);}
+  protected override void Dispose(bool disposing){if(disposing)rowHeight.Dispose();base.Dispose(disposing);}
+ }
+ 
+ class CheckableList : CatalogList {
+  protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e){
+-  using(var brush=new SolidBrush(e.Item.Selected?Color.FromArgb(36,53,74):Theme.Card))e.Graphics.FillRectangle(brush,e.Bounds);
++  using(var brush=new SolidBrush(e.Item.Selected?Theme.Selection:Theme.Card))e.Graphics.FillRectangle(brush,e.Bounds);
+   int inset=12;
+   if(e.ColumnIndex==0&&CheckBoxes){Theme.DrawCheck(e.Graphics,new Rectangle(e.Bounds.X+9,e.Bounds.Y+(e.Bounds.Height-20)/2,20,20),e.Item.Checked,Enabled);inset=38;}
+   TextRenderer.DrawText(e.Graphics,e.SubItem.Text,Font,new Rectangle(e.Bounds.X+inset,e.Bounds.Y,Math.Max(1,e.Bounds.Width-inset-8),e.Bounds.Height),e.Item.ForeColor,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);
+@@ -70,6 +96,12 @@
+  readonly Dictionary<string,Panel> pages=new Dictionary<string,Panel>();readonly Dictionary<string,ActionButton> nav=new Dictionary<string,ActionButton>();
+  readonly Dictionary<string,CheckBox> picks=new Dictionary<string,CheckBox>();readonly Dictionary<string,Label> pickStates=new Dictionary<string,Label>();
+  Dictionary<string,Observed> states=new Dictionary<string,Observed>();HashSet<string> favorites=new HashSet<string>();Machine machine=new Machine();
++ // Leitura estruturada do PC, usada pelo motor de compatibilidade e pela ficha de cada
++ // opção. Fica NULA até a primeira análise de propósito: com perfil nulo o motor responde
++ // "Não detectado", que é a verdade antes de alguém clicar em Analisar este PC. Preenchê-la
++ // com um objeto vazio faria o motor responder o mesmo, mas parecendo que houve leitura.
++ MachineProfile profile;
++ readonly Dictionary<string,string[]> categoryFilters=new Dictionary<string,string[]>(StringComparer.Ordinal);
+  Panel host;Label title,subtitle,footer,profileSummary,profileNote,cpu,gpu,ram,disk,os,verifiedMetric,attentionMetric,externalMetric,heroHint,diagHeader;
+  TextBox search,detail,historyDetail,diagnosticText;ComboBox categories,reviewFilter,stateFilter;CatalogList catalog,history;
+  ActionButton scan,apply,undo,maxApply,favorite,point,export;ProgressBar progress;System.Windows.Forms.Timer workerTimer;
+@@ -100,12 +132,20 @@
+  }
+  Panel Page(string name){var p=new Panel {Dock=DockStyle.Fill,BackColor=Theme.Bg};host.Controls.Add(p);pages[name]=p;return p;}
+  TableLayoutPanel Rows(params float[] heights){var p=new TableLayoutPanel {Dock=DockStyle.Fill,RowCount=heights.Length,ColumnCount=1,Margin=Padding.Empty};foreach(float h in heights)p.RowStyles.Add(h<0?new RowStyle(SizeType.Percent,100):new RowStyle(SizeType.Absolute,h));return p;}
+- void ShowPage(string key){if(key=="Avançado / Alto Impacto"||key=="Energia avançada"||key=="Ajustes manuais")key="Otimizações";if(ready&&!App.IsUiTest()&&(key=="Apps e RAM"||key=="Manutenção"))BeginInvoke((Action)(async()=>await RefreshResources()));foreach(var p in pages)p.Value.Visible=p.Key==key;pages[key].BringToFront();foreach(var n in nav){n.Value.Active=n.Key==key;n.Value.Invalidate();}title.Text=key;subtitle.Text=key=="Otimizações"?"Selecione. Aplique. Acompanhe no histórico.":key=="Ferramentas"?"Todas as funções do Luke Optimizer.":key=="Catálogo"?"Busque um nome e veja o que cada item faz. As opções nativas têm backup.":key=="Otimização máxima"?"Escolha os ajustes. O modo fácil usa esta seleção.":key=="Seus 14 BATs"?"Conteúdo preservado, efeitos explicados e integração revisada.":key=="Apps e RAM"?"Consumo real, seleção explícita e fechamento sem apagar cache útil.":key=="Manutenção"?"Inicialização, serviços, temporários e foco — sempre opcionais.":key=="Diagnóstico"?"Leituras do seu PC e limites do que foi verificado.":key=="Histórico"?"Resultados por etapa e restauração dos valores anteriores.":"Seu PC, com ações claras e resultados verificáveis.";}
++ // "Avançado / Alto Impacto" foi consolidado em "Otimizações" e não existe mais como
++ // página; traduzir esse nome aposentado é legítimo. "Energia avançada" e "Ajustes
++ // manuais" EXISTEM em pages e estavam na mesma lista, então TODA tentativa de abri-las
++ // caía em Otimizações em silêncio: os botões que Ferramentas cria para cada página, os
++ // itens Action="page" de performance-library.json, a navegação do modo embutido e o
++ // mapa do V5Bridge apontavam para telas que nunca apareciam. Duas páginas inteiras eram
++ // código morto visível. A regra passa a ser estrutural em vez de uma lista de nomes:
++ // só cai em Otimizações o que não é página de verdade.
++ void ShowPage(string key){if(!pages.ContainsKey(key))key="Otimizações";if(ready&&!App.IsUiTest()&&(key=="Apps e RAM"||key=="Manutenção"))BeginInvoke((Action)(async()=>await RefreshResources()));foreach(var p in pages)p.Value.Visible=p.Key==key;pages[key].BringToFront();foreach(var n in nav){n.Value.Active=n.Key==key;n.Value.Invalidate();}title.Text=key;subtitle.Text=key=="Otimizações"?"Selecione. Aplique. Acompanhe no histórico.":key=="Ferramentas"?"Todas as funções do Luke Optimizer.":key=="Catálogo"?"Busque um nome e veja o que cada item faz. As opções nativas têm backup.":key=="Otimização máxima"?"Escolha os ajustes. O modo fácil usa esta seleção.":key=="Seus 14 BATs"?"Conteúdo preservado, efeitos explicados e integração revisada.":key=="Apps e RAM"?"Consumo real, seleção explícita e fechamento sem apagar cache útil.":key=="Manutenção"?"Inicialização, serviços, temporários e foco — sempre opcionais.":key=="Diagnóstico"?"Leituras do seu PC e limites do que foi verificado.":key=="Histórico"?"Resultados por etapa e restauração dos valores anteriores.":"Seu PC, com ações claras e resultados verificáveis.";}
+  void BuildDashboard(){
+   var page=Page("Visão geral");var grid=Rows(214,112,-1);page.Controls.Add(grid);
+-  var hero=new Surface {Dock=DockStyle.Fill,Fill=Color.FromArgb(34,35,39),BackColor=Color.FromArgb(34,35,39),Padding=new Padding(25,17,25,17),Margin=new Padding(0,0,0,16)};grid.Controls.Add(hero,0,0);
++  var hero=new Surface {Dock=DockStyle.Fill,Fill=Theme.HeroFill,BackColor=Theme.HeroFill,Padding=new Padding(25,17,25,17),Margin=new Padding(0,0,0,16)};grid.Controls.Add(hero,0,0);
+   var heroGrid=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=2};heroGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,67));heroGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,33));hero.Controls.Add(heroGrid);
+-  var heroText=Rows(25,48,42,-1);heroGrid.Controls.Add(heroText,0,0);heroText.Controls.Add(Theme.Label("PERFIL REVISADO  /  BACKUP AUTOMÁTICO",9,Theme.Accent,true),0,0);heroText.Controls.Add(Theme.Label("Seu PC, no controle.",27,Theme.Text,true),0,1);heroText.Controls.Add(Theme.Label("Aplique os ajustes compatíveis e acompanhe cada resultado.",11,Color.FromArgb(191,214,203)),0,2);
++  var heroText=Rows(25,48,42,-1);heroGrid.Controls.Add(heroText,0,0);heroText.Controls.Add(Theme.Label("PERFIL REVISADO  /  BACKUP AUTOMÁTICO",9,Theme.Accent,true),0,0);heroText.Controls.Add(Theme.Label("Seu PC, no controle.",27,Theme.Text,true),0,1);heroText.Controls.Add(Theme.Label("Aplique os ajustes compatíveis e acompanhe cada resultado.",11,Theme.HeroText),0,2);
+   var launch=Theme.Button("Otimização máxima  →",true);launch.Width=237;launch.Height=43;launch.Click+=(s,e)=>ShowPage("Otimização máxima");heroText.Controls.Add(launch,0,3);
+   var aside=Rows(55,45,-1);aside.Padding=new Padding(26,15,0,5);heroGrid.Controls.Add(aside,1,0);aside.Controls.Add(Theme.Label(Builtins.Create().Count.ToString(),28,Theme.Accent,true),0,0);aside.Controls.Add(Theme.Label("ajustes no perfil\r\n6 pré-selecionados",10,Theme.Text),0,1);heroHint=Theme.Label("A compatibilidade será\r\nconferida neste PC.",9,Theme.Muted);aside.Controls.Add(heroHint,0,2);
+   var metrics=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=4,RowCount=1};for(int n=0;n<4;n++)metrics.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,25));grid.Controls.Add(metrics,0,1);
+@@ -131,7 +171,9 @@
+  }
+  void BuildCatalog(){
+   var page=Page("Catálogo");var root=Rows(43,42,-1,146,48);page.Controls.Add(root);
+-  var finder=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=2};finder.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));finder.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,295));search=new TextBox {Dock=DockStyle.Fill,BackColor=Theme.Card,ForeColor=Theme.Text,BorderStyle=BorderStyle.FixedSingle,Font=Theme.Font(12),Margin=new Padding(0,0,12,0),AccessibleName="Buscar nome, categoria ou conteúdo da revisão"};search.HandleCreated+=(s,e)=>{if(App.IsWindows)SendMessage(search.Handle,0x1501,(IntPtr)1,"Buscar ajuste, jogo ou hardware…  Ctrl+F");};categories=Combo();categories.Items.Add("Todas as categorias");foreach(string category in App.Items.Select(x=>x.Category).Distinct().OrderBy(x=>Int32.Parse(x.Split(new[]{' '})[0])))categories.Items.Add(category);categories.SelectedIndex=0;finder.Controls.Add(search,0,0);finder.Controls.Add(categories,1,0);root.Controls.Add(finder,0,0);
++  var finder=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=2};finder.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));finder.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,295));search=new TextBox {Dock=DockStyle.Fill,BackColor=Theme.Card,ForeColor=Theme.Text,BorderStyle=BorderStyle.FixedSingle,Font=Theme.Font(12),Margin=new Padding(0,0,12,0),AccessibleName="Buscar nome, categoria ou conteúdo da revisão"};search.HandleCreated+=(s,e)=>{if(App.IsWindows)SendMessage(search.Handle,0x1501,(IntPtr)1,"Buscar ajuste, jogo ou hardware…  Ctrl+F");};categories=Combo();categories.Items.Add("Todas as categorias");// As 35 categorias brutas vinham cruas para a tela: ".Bats", "Regedits", "99 - Seus 14 BATs revisados" e prefixos numéricos. FeatureNaming.Groups unifica as // repetidas (havia "-3 - Personalização" E "-4 - Personalização") e dá nome limpo. // O Tag guarda as categorias BRUTAS, então o filtro não depende do texto exibido.
++  foreach(var group in FeatureNaming.Groups(App.Items))categoryFilters.Add(group.Key,group.Value);
++  foreach(var group in FeatureNaming.Groups(App.Items))categories.Items.Add(group.Key);categories.SelectedIndex=0;finder.Controls.Add(search,0,0);finder.Controls.Add(categories,1,0);root.Controls.Add(finder,0,0);
+   var filters=new FlowLayoutPanel {Dock=DockStyle.Fill,WrapContents=false};reviewFilter=Combo();reviewFilter.Width=220;reviewFilter.Items.AddRange(new object[]{"Todos · ocultar suporte","Ajustes revisados","Com atenção","Execução bloqueada","Duplicados / repetidos","Com conflitos","Favoritos","Arquivos de suporte","Todos os arquivos"});reviewFilter.SelectedIndex=0;stateFilter=Combo();stateFilter.Width=214;stateFilter.Items.AddRange(new object[]{"Todos os estados","Configurações conferidas","Parcial","Não configurado","Falha na leitura","Não verificado","Não compatível"});stateFilter.SelectedIndex=0;filters.Controls.Add(reviewFilter);filters.Controls.Add(stateFilter);root.Controls.Add(filters,0,1);
+   catalog=new CatalogList();catalog.Columns.Add("Ajuste / arquivo",385);catalog.Columns.Add("Tipo",91);catalog.Columns.Add("Revisão",153);catalog.Columns.Add("Estado neste PC",159);catalog.Resize+=(s,e)=>FitColumns(catalog);catalog.SelectedIndexChanged+=(s,e)=>ShowItem();root.Controls.Add(catalog,0,2);
+   var panel=new Surface {Dock=DockStyle.Fill,Margin=new Padding(0,12,0,10),Padding=new Padding(15,12,15,8)};detail=Theme.ReadBox();panel.Controls.Add(detail);root.Controls.Add(panel,0,3);
+@@ -153,8 +195,10 @@
+  Observed State(Item i){Observed s;return states.TryGetValue(i.Id,out s)?s:new Observed {State="Não verificado",Detail="Execute Analisar este PC."};}
+  Item Selected(){return catalog.SelectedItems.Count==0?null:(Item)catalog.SelectedItems[0].Tag;}
+  void RefreshCatalog(){if(!ready)return;string selected=Selected()==null?null:Selected().Id;string q=search.Text.Trim(),cat=categories.SelectedItem as string,review=reviewFilter.SelectedItem as string,state=stateFilter.SelectedItem as string;catalog.BeginUpdate();catalog.Items.Clear();
+-  foreach(var i in App.Items.OrderBy(x=>Int32.Parse(x.Category.Split(new[]{' '})[0])).ThenBy(x=>x.ReviewTitle,StringComparer.CurrentCultureIgnoreCase)) {
+-   if(cat!="Todas as categorias"&&cat!=i.Category)continue;
++  // Antes: Int32.Parse do prefixo numérico da categoria — uma categoria nova sem número
++  // derrubaria a lista inteira com FormatException. A ordem agora vem de FeatureNaming.
++  foreach(var i in App.Items.OrderBy(x=>FeatureNaming.Rank(FeatureNaming.Category(x.Category))).ThenBy(x=>FeatureNaming.Category(x.Category),StringComparer.CurrentCultureIgnoreCase).ThenBy(x=>x.ReviewTitle,StringComparer.CurrentCultureIgnoreCase)) {
++   if(cat!=null&&cat!="Todas as categorias"){string[] raw;if(!categoryFilters.TryGetValue(cat,out raw)||!raw.Contains(i.Category))continue;}
+    if(q.Length>0&&(i.Id+" "+i.Name+" "+i.ReviewTitle+" "+i.Path+" "+String.Join(" ",i.Review??new string[0])).IndexOf(q,StringComparison.CurrentCultureIgnoreCase)<0)continue;
+    if(review=="Todos · ocultar suporte"&&i.Mode=="Suporte")continue;if(review=="Ajustes revisados"&&!i.Native)continue;
+    if(review=="Com atenção"&&!Attention(i))continue;if(review=="Execução bloqueada"&&i.ManualAllowed)continue;
+@@ -174,12 +218,20 @@
+  void ViewContent(){var i=Selected();if(i==null)return;var s=new StringBuilder();s.AppendLine(i.ReviewTitle).AppendLine("Arquivo original: "+i.Name).AppendLine(i.Path).AppendLine().AppendLine("REVISÃO").AppendLine(String.Join("\r\n",i.Review??new string[0])).AppendLine().AppendLine("LEITURA NESTE PC").AppendLine(State(i).Detail).AppendLine().AppendLine("CONFLITOS DE VALORES");foreach(var id in i.Conflicts??new string[0]){var other=App.Items.FirstOrDefault(x=>x.Id==id);s.AppendLine(other==null?id:other.Path);}s.AppendLine().AppendLine("CONTEÚDO ORIGINAL").AppendLine(String.IsNullOrEmpty(i.Text)?"Sem texto inspecionável. Programas de terceiros não foram executados para validar seu funcionamento.":i.Text);TextDialog("Revisão — "+i.Name,s.ToString());}
+  void TextDialog(string name,string text){if(EmbeddedInterface.Parent!=IntPtr.Zero){InlineReview(name,text,false);return;}using(var f=new Form {Text=name,Size=new Size(960,680),MinimumSize=new Size(650,420),StartPosition=FormStartPosition.CenterParent,BackColor=Theme.Card,Padding=new Padding(22)}){var box=Theme.ReadBox();box.Font=Theme.Font(10);box.Text=text.Replace("\r\n","\n").Replace("\n",Environment.NewLine);f.Controls.Add(box);f.ShowDialog(this);}}
+  async Task RefreshScan(){if(busy||scanning||resourceScanning)return;scanning=true;scan.Enabled=false;progress.Visible=true;progress.Value=0;footer.Text="Consultando hardware, preferências e serviços…";SetActions();
+-  try {var m=await Task.Run(()=>App.ScanHardware());var pg=new Progress<int>(v=>{progress.Value=v;footer.Text="Conferindo catálogo: "+v+"%";});states=await Task.Run(()=>App.ScanAll(m,n=>((IProgress<int>)pg).Report(n)));machine=m;serviceText=await Task.Run(()=>App.ServiceReport());lastScan=DateTime.Now;footer.Text=m.Windows?"Análise concluída às "+lastScan.ToString("HH:mm")+" · Configurações consultadas; FPS não medido.":"Leituras disponíveis ao abrir este app no Windows.";}
++  // O perfil estruturado é lido na MESMA thread de fundo da análise, junto do resto.
++  // WMI aqui tem timeout de 8 s por consulta; chamar isso na thread da interface a cada
++  // clique em Detalhes travaria a janela — por isso é lido uma vez e guardado.
++  try {var m=await Task.Run(()=>App.ScanHardware());var p=await Task.Run(()=>App.ReadProfile(m));var pg=new Progress<int>(v=>{progress.Value=v;footer.Text="Conferindo catálogo: "+v+"%";});states=await Task.Run(()=>App.ScanAll(m,n=>((IProgress<int>)pg).Report(n)));machine=m;profile=p;serviceText=await Task.Run(()=>App.ServiceReport());lastScan=DateTime.Now;footer.Text=m.Windows?"Análise concluída às "+lastScan.ToString("HH:mm")+" · Configurações consultadas; FPS não medido.":"Leituras disponíveis ao abrir este app no Windows.";}
+   catch(Exception e){footer.Text="Análise incompleta: "+e.Message;}
+   finally{scanning=false;scan.Enabled=true;progress.Visible=false;RefreshHistory();RefreshCatalog();UpdateMetrics();UpdateProfile();SetActions();}
+  }
+  void UpdateMetrics(){verifiedMetric.Text=states.Count==0?"—":states.Values.Count(x=>x.Verified).ToString();attentionMetric.Text=App.Items.Count(Attention).ToString();externalMetric.Text=App.Items.Count(x=>x.ReviewLevel=="Externo não testado").ToString();cpu.Text="CPU  ·  "+machine.Cpu;gpu.Text="GPU  ·  "+machine.Gpu;ram.Text="MEMÓRIA  ·  "+machine.Ram;disk.Text="DISCO  ·  "+machine.Disk;os.Text=machine.OS;
+-  diagnosticText.Text="COMPUTADOR\r\n"+machine.OS+"\r\nCPU: "+machine.Cpu+"\r\nGPU: "+machine.Gpu+"\r\nMemória: "+machine.Ram+"\r\nDisco do sistema: "+machine.Disk+"\r\nPaginação: "+machine.Pagefile+"\r\nEnergia: "+machine.Power+"\r\n\r\n"+serviceText+"\r\n\r\nO QUE FOI REVISADO\r\n546 arquivos (532 anteriores + 14 BATs); 112 entradas de Registro normalizadas; 33 planos externos.\r\nRevisão estática do conteúdo legível, duplicatas e conflitos. 64 binários/pacotes não tiveram seu funcionamento testado.\r\n\r\nCOMO LER OS ESTADOS\r\nConferido: configuração consultada por API/plano ativo.\r\nValores conferidos: todos os valores do Registro coincidem com o ajuste. Isso não prova que uma chave legada seja usada pelo Windows.\r\nParcial: somente parte das configurações coincide.\r\nNão configurado: não coincide com o ajuste; pode estar no padrão do Windows.\r\nNão verificado: sem leitura que comprove o funcionamento.\r\nFalha na leitura: consulta não concluída; veja o motivo no catálogo.\r\n\r\nNenhum medidor de “saúde 100%”, ganho de FPS ou redução de ping foi estimado.";
++  // O bloco estruturado entra ao lado do texto livre, não no lugar dele: ele diz
++  // explicitamente o que NÃO foi detectado e por quê, que é o que falta num relatório de
++  // suporte. Enquanto não houver análise, a seção declara isso em vez de ficar em branco.
++  diagnosticText.Text="COMPUTADOR\r\n"+machine.OS+"\r\nCPU: "+machine.Cpu+"\r\nGPU: "+machine.Gpu+"\r\nMemória: "+machine.Ram+"\r\nDisco do sistema: "+machine.Disk+"\r\nPaginação: "+machine.Pagefile+"\r\nEnergia: "+machine.Power+
++   "\r\n\r\nPERFIL DETECTADO (usado pelo motor de compatibilidade)\r\n"+(profile==null?"Ainda não analisado. Clique em Analisar este PC.":App.ProfileReport(profile))+
++   "\r\n"+OptimizationRegistry.Score(profile,delegate(string id){Observed found;return states.TryGetValue(id,out found)&&found.State=="Valores conferidos";})+"\r\n\r\n"+serviceText+"\r\n\r\nO QUE FOI REVISADO\r\n546 arquivos (532 anteriores + 14 BATs); 112 entradas de Registro normalizadas; 33 planos externos.\r\nRevisão estática do conteúdo legível, duplicatas e conflitos. 64 binários/pacotes não tiveram seu funcionamento testado.\r\n\r\nCOMO LER OS ESTADOS\r\nConferido: configuração consultada por API/plano ativo.\r\nValores conferidos: todos os valores do Registro coincidem com o ajuste. Isso não prova que uma chave legada seja usada pelo Windows.\r\nParcial: somente parte das configurações coincide.\r\nNão configurado: não coincide com o ajuste; pode estar no padrão do Windows.\r\nNão verificado: sem leitura que comprove o funcionamento.\r\nFalha na leitura: consulta não concluída; veja o motivo no catálogo.\r\n\r\nNenhum medidor de “saúde 100%”, ganho de FPS ou redução de ping foi estimado.";
+  }
+  void UpdateProfile(){if(maxApply==null)return;updatingPicks=true;int available=0,selected=0;foreach(var i in App.Items.Where(x=>x.Native&&x.MaxEligible)) {string incompatible=App.Compatibility(i,machine);bool allowed=machine.Windows&&incompatible==null;var pick=picks[i.Id];pick.Enabled=allowed&&!busy&&!scanning&&!resourceScanning&&!easyRunning;if(!allowed&&lastScan!=default(DateTime))pick.Checked=false;var state=State(i);pickStates[i.Id].Text=allowed?state.State:machine.Windows?"Ignorado neste PC":"Aguardando Windows";pickStates[i.Id].ForeColor=allowed?Theme.StatusColor(state.State):Theme.Amber;if(allowed)available++;if(allowed&&pick.Checked)selected++;}updatingPicks=false;
+   profileSummary.Text=selected+" ajuste(s) selecionado(s) · "+available+" compatível(is) neste PC.\r\nO backup registra os valores anteriores. Se um ajuste falhar, ele é restaurado individualmente e os demais continuam. Consulte o resultado por etapa.";heroHint.Text=machine.Windows?available+" ajuste(s) compatível(is) neste PC.\r\nLeia o cartão antes de aplicar.":"Abra no Windows para\r\nconferir a compatibilidade.";maxApply.Enabled=ready&&!busy&&!scanning&&!resourceScanning&&!easyRunning&&selected>0;RefreshEasySummary();}
+--- /dev/null	2026-09-18 23:46:02.630340927 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/FeatureNaming.cs	2026-09-19 03:24:11.722783247 +0000
+@@ -0,0 +1,131 @@
++using System;
++using System.Linq;
++using System.Collections.Generic;
++using System.Text.RegularExpressions;
++
++// NOMES PARA HUMANOS — camada de apresentação, zero impacto em identidade.
++//
++// A regra do pedido: o usuário nunca deve ver nome de arquivo, chave de Registro ou
++// comando como NOME de uma função. Detalhe técnico continua disponível, em Detalhes.
++//
++// O que esta camada NÃO faz, de propósito:
++//
++// 1. Não altera Id. Perfis, histórico, backup e desfazer gravados no PC das pessoas
++//    referenciam IDs. Renomear identidade para arrumar texto quebraria restauração de
++//    backups antigos — exatamente o que o pedido proíbe (item 4).
++//
++// 2. Não renomeia INVENTÁRIO. O catálogo tem 673 entradas, das quais 546 não são
++//    funções: são os arquivos que a pessoa enviou (.bat, .reg) e instaladores de
++//    terceiros (Optimizer-16.7.exe, memreduct, Autoruns, Dism++…). Para esses, o nome
++//    do arquivo É a identidade: rebatizar "Optimizer-16.7.exe" como "Otimizador de
++//    terceiros" impediria a pessoa de achar o arquivo na própria pasta. Inventário
++//    precisa ser SEPARADO de função, não disfarçado de função.
++//
++// O que ela faz: dá nome limpo às CATEGORIAS (que é onde ".Bats", "Regedits" e os
++// prefixos numéricos vazavam para a tela) e fornece a regra de violação que os testes
++// aplicam sobre toda função executável.
++static class FeatureNaming {
++ // Tokens que nunca podem aparecer no NOME de uma função. Em TechnicalDescription,
++ // Detalhes e log eles são bem-vindos — é lá que o usuário avançado audita.
++ internal static readonly string[] Forbidden={
++  ".reg",".bat",".cmd",".ps1",".exe",".lnk",".zip",".msi",
++  "HKLM","HKCU","HKEY_","reg add","reg delete","regedit",
++  "netsh","ipconfig","powercfg","wmic","schtasks","sfc /","DISM "
++ };
++
++ // Devolve o token ofensivo, ou null. Usado pelos testes e por quem cadastrar função nova.
++ internal static string Violation(string displayName){
++  if(String.IsNullOrEmpty(displayName))return null;
++  foreach(string token in Forbidden)
++   if(displayName.IndexOf(token,StringComparison.OrdinalIgnoreCase)>=0)return token;
++  return null;
++ }
++
++ // Uma entrada é INVENTÁRIO quando não é executável: o LukeOptimizer não a aplica, só
++ // a leu e explicou. São os arquivos da pessoa e programas de terceiros.
++ internal static bool IsInventory(Item item){return item!=null&&!item.Native;}
++
++ static readonly Regex Prefix=new Regex(@"^\s*-?\d+\s*-\s*",RegexOptions.Compiled);
++ // "5 - Apps essenciais" -> "Apps essenciais"; "-4 - Personalização" -> "Personalização".
++ internal static string StripPrefix(string raw){
++  if(String.IsNullOrEmpty(raw))return "";
++  return Prefix.Replace(raw,"").Trim();
++ }
++
++ // As 35 categorias brutas colapsam em nomes limpos. Várias são a MESMA coisa sob
++ // prefixos diferentes ("-3 - Personalização" e "-4 - Personalização"); aqui elas viram
++ // uma só, que é a unificação que o pedido chama de normalização.
++ static readonly Dictionary<string,string> Map=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase){
++  // Inventário: arquivos e programas que a pessoa trouxe. Nome honesto, sem fingir função.
++  {".Bats","Arquivos que você enviou"},
++  {"Regedits","Arquivos que você enviou"},
++  {"Seus 14 BATs revisados","Arquivos que você enviou"},
++  {"Apps essenciais","Programas de terceiros"},
++  {"Ferramentas Luke (exclusivas)","Ferramentas do pacote"},
++  {"Planos de Energia","Energia"},
++  {"Dicas e Tutorials","Guias e referência"},
++  {"IMPORTANTE","Leia primeiro"},
++  // Funções, agrupadas pelo que fazem.
++  {"Avançado: perde recursos","Avançado: perde recursos"},
++  {"Debloater","Remover aplicativos"},
++  {"Reverter Otimizações","Reverter alterações"},
++  {"Personalização","Personalizar Windows"},
++  {"Personalizar Windows","Personalizar Windows"},
++  {"Privacidade opcional","Privacidade"},
++  {"Fix Erros do Windows","Reparar Windows"},
++  {"Reparos de acesso","Reparar Windows"},
++  {"Otimizar Driver de Vídeo (AMD & NVIDIA)","GPU e drivers"},
++  {"Otimizações especificas de jogos","Jogos"},
++  {"Anti Stuttering","Jogos"},
++  {"Otimização DirectX e Vulkan","Jogos"},
++  {"Otimizar Navegadores","Navegadores"},
++  {"Tweaks Avançados (Modo Agressivo)","Laboratório experimental"},
++  {"Diagnósticar PC","Diagnóstico"},
++  {"Windows leve","Windows leve"},
++  {"Otimizar Rede (ping)","Rede"},
++  {"Rede e downloads","Rede"},
++  {"Apps e processos","Processos"},
++  {"Entrada e preferências","Mouse e teclado"},
++  {"Criar Ponto de Restauraçao","Backup e restauração"},
++  {"Ajustes revisados","Ajustes revisados"},
++  {"Windows","Windows"}
++ };
++
++ // Nome da categoria para a tela. Categoria desconhecida cai no nome sem prefixo, em vez
++ // de sumir ou virar "Outros": perder um item por falta de tradução seria pior.
++ internal static string Category(string raw){
++  string name=StripPrefix(raw);
++  string mapped;
++  return Map.TryGetValue(name,out mapped)?mapped:name;
++ }
++
++ // Ordem de exibição: funções primeiro, inventário e referência por último. Categoria
++ // fora da lista entra antes do inventário, para não ser escondida.
++ static readonly string[] Order={
++  "Leia primeiro","Ajustes revisados","Windows","Windows leve","Jogos","GPU e drivers",
++  "Energia","Rede","Processos","Mouse e teclado","Personalizar Windows","Navegadores",
++  "Privacidade","Remover aplicativos","Reparar Windows","Diagnóstico",
++  "Backup e restauração","Reverter alterações","Avançado: perde recursos",
++  "Laboratório experimental","Ferramentas do pacote","Programas de terceiros",
++  "Guias e referência","Arquivos que você enviou"
++ };
++ internal static int Rank(string display){
++  int index=Array.IndexOf(Order,display);
++  return index<0?Order.Length-2:index;
++ }
++
++ // Categorias visíveis, já unificadas e ordenadas, com as categorias BRUTAS que cada
++ // uma cobre — é isso que permite a tela filtrar sem depender do texto exibido.
++ internal static List<KeyValuePair<string,string[]>> Groups(IEnumerable<Item> items){
++  var map=new Dictionary<string,List<string>>(StringComparer.Ordinal);
++  foreach(var item in items??new Item[0]){
++   string raw=item.Category??"";
++   string display=Category(raw);
++   List<string> list;
++   if(!map.TryGetValue(display,out list)){list=new List<string>();map[display]=list;}
++   if(!list.Contains(raw))list.Add(raw);
++  }
++  return map.OrderBy(p=>Rank(p.Key)).ThenBy(p=>p.Key,StringComparer.CurrentCulture)
++            .Select(p=>new KeyValuePair<string,string[]>(p.Key,p.Value.ToArray())).ToList();
++ }
++}
+--- /dev/null	2026-09-18 23:46:02.630340927 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/NamingTests.cs	2026-09-19 03:26:16.963149074 +0000
+@@ -0,0 +1,97 @@
++using System;
++using System.Linq;
++using System.Collections.Generic;
++
++// REGRA DE NOMES — o usuário nunca vê nome de arquivo, chave de Registro ou comando
++// como NOME de uma função. Isto aqui é o que impede a regra de se perder no próximo
++// cadastro: sem teste, ela é um parágrafo de documentação que envelhece em silêncio.
++partial class EngineTests {
++ static void RunNamingTests(){
++  Reset();
++  FullCatalog();
++
++  // ------------------------------------------------------------------ a regra
++  foreach(string bad in new[]{
++   "Net speed.reg","SrWindowsTech.bat","Otimizar Internet.cmd","script.ps1","Optimizer.exe",
++   "HKLM\\Software\\X","HKCU tweak","reg add HKLM","netsh int ip reset","ipconfig /flushdns",
++   "powercfg -duplicatescheme","regedit tweak","DISM RestoreHealth","sfc /scannow"})
++   Assert(FeatureNaming.Violation(bad)!=null,"a technical or file name is rejected as a feature name: "+bad);
++
++  foreach(string good in new[]{
++   "Limpar cache DNS","Renovar endereço IP","Reparar Windows","Modo jogo","Desempenho máximo",
++   "Criar ponto de restauração","Reduzir processos do Windows","Agendamento de GPU",
++   "Prioridade de programas em primeiro plano","Limpar arquivos temporários"})
++   Assert(FeatureNaming.Violation(good)==null,"a plain-language name is accepted: "+good);
++
++  // O token tem de casar como TEXTO, não como palavra solta: "Editar.registro" também
++  // é nome de arquivo. E maiúsculas não podem servir de escape.
++  Assert(FeatureNaming.Violation("LIMPAR.BAT")!=null&&FeatureNaming.Violation("hklm")!=null,"the rule ignores letter case");
++  Assert(FeatureNaming.Violation(null)==null&&FeatureNaming.Violation("")==null,"an empty name is not reported as a violation");
++
++  // ------------------------------------------- o que vale para o catálogo real
++  // As 127 funções EXECUTÁVEIS: nenhuma pode ter nome técnico. Hoje nenhuma tem —
++  // e é exatamente por isso que o teste existe, para continuar assim.
++  var executable=CatalogIds.NativeItems().ToArray();
++  foreach(var item in executable){
++   string offense=FeatureNaming.Violation(item.ReviewTitle);
++   Assert(offense==null,"executable optimization has a human name, not a file or key: "+item.Id+" -> "+item.ReviewTitle+(offense==null?"":" (contém '"+offense+"')"));
++  }
++  Assert(executable.Length>100,"the naming rule is checked against the whole executable catalog, not a sample");
++
++  // O detalhe técnico CONTINUA existindo — a regra é sobre o nome, não sobre esconder
++  // informação. Se Detalhes parasse de citar o alvo real, o usuário avançado perderia
++  // a auditoria, que é o outro lado do mesmo pedido.
++  var withRegistry=executable.FirstOrDefault(i=>(i.Operations??new RegOp[0]).Length>0);
++  Assert(withRegistry!=null,"there is at least one optimization backed by a registry write");
++  string details=OptimizationRegistry.Details(withRegistry.Id,null);
++  Assert(details.Contains("Fonte técnica")&&details.Contains("ID preservado"),"the details sheet still exposes the technical source and the stable id");
++
++  // ------------------------------------------------------- inventário é exceção
++  // 546 entradas do catálogo NÃO são funções: são os arquivos que a pessoa enviou e
++  // instaladores de terceiros. Para elas o nome do arquivo É a identidade — renomear
++  // "Optimizer-16.7.exe" impediria a pessoa de achar o arquivo na própria pasta.
++  // O harness de engine carrega só as executáveis (App.Items == 127). O inventário
++  // revisado vive em PerformanceLibrary.OriginalItems(): 546 arquivos, os 532 do
++  // catálogo mais os 14 BATs. É ele que o Catálogo mostra no aplicativo real.
++  var inventory=PerformanceLibrary.OriginalItems().Where(FeatureNaming.IsInventory).ToArray();
++  Assert(inventory.Length>0,"the catalogue still carries the reviewed inventory");
++  Assert(inventory.All(i=>!i.Native),"inventory is never executable; it is read and explained, never applied");
++  Assert(inventory.Any(i=>FeatureNaming.Violation(i.ReviewTitle)!=null),"inventory keeps the real file name, which is what makes it findable on disk");
++  // A separação que importa: nenhum item de inventário pode ser aplicado por engano.
++  Assert(!inventory.Any(i=>ExtremeProfile.IsReviewed(i)),"no inventory entry can enter an automatic profile");
++
++  // ------------------------------------------------------------- categorias
++  // Aqui estava o vazamento real: ".Bats", "Regedits" e prefixos numéricos iam crus
++  // para o seletor de categorias da tela Catálogo.
++  var everything=PerformanceLibrary.OriginalItems().Concat(CatalogIds.NativeItems()).ToList();
++  var groups=FeatureNaming.Groups(everything);
++  Assert(groups.Count>0,"categories are grouped for display");
++  foreach(var group in groups){
++   Assert(FeatureNaming.Violation(group.Key)==null,"category name carries no file extension or registry key: "+group.Key);
++   Assert(!System.Text.RegularExpressions.Regex.IsMatch(group.Key,@"^\s*-?\d"),"category name carries no numeric prefix: "+group.Key);
++  }
++  Assert(groups.Any(g=>g.Key=="Arquivos que você enviou"),"the files the user supplied are named for what they are");
++  Assert(!groups.Any(g=>g.Key.IndexOf("Bats",StringComparison.OrdinalIgnoreCase)>=0||g.Key.IndexOf("Regedit",StringComparison.OrdinalIgnoreCase)>=0),"no category is named after a file type");
++
++  // Unificação: categorias repetidas sob prefixos diferentes viram UMA. É o que o
++  // pedido chama de normalização, e sem isto a tela listava a mesma coisa duas vezes.
++  Assert(FeatureNaming.Category("-3 - Personalização")==FeatureNaming.Category("-4 - Personalização"),"the same category under different prefixes collapses into one");
++  Assert(FeatureNaming.Category("-3 - Windows leve")==FeatureNaming.Category("-4 - Windows leve"),"duplicate categories are unified");
++  Assert(FeatureNaming.Category("2 - .Bats")==FeatureNaming.Category("3 - Regedits"),"supplied files share one honest category");
++  Assert(groups.Count<everything.Select(i=>i.Category).Distinct().Count(),"grouping actually reduces the number of visible categories");
++
++  // Cobertura: TODA categoria bruta cai em algum grupo, nenhuma some da tela.
++  var covered=new HashSet<string>(groups.SelectMany(g=>g.Value),StringComparer.Ordinal);
++  foreach(var raw in everything.Select(i=>i.Category??"").Distinct())
++   Assert(covered.Contains(raw),"every raw category reaches a visible group, none is silently dropped: "+raw);
++
++  // Ordem: inventário e referência por último; uma categoria desconhecida não é
++  // empurrada para o fim nem escondida.
++  Assert(FeatureNaming.Rank("Jogos")<FeatureNaming.Rank("Arquivos que você enviou"),"features are listed before the supplied-files inventory");
++  Assert(FeatureNaming.Rank("Categoria inventada")<FeatureNaming.Rank("Arquivos que você enviou"),"an unmapped category is not hidden at the bottom");
++  Assert(FeatureNaming.Category("42 - Categoria nova")=="Categoria nova","an unmapped category still loses its numeric prefix");
++  Assert(FeatureNaming.StripPrefix("-4 - Privacidade opcional")=="Privacidade opcional"&&FeatureNaming.StripPrefix("Sem prefixo")=="Sem prefixo","prefix stripping handles negative numbers and names without a prefix");
++
++  Reset();
++ }
++}
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs	2026-09-14 12:07:18.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs	2026-09-19 03:25:28.263736106 +0000
+@@ -8,6 +8,30 @@
+  static string Key(RegOp op){return (op.Hive+"\\"+op.Key+"\\"+op.Name).ToLowerInvariant();}
+  static RegOp Copy(RegOp op){return new RegOp{Hive=op.Hive,Key=op.Key,Name=op.Name,Kind=op.Kind,Data=op.Data,Delete=op.Delete};}
+  static void Assert(bool ok,string message){checks++;if(!ok)throw new Exception("FAILED: "+message);Console.WriteLine("PASS "+message);}
++ // Um teste cuja PREMISSA nao existe neste sistema nao pode virar PASS nem sumir: vira
++ // SKIP com o motivo, e o total final diz quantos foram pulados. Afrouxar a asseracao
++ // para ela passar no Linux seria apagar a garantia que vale no Windows.
++ static readonly List<string> skips=new List<string>();
++ static void Skip(string message,string why){skips.Add(message+" ("+why+")");Console.WriteLine("SKIP "+message+" -- "+why);}
++ // No Windows, um leitor com FileShare.Read impede MoveFileEx de substituir o arquivo.
++ // Em POSIX nao ha trava obrigatoria: o rename sempre vence e nenhum leitor bloqueia
++ // nada. Em vez de supor a plataforma, mede-se o comportamento real deste runtime.
++ // GameProfiles exige caminho com letra de unidade (full[1]==':') e arquivo existente.
++ // Fora do Windows nao existe "C:\", entao a fixture nao pode ser construida. Medimos
++ // a capacidade em vez de supor a plataforma.
++ static bool WindowsDrivePaths(){
++  try{string full=Path.GetFullPath(Path.Combine(App.DataRoot,"x.exe"));return full.Length>3&&full[1]==':';}catch{return false;}
++ }
++ static bool ReplacementBlockedByReaders(){
++  string probe=Path.Combine(App.DataRoot,"lock-probe.tmp");
++  try{
++   AtomicStore.Write(probe,"a");
++   using(new FileStream(probe,FileMode.Open,FileAccess.Read,FileShare.Read)){
++    try{AtomicStore.Write(probe,"b");return false;}catch{return true;}
++   }
++  }catch{return true;}
++  finally{foreach(string leftover in new[]{probe,probe+".lock"})try{File.Delete(leftover);}catch{}}
++ }
+  static void Reset(){
+   foreach(string p in Directory.GetFiles(App.RecordsRoot,"*.json"))File.Delete(p);
+   registry=new Dictionary<string,RegOp>();native=new Dictionary<string,string>{{"window","1"},{"client","1"},{"menuanim","1"},{"combo","1"},{"list","1"},{"tooltip","1"},{"selection","1"},{"menu","400"},{"mouse","6,10,1"}};
+@@ -52,8 +76,9 @@
+   Reset();App.ApplyMaximum(new[]{"native-capture"});var observed=App.Observe(App.Items.Single(i=>i.ActionCode=="capture"),App.TestMachine);Assert(observed.State=="Valores conferidos"&&observed.Match==3,"status reports stored values without claiming performance");registry.Remove(registry.Keys.First());observed=App.Observe(App.Items.Single(i=>i.ActionCode=="capture"),App.TestMachine);Assert(observed.State=="Parcial"&&observed.Match==2,"partial configuration correctly detected");
+   Reset();App.TestCapture=op=>{throw new UnauthorizedAccessException("test access denied");};legacyBatch=App.Items.Where(i=>new[]{"native-window","native-capture"}.Contains(i.Id)).ToList();ExpectFailure(()=>App.ApplyTransaction(legacyBatch,"Perfil","teste de snapshot"),"unreadable registry aborts before mutation");Assert(native["window"]=="1"&&Last().Status=="falhou antes de alterar","snapshot failure makes no changes");
+   Reset();App.ApplyMaximum(new[]{"native-mouse"});record=Last();Assert(native["mouse"]=="0,0,0","optional mouse acceleration uses its own snapshot");App.Undo(record.Id);Assert(native["mouse"]=="6,10,1","all mouse acceleration parameters restored exactly");
+-  RunV3Tests();RunV4Tests();RunV5Tests();RunV52Tests();RunV53Tests();RunV54Tests();RunRegressionTests();RunV6Tests();
+-  Console.WriteLine("TOTAL: "+checks+" checks passed (logic only; not an FPS or live Windows mutation test)");
++  RunV3Tests();RunV4Tests();RunV5Tests();RunV52Tests();RunV53Tests();RunV54Tests();RunRegressionTests();RunV6Tests();RunFoundationTests();RunNamingTests();
++  Console.WriteLine("TOTAL: "+checks+" checks passed, "+skips.Count+" skipped (logic only; not an FPS or live Windows mutation test)");
++  foreach(string s in skips)Console.WriteLine("  skipped: "+s);
+   return 0;
+  }catch(Exception e){Console.Error.WriteLine(e);return 1;}}
+ }
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/compilacao.rsp	2026-09-14 12:11:44.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/compilacao.rsp	2026-09-19 03:24:41.975588493 +0000
+@@ -1,70 +1,74 @@
+-﻿/nologo
+-/utf8output
+-/codepage:65001
+-/langversion:5
+-/platform:x64
+-/optimize+
+-/reference:System.dll
+-/reference:System.Core.dll
+-/reference:System.Drawing.dll
+-/reference:System.Windows.Forms.dll
+-/reference:System.Web.dll
+-/reference:System.Web.Extensions.dll
+-/reference:System.IO.Compression.dll
+-/reference:System.IO.Compression.FileSystem.dll
+-/reference:System.Management.dll
+-/reference:System.ServiceProcess.dll
+-/resource:source\catalog.json,catalog.json
+-/resource:source\imported-reviews.json,imported-reviews.json
+-source\LukeOptimizer.cs
+-source\Profile.cs
+-source\Diagnostics.cs
+-source\Interface.cs
+-source\Resources.cs
+-source\Management.cs
+-source\Maintenance.cs
+-source\ImportedScripts.cs
+-source\EasyInterface.cs
+-source\Gaming.cs
+-source\AtomicStore.cs
+-source\FrameAnalysis.cs
+-source\HardwareLab.cs
+-source\PerformanceLibrary.cs
+-source\PerformanceInterface.cs
+-/resource:source\performance-library.json,performance-library.json
+-/resource:source\v5-advanced-library.json,v5-advanced-library.json
+-
+-source\V5Options.cs
+-source\InputTuning.cs
+-source\V5InputItems.cs
+-source\NetworkWorkbench.cs
+-source\V5Bridge.cs
+-source\LiquidProtocol.cs
+-source\EmbeddedInterface.cs
+-source\ChangeAudit.cs
+-source\AppRemoval.cs
+-source\ImportedOptions.cs
+-source\ExtraSettings.cs
+-source\CatalogIds.cs
+-source\SelectionRestore.cs
+-source\ExtremeProfile.cs
+-/resource:source\optimizer-options.json,optimizer-options.json
+-/resource:source\debloat-apps.json,debloat-apps.json
+-
+-source\OptionInfo.cs
+-
+-source\IsolatedTransactions.cs
+-source\ReviewedFeatures.cs
+-source\UnifiedInterface.cs
+-
+-source\FunctionalInterface.cs
+-
+-source\ExecutionHub.cs
+-source\SystemTelemetry.cs
+-source\StorageManager.cs
+-source\ProductInterface.cs
+-
+-source\ExecutionControl.cs
+-
+-source\CommandTools.cs
+-source\BackupBundle.cs
++﻿/nologo
++/utf8output
++/codepage:65001
++/langversion:5
++/platform:x64
++/optimize+
++/reference:System.dll
++/reference:System.Core.dll
++/reference:System.Drawing.dll
++/reference:System.Windows.Forms.dll
++/reference:System.Web.dll
++/reference:System.Web.Extensions.dll
++/reference:System.IO.Compression.dll
++/reference:System.IO.Compression.FileSystem.dll
++/reference:System.Management.dll
++/reference:System.ServiceProcess.dll
++/resource:source\catalog.json,catalog.json
++/resource:source\imported-reviews.json,imported-reviews.json
++source\LukeOptimizer.cs
++source\Profile.cs
++source\Diagnostics.cs
++source\Interface.cs
++source\Resources.cs
++source\Management.cs
++source\Maintenance.cs
++source\ImportedScripts.cs
++source\EasyInterface.cs
++source\Gaming.cs
++source\AtomicStore.cs
++source\FrameAnalysis.cs
++source\HardwareLab.cs
++source\PerformanceLibrary.cs
++source\PerformanceInterface.cs
++/resource:source\performance-library.json,performance-library.json
++/resource:source\v5-advanced-library.json,v5-advanced-library.json
++
++source\V5Options.cs
++source\InputTuning.cs
++source\V5InputItems.cs
++source\NetworkWorkbench.cs
++source\NetworkTools.cs
++source\MachineProfile.cs
++source\Optimizations.cs
++source\FeatureNaming.cs
++source\V5Bridge.cs
++source\LiquidProtocol.cs
++source\EmbeddedInterface.cs
++source\ChangeAudit.cs
++source\AppRemoval.cs
++source\ImportedOptions.cs
++source\ExtraSettings.cs
++source\CatalogIds.cs
++source\SelectionRestore.cs
++source\ExtremeProfile.cs
++/resource:source\optimizer-options.json,optimizer-options.json
++/resource:source\debloat-apps.json,debloat-apps.json
++
++source\OptionInfo.cs
++
++source\IsolatedTransactions.cs
++source\ReviewedFeatures.cs
++source\UnifiedInterface.cs
++
++source\FunctionalInterface.cs
++
++source\ExecutionHub.cs
++source\SystemTelemetry.cs
++source\StorageManager.cs
++source\ProductInterface.cs
++
++source\ExecutionControl.cs
++
++source\CommandTools.cs
++source\BackupBundle.cs
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-14 12:17:48.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-19 03:25:28.668952734 +0000
+@@ -15,7 +15,7 @@
+     Copy-Item -LiteralPath 'source\app.config' -Destination 'UiSmoke.exe.config' -Force
+     Build @('/target:winexe','/win32manifest:source\app.manifest','/out:LukeOptimizer-Engine.new.exe','@compilacao.rsp') 'build.log'
+     Build @('/target:exe','/out:ProcessFixture.exe','tests\ProcessFixture.cs') 'fixture-build.log'
+-    Build @('/define:TESTS','/target:exe','/main:EngineTests','/out:LukeOptimizer-Testes.exe','@compilacao.rsp','tests\EngineTests.cs','tests\V3Tests.cs','tests\V4Tests.cs','tests\V5Tests.cs','tests\V52Tests.cs','tests\V53Tests.cs','tests\V54Tests.cs','tests\RegressionTests.cs','tests\V6Tests.cs') 'tests-build.log'
++    Build @('/define:TESTS','/target:exe','/main:EngineTests','/out:LukeOptimizer-Testes.exe','@compilacao.rsp','tests\EngineTests.cs','tests\V3Tests.cs','tests\V4Tests.cs','tests\V5Tests.cs','tests\V52Tests.cs','tests\V53Tests.cs','tests\V54Tests.cs','tests\RegressionTests.cs','tests\V6Tests.cs','tests\FoundationTests.cs','tests\NamingTests.cs') 'tests-build.log'
+     & .\LukeOptimizer-Testes.exe *> (Join-Path $taskResults 'tests.log')
+     if ($LASTEXITCODE -ne 0) { throw 'Testes de logica falharam. Executavel principal preservado.' }
+     Build @('/define:TESTS','/target:exe','/main:UiSmoke','/out:UiSmoke.exe','@compilacao.rsp','tests\UiSmoke.cs','tests\UnifiedUiTests.cs','tests\FunctionalUiTests.cs','tests\ProductUiTests.cs') 'ui-build.log'
+@@ -28,6 +28,18 @@
+         Copy-Item -LiteralPath '.\LukeOptimizer-Engine.new.exe' -Destination '.\LukeOptimizer-Engine.exe' -Force
+         Copy-Item -LiteralPath '.\LukeOptimizer-Engine.new.exe' -Destination (Join-Path $taskRoot 'native\LukeOptimizer-Engine.exe') -Force
+         Copy-Item -LiteralPath '.\LukeOptimizer-Engine.new.exe' -Destination (Join-Path $taskRoot 'native\LukeOptimizer-v5.exe') -Force
++        # ABRIR.cmd executa native\LukeOptimizer-6.1.2.exe. Esse arquivo NAO era publicado
++        # aqui: a compilacao atualizava Engine.exe e v5.exe, e o atalho do usuario continuava
++        # abrindo o binario antigo. Compilar dava certo e nada mudava na tela.
++        $taskLauncher = Join-Path $taskRoot 'native\LukeOptimizer-6.1.2.exe'
++        Copy-Item -LiteralPath '.\LukeOptimizer-Engine.new.exe' -Destination $taskLauncher -Force
++        Copy-Item -LiteralPath 'source\app.config' -Destination (Join-Path $taskRoot 'native\LukeOptimizer-6.1.2.exe.config') -Force
++        # Confere que o arquivo que ABRIR.cmd abre e mesmo o que acabou de ser compilado.
++        # Sem isto, qualquer erro de copia volta a ser silencioso.
++        $taskBuilt = (Get-FileHash -LiteralPath '.\LukeOptimizer-Engine.new.exe' -Algorithm SHA256).Hash
++        $taskShipped = (Get-FileHash -LiteralPath $taskLauncher -Algorithm SHA256).Hash
++        if ($taskBuilt -ne $taskShipped) { throw 'O executavel aberto por ABRIR.cmd nao corresponde ao que foi compilado.' }
++        Write-Output ('Publicado em native\LukeOptimizer-6.1.2.exe - SHA256 ' + $taskShipped.ToLowerInvariant())
+     }
+     & (Join-Path $taskRoot 'ATUALIZAR-HASHES.ps1')
+     Get-Content -LiteralPath (Join-Path $taskResults 'tests.log') -Tail 1
