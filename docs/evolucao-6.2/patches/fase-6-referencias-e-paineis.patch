@@ -1910,6 +1910,32 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +  }
 + }
 +}
+diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/EmbeddedInterface.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/EmbeddedInterface.cs
+--- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/EmbeddedInterface.cs	2026-09-18 16:44:24.000000000 +0000
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/EmbeddedInterface.cs	2026-09-19 14:00:52.572248635 +0000
+@@ -8,7 +8,21 @@
+ static class EmbeddedInterface {
+  internal static IntPtr Parent;
+  internal const int Navigate=0x8000+41,Ready=0x8000+42,Busy=0x8000+43,CurrentPage=0x8000+44;
+- internal static readonly string[] Pages={"FPS e stutter","Apps e RAM","Manutenção","Energia avançada","Perfis de jogos","Hardware e rede","Rede e latência","Arquivos e referências","Seus 14 BATs","Catálogo"};
++ // A ORDEM É CONTRATO: o host externo navega por ÍNDICE (--embedded <hwnd> <índice>),
++ // e o mesmo vetor existe em codigo-fonte\native\ui.h. Mudar a ordem troca o destino dos
++ // botões do overlay; por isso a correção abaixo substitui a entrada NO LUGAR dela.
++ //
++ // A entrada 8 era "Seus 14 BATs". A FASE 5 renomeou essa página para
++ // "Auditoria dos arquivos recebidos" e a tirou da experiência normal, mas ESTE vetor
++ // ficou para trás apontando para um nome que não existe mais. Resultado: em modo
++ // ferramenta o botão abria "Otimizações" em silêncio — um botão que mentia sobre o
++ // próprio destino. Só apareceu agora porque TestEmbeddedRender só roda no Windows.
++ //
++ // Não voltou a apontar para a auditoria: aquela página é material de desenvolvimento e
++ // não deve reaparecer por outra porta. O lugar foi dado ao painel compacto de
++ // personalização, que é experiência normal. Há teste conferindo que TODA entrada deste
++ // vetor existe e não é página de desenvolvedor.
++ internal static readonly string[] Pages={"FPS e stutter","Apps e RAM","Manutenção","Energia avançada","Perfis de jogos","Hardware e rede","Rede e latência","Arquivos e referências","Personalizar Windows","Catálogo"};
+  internal static int Initial;
+  [DllImport("user32.dll")] internal static extern bool IsWindow(IntPtr hwnd);
+  [DllImport("user32.dll")] internal static extern uint GetWindowThreadProcessId(IntPtr hwnd,out uint pid);
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-19 04:12:28.000000000 +0000
 +++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-19 08:48:21.851715303 +0000
@@ -8531,13 +8557,30 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
    // controle por servico opcional -- nem um a menos (opcao invisivel), nem um a mais.
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/UnifiedUiTests.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/UnifiedUiTests.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/UnifiedUiTests.cs	2026-09-19 04:14:12.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/UnifiedUiTests.cs	2026-09-19 08:49:23.303013959 +0000
-@@ -11,7 +11,7 @@
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/UnifiedUiTests.cs	2026-09-19 14:00:14.263437647 +0000
+@@ -11,7 +11,24 @@
    if(homeChecks.Count!=131||homeCards.Count!=9)throw new Exception("Missing primary/advanced checkboxes or categories");
    // 9 -> 10 com a entrada "Rede". O teste existe para pegar entrada da barra lateral
    // que some por engano, então o número continua explícito.
 -  if(nav.Count!=10||!pages.ContainsKey("Catálogo")||!pages.ContainsKey("Rede"))throw new Exception("Legacy tools lost during navigation simplification");
 +  if(nav.Count!=10+WindowsSettings.Panels().Length||!pages.ContainsKey("Catálogo")||!pages.ContainsKey("Rede"))throw new Exception("Legacy tools lost during navigation simplification: "+nav.Count);
++
++  // O MODO FERRAMENTA NAVEGA POR NOME, E O NOME PODE FICAR PARA TRAS.
++  //
++  // EmbeddedInterface.Pages apontava para "Seus 14 BATs" depois que essa pagina foi
++  // renomeada. ShowPage tem fallback para "Otimizacoes", entao o botao do overlay abria
++  // a pagina errada EM SILENCIO -- e a unica coisa que acusou foi TestEmbeddedRender,
++  // que so roda no Windows. Esta conferencia roda em toda plataforma, sem HWND nenhum,
++  // porque e so comparar duas listas de strings.
++  for(int n=0;n<EmbeddedInterface.Pages.Length;n++){
++   string target=EmbeddedInterface.Pages[n];
++   if(!pages.ContainsKey(target))
++    throw new Exception("Modo ferramenta aponta para pagina inexistente no indice "+n+": \""+target+"\". "+
++     "ShowPage cairia em \"Otimizacoes\" sem avisar. Corrija EmbeddedInterface.Pages e o vetor igual em codigo-fonte\\native\\ui.h.");
++   if(DeveloperOnlyPage(target))
++    throw new Exception("Modo ferramenta expoe pagina de desenvolvedor no indice "+n+": \""+target+"\".");
++  }
++  Console.WriteLine("PASS UI every tool-mode page name resolves to a real page that is not developer-only ("+EmbeddedInterface.Pages.Length+")");
    homeAdvanced.Checked=true;PerformLayout();Application.DoEvents();
    foreach(var pair in homeChecks){
     var check=pair.Value;check.Checked=false;
@@ -9259,6 +9302,20 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +  V5Options.TestBrowserMajor=null;V5Options.TestFeature=null;Reset();
 + }
 +}
+diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/native/ui.h work/LukeOptimizer-6.1.2/codigo-fonte/native/ui.h
+--- head12/LukeOptimizer-6.1.2/codigo-fonte/native/ui.h	2026-09-14 01:53:56.000000000 +0000
++++ work/LukeOptimizer-6.1.2/codigo-fonte/native/ui.h	2026-09-19 13:59:50.903436259 +0000
+@@ -65,7 +65,9 @@
+   if(found!=states.end()&&!found->second.issue.empty())textWrap(found->second.issue);
+   if(found!=states.end()&&ImGui::TreeNode("Ver leitura do Windows")){muted(found->second.detail);ImGui::TreePop();}
+   if(!active&&std::string(e.action)=="page"){
+-   static const char* target[]={"FPS e stutter","Apps e RAM","Manutenção","Energia avançada","Perfis de jogos","Hardware e rede","Rede e latência","Arquivos e referências","Seus 14 BATs","Catálogo"};
++   // Espelha EmbeddedInterface.Pages do C#, na MESMA ordem: a navegação é por índice.
++   // A entrada 8 era "Seus 14 BATs", página que deixou de existir com esse nome.
++   static const char* target[]={"FPS e stutter","Apps e RAM","Manutenção","Energia avançada","Perfis de jogos","Hardware e rede","Rede e latência","Arquivos e referências","Personalizar Windows","Catálogo"};
+    for(int j=0;j<10;j++)if(std::string(e.target)==target[j]){if(ImGui::Button("Usar ferramenta aqui")){toolChoice=j;changePage(9);}break;}
+   }
+   if(std::string(e.action)=="settings"||std::string(e.action)=="system")if(ImGui::Button("Abrir ferramenta do Windows"))openWindowsReference(e);
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/native/licenses/REFERENCIAS.md work/LukeOptimizer-6.1.2/native/licenses/REFERENCIAS.md
 --- head12/LukeOptimizer-6.1.2/native/licenses/REFERENCIAS.md	1970-01-01 00:00:00.000000000 +0000
 +++ work/LukeOptimizer-6.1.2/native/licenses/REFERENCIAS.md	2026-09-19 08:53:28.629275688 +0000
