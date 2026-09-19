@@ -1,0 +1,113 @@
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs	2026-09-18 12:33:15.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/UnifiedInterface.cs	2026-09-19 03:52:53.548063199 +0000
+@@ -45,6 +45,7 @@
+   actions.Controls.Add(HomeButton("home-clean","Limpar temporários",async(s,e)=>await QuickCleanupOneClick(),176,true));
+   actions.Controls.Add(HomeButton("home-memory","Liberar RAM",async(s,e)=>await FreeMemoryOneClick(),158,true));
+   actions.Controls.Add(HomeButton("home-processes","Reduzir processos",async(s,e)=>await RunProcessReduction(),174,true));
++  actions.Controls.Add(HomeButton("home-processes-deep","Reduzir processos: extremo",async(s,e)=>await RunProcessReduction("extremo"),228));
+   actions.Controls.Add(HomeButton("home-gaming-session","Sessão de jogo",async(s,e)=>await RunGamingSessionProfile(),168,true));
+   actions.Controls.Add(HomeButton("home-apps","Remover apps",(s,e)=>ShowPage("Remover apps"),150));
+   actions.Controls.Add(HomeButton("home-extreme","Otimização Ultra",async(s,e)=>await RunUltraProfile(),187,true));
+@@ -53,8 +54,38 @@
+   var clear=HomeButton("home-clear","Limpar seleção",(s,e)=>SetHomeSelection(false),140);second.Controls.Add(clear);
+   var apply=HomeButton("home-apply","Aplicar selecionadas",async(s,e)=>await RunHome(false),170,true);second.Controls.Add(apply);
+   var undo=HomeButton("home-undo","Desfazer",async(s,e)=>await HomeUndoClick(),140);second.Controls.Add(undo);
+-  var restore=HomeButton("home-restore-selection","Restaurar seleção",async(s,e)=>{var rec=records.FirstOrDefault(App.CanUndo);if(rec==null)return;var ids=HomePayload(false);if(ids.Length>0)await Elevated("--restore-selection",rec.Id+"|"+String.Join(",",ids));},170);second.Controls.Add(restore);
+-  var windowDetails=HomeButton("home-details-native-window","Detalhes da otimização selecionada",async(s,e)=>{var item=App.ById("native-window");if(item!=null)await ShowHomeDetails(new HomeOption(item.Id,item.ReviewTitle,"Windows"));},220);second.Controls.Add(windowDetails);
++  // Restaurar reescreve o Windows com valores gravados antes: é alteração real, com
++  // elevação, e segue a mesma regra de todo o resto da página — revisar antes de aplicar.
++  // Este botão era o único que ia direto para a elevação, sem dizer QUAL backup usaria
++  // nem O QUE mudaria. Aplicar, Ultra, remoção de apps e ajustes manuais todos revisam.
++  var restore=HomeButton("home-restore-selection","Restaurar seleção",async(s,e)=>{
++   var rec=records.FirstOrDefault(App.CanUndo);if(rec==null)return;
++   var ids=HomePayload(false);if(ids.Length==0)return;
++   var chosen=ids.Select(App.ById).Where(i=>i!=null).ToArray();
++   DateTime when;string stamp=DateTime.TryParse(rec.Time,out when)?when.ToLocalTime().ToString("dd/MM/yyyy HH:mm"):rec.Time;
++   string text="Backup: "+rec.Name+" · "+stamp+"\r\n\r\n"+
++    "Estas configurações voltam ao valor gravado nesse backup:\r\n"+
++    String.Join("\r\n",chosen.Select(i=>"· "+i.ReviewTitle).ToArray())+
++    "\r\n\r\nSe outro programa alterou algum desses valores depois do backup, a restauração recusa sobrescrever e informa, em vez de apagar a mudança em silêncio.\r\nRequer administrador.";
++   if(!await InlineReview("Confirmar restauração da seleção",text,true))return;
++   await Elevated("--restore-selection",rec.Id+"|"+String.Join(",",ids));
++  },170);second.Controls.Add(restore);
++  // O rótulo dizia "da otimização selecionada" e o código chamava App.ById("native-window"),
++  // FIXO: qualquer que fosse a marcação, abria sempre "Reduzir animação das janelas". O
++  // botão mentia sobre o próprio conteúdo. O Name é mantido porque testes e busca o usam
++  // como identificador — muda o comportamento e o texto, não a identidade.
++  var windowDetails=HomeButton("home-details-native-window","Detalhes das opções marcadas",async(s,e)=>{
++   var chosen=homeChecks.Where(c=>c.Value.Checked).Select(c=>c.Key).ToArray();
++   if(chosen.Length==0){await InlineReview("Nenhuma opção marcada","Marque ao menos uma opção na lista abaixo.\r\n\r\nA ficha mostra o que a opção muda, a desvantagem possível, o nível de evidência, a confiança, o risco, se é compatível COM ESTE PC e por quê, se exige administrador, que reinício pede e como será restaurada.",false);return;}
++   int shown=Math.Min(chosen.Length,8);
++   var text=new System.Text.StringBuilder();
++   for(int n=0;n<shown;n++){
++    if(n>0)text.AppendLine().AppendLine("──────────────────────────────").AppendLine();
++    text.Append(HomeDetailsText(homeOptions[chosen[n]]));
++   }
++   if(chosen.Length>shown)text.AppendLine().AppendLine("… e mais "+(chosen.Length-shown)+" opção(ões) marcada(s). Desmarque algumas para ler a ficha de cada uma.");
++   await InlineReview(chosen.Length==1?"Detalhes da opção marcada":"Detalhes de "+chosen.Length+" opções marcadas",text.ToString(),false);
++  },220);second.Controls.Add(windowDetails);
+   
+   var third=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true,Margin=Padding.Empty};top.Controls.Add(third,0,2);
+   homeAdvanced=new ReadableCheckBox{Text="Mostrar também as opções avançadas",AutoSize=false,Width=280,Height=36,Margin=new Padding(6,0,8,0),ForeColor=Theme.Muted,BackColor=Theme.Bg,AccessibleName="Mostrar também as opções avançadas",Checked=false};third.Controls.Add(homeAdvanced);
+@@ -85,7 +116,7 @@
+     var row=new TableLayoutPanel{Height=productPrefs==null||productPrefs.Compact?32:40,Dock=DockStyle.Top,ColumnCount=1,Margin=Padding.Empty,Name="home-row-"+option.Id,Visible=HomeVisible(option,primary)&&!collapsedHome.Contains(category)};
+     var check=new ReadableCheckBox{Text=option.Title+(!option.Diagnostic&&OptionInfo.For(App.ById(option.Id)).Classification=="Manual"?" · Manual":""),Dock=DockStyle.Fill,Margin=new Padding(0,0,5,0),ForeColor=Theme.Text,BackColor=Theme.Card,Font=Theme.Font(9.5f),Name="home-check-"+option.Id,AccessibleName=option.Title};homeChecks.Add(option.Id,check);row.Controls.Add(check,0,0);
+     string id=option.Id;var defaults=App.ById(id);check.Checked=first?!option.Diagnostic&&defaults!=null&&defaults.DefaultSelected:saved.Contains(id);
+-    check.CheckedChanged+=(s,e)=>{check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;check.Invalidate();if(!homeSync)UpdateHome();};check.BackColor=check.Checked?Color.FromArgb(62,55,27):Theme.Card;
++    check.CheckedChanged+=(s,e)=>{check.BackColor=check.Checked?Theme.Selection:Theme.Card;check.Invalidate();if(!homeSync)UpdateHome();};check.BackColor=check.Checked?Theme.Selection:Theme.Card;
+     body.Controls.Add(row);
+    }
+    foreach(var link in CategoryTools(category)){string target=link.Value;var button=Theme.Button(link.Key);button.Name="home-tool-"+category+"-"+link.Key;button.Height=34;button.Dock=DockStyle.Top;button.Margin=new Padding(0,5,0,0);button.Click+=(s,e)=>{if(target.StartsWith("ms-settings:"))OpenLocal(target);else if(target=="dfrgui.exe")OpenSystem(target,"");else ShowPage(target);};body.Controls.Add(button);}
+@@ -110,8 +141,16 @@
+       string id=child.Name.Substring("home-row-".Length);
+       bool matches=HomeVisible(homeOptions[id],primary);
+       if(!matches)hiddenHome.Add(id);
+-      child.Visible=matches&&!collapsed;
+-      if(child.Visible)visibleRows++;
++      // NUNCA reler child.Visible aqui. O getter devolve a visibilidade EFETIVA: ele sobe
++      // até o formulário e devolve false se qualquer ancestral estiver escondido. Como o
++      // cartão é ancestral da linha, reler travava a página: uma passada com o cartão
++      // escondido fazia toda linha ler false, visibleRows ficava 0, o cartão se escondia
++      // de novo e nunca mais voltava. A primeira passada roda dentro de BuildHomeCards,
++      // antes de Show(), quando NADA está efetivamente visível — então as 9 categorias
++      // nasciam escondidas e a tela Otimizações abria vazia. Vale o valor recém-decidido.
++      bool rowVisible=matches&&!collapsed;
++      child.Visible=rowVisible;
++      if(rowVisible)visibleRows++;
+       continue;
+      }
+      if(child.Name!=null&&child.Name.StartsWith("home-tool-",StringComparison.Ordinal))child.Visible=!collapsed&&!searching;
+@@ -154,14 +193,29 @@
+    foreach(var column in homeColumns)column.Dispose();homeColumns.Clear();
+    int count=width>=1420?3:width>=720?2:1;int cardWidth=Math.Max(280,width/count-12);var heights=new int[count];
+    for(int n=0;n<count;n++){var column=new FlowLayoutPanel{FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,Width=cardWidth,MinimumSize=new Size(cardWidth,0),MaximumSize=new Size(cardWidth,0),Margin=new Padding(0,0,12,0)};homeColumns.Add(column);homeFlow.Controls.Add(column);}
+-   foreach(var card in homeCards){if(hiddenCards.Contains(card.Name))continue;int column=Array.IndexOf(heights,heights.Min());card.Width=cardWidth;card.Margin=new Padding(0,0,0,12);homeColumns[column].Controls.Add(card);heights[column]+=card.Height+12;}
++   // A largura é atribuída ANTES do desvio: um cartão filtrado para fora continua com a
++   // largura da coluna atual, então ele reaparece já no tamanho certo quando a busca é
++   // limpa, em vez de voltar com os 200 px padrão de Panel e só se ajustar no próximo
++   // redimensionamento da janela.
++   foreach(var card in homeCards){card.Width=cardWidth;card.Margin=new Padding(0,0,0,12);if(hiddenCards.Contains(card.Name))continue;int column=Array.IndexOf(heights,heights.Min());homeColumns[column].Controls.Add(card);heights[column]+=card.Height+12;}
+   }finally{homeFlow.ResumeLayout();arrangingHome=false;}
+  }
+- async Task ShowHomeDetails(HomeOption option){
++ async Task ShowHomeDetails(HomeOption option){await InlineReview(option.Title,HomeDetailsText(option),false);}
++ // Separado da exibição para que o botão de detalhes possa montar a ficha de VÁRIAS
++ // opções marcadas numa leitura só, em vez de uma janela por item.
++ string HomeDetailsText(HomeOption option){
+   string text;
+   if(option.Diagnostic)text=ReviewedDiagnostics.Detail(option.Id)+"\r\n\r\nCompatibilidade: Windows 10/11. Somente leitura; resultados no Histórico. Não altera configurações e não exige desfazer.\r\nFonte: "+ReviewedDiagnostics.Source(option.Id);
+-  else{var item=App.ById(option.Id);var info=OptionInfo.For(item);text=String.Join("\r\n",item.Review??new string[0])+"\r\n\r\nClassificação: "+info.Classification+"\r\nRisco: "+info.Risk+"\r\nCompatibilidade: "+info.Compatibility+"\r\n"+info.AutomaticReason+"\r\n"+info.Restart+"\r\n\r\nBackup: "+App.RecordsRoot+"\r\nDesfazer: valores, tipos e ausência anteriores restaurados pelo Histórico. Mudanças posteriores são preservadas.\r\n\r\nFonte: "+item.Url+"\r\nID preservado: "+item.Id;}
+-  await InlineReview(option.Title,text,false);
++  else{
++   // A ficha passou a vir do contrato único (OptimizationRegistry), que acrescenta o que
++   // faltava aqui: nível de evidência, confiança separada do risco, estágio e o veredito
++   // do motor de compatibilidade PARA ESTE PC — não mais a frase genérica "Windows 10/11".
++   var item=App.ById(option.Id);var info=OptionInfo.For(item);
++   text=String.Join("\r\n",item.Review??new string[0])+"\r\n\r\n"+OptimizationRegistry.Details(option.Id,profile)
++    +"\r\n"+info.AutomaticReason+"\r\nPasta dos backups: "+App.RecordsRoot;
++   if(profile==null)text+="\r\n\r\nEste PC ainda não foi analisado: clique em Analisar este PC para a compatibilidade deixar de ser \"Não detectado\".";
++  }
++  return option.Title+"\r\n\r\n"+text;
+  }
+  bool HomeBulkSafe(HomeOption option){if(option.Diagnostic)return true;var item=App.ById(option.Id);return item!=null&&ExtremeProfile.Groups().Where(g=>g.Selected).SelectMany(g=>g.Items).Contains(option.Id)&&ExtremeProfile.IsReviewed(item);}
+  // "Selecionar tudo" marca o que está VISÍVEL no filtro atual: marcar em silêncio uma
