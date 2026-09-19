@@ -25,10 +25,44 @@
 > 1390 verificações aqui (6 puladas) → **1415 no Windows (0 puladas)**: as 25 a
 > mais são exatamente os blocos que dependem de API do Windows.
 >
+> ### `MachineProfile` — confirmado em hardware real
+>
+> As leituras WMI que a FASE 2 acrescentou rodaram num AMD Ryzen 7 5700X /
+> RX 6700 XT / MSI MS-7C96, Windows 11 build 26200. **Todas retornaram valor;
+> nenhuma falhou** — a seção "Não foi possível ler (e por quê)" não apareceu,
+> e ela só aparece quando alguma leitura cai.
+>
+> | Leitura | Retornou | Mecanismo exercitado |
+> |---|---|---|
+> | CPU, fabricante, núcleos/threads | Ryzen 7 5700X · AMD · 8/16 | `Win32_Processor` + `CpuVendorOf` |
+> | SMT | ativo | 16 lógicos > 8 físicos |
+> | GPU e fabricante | RX 6700 XT · AMD | `Win32_VideoController` + escolha da dedicada |
+> | RAM e faixa | 15,9 GB · média | `Win32_ComputerSystem` + `RamTierOf` |
+> | **Mídia do disco do sistema** | **NVMe** | `MSFT_Partition` → `MSFT_PhysicalDisk`, `BusType` 17 |
+> | Chassi | Desktop | `Win32_SystemEnclosure`, códigos SMBIOS |
+> | Energia | na tomada · sem bateria | `GetSystemPowerStatus` |
+> | Rede | Ethernet · 1000 Mb/s | `NetworkInterface` |
+> | Secure Boot | ativo | `SYSTEM\...\SecureBoot\State` |
+> | TPM | presente e habilitado | `root\cimv2\Security\MicrosoftTpm` |
+> | Placa e BIOS | MSI MS-7C96 · 2.J4 | `Win32_ComputerSystem` + `Win32_BIOS` |
+>
+> O cruzamento partição → disco físico era o mais arriscado (ele existe para não
+> supor "disco 0") e devolveu NVMe corretamente.
+>
 > **Continua sem verificação:** elevação por UAC, aplicar uma otimização de
-> verdade, desfazer a partir do Histórico, DPI de monitor, e os valores que as
-> leituras WMI do `MachineProfile` devolvem num PC real (a lógica é testada; os
-> valores retornados, não).
+> verdade, desfazer a partir do Histórico e DPI de monitor.
+>
+> ### Achado no PC de teste, não causado pelo programa
+>
+> A lista de serviços mostrou `WinDefend — Stopped — Disabled`. **O
+> LukeOptimizer não fez isso e não consegue fazer:** `WinDefend` está entre os
+> 54 serviços protegidos, e há teste garantindo que ele nunca entre na lista
+> opcional. Foi ação anterior ao programa.
+>
+> Isso expõe uma lacuna real da interface: **nada na tela avisa que uma proteção
+> está desligada.** O estado é exibido no meio da lista de serviços, sem
+> destaque. Entra como próximo item — ver `FASE-3-NOMES-PARA-HUMANOS.md`,
+> seção do que falta (itens 69 e 91 do pedido).
 
 
 Nas rodadas anteriores eu disse que não conseguia compilar aqui. Isso mudou:
