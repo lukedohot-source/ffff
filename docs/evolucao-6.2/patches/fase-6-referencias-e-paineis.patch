@@ -1016,7 +1016,7 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1 work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-19 03:46:09.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-19 08:51:23.807807867 +0000
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-19 14:16:45.470616159 +0000
 @@ -1,54 +1,54 @@
 -﻿param([switch]$OnlyTest)
 -$ErrorActionPreference = 'Stop'
@@ -1089,7 +1089,7 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +    Copy-Item -LiteralPath 'source\app.config' -Destination 'UiSmoke.exe.config' -Force
 +    Build @('/target:winexe','/win32manifest:source\app.manifest','/out:LukeOptimizer-Engine.new.exe','@compilacao.rsp') 'build.log'
 +    Build @('/target:exe','/out:ProcessFixture.exe','tests\ProcessFixture.cs') 'fixture-build.log'
-+    Build @('/define:TESTS','/target:exe','/main:EngineTests','/out:LukeOptimizer-Testes.exe','@compilacao.rsp','tests\EngineTests.cs','tests\V3Tests.cs','tests\V4Tests.cs','tests\V5Tests.cs','tests\V52Tests.cs','tests\V53Tests.cs','tests\V54Tests.cs','tests\RegressionTests.cs','tests\V6Tests.cs','tests\FoundationTests.cs','tests\NamingTests.cs','tests\DnsTests.cs','tests\ReferenceTests.cs') 'tests-build.log'
++    Build @('/define:TESTS','/target:exe','/main:EngineTests','/out:LukeOptimizer-Testes.exe','@compilacao.rsp','tests\EngineTests.cs','tests\V3Tests.cs','tests\V4Tests.cs','tests\V5Tests.cs','tests\V52Tests.cs','tests\V53Tests.cs','tests\V54Tests.cs','tests\RegressionTests.cs','tests\V6Tests.cs','tests\FoundationTests.cs','tests\NamingTests.cs','tests\DnsTests.cs','tests\ReferenceTests.cs','tests\SelfCheckTests.cs') 'tests-build.log'
 +    & .\LukeOptimizer-Testes.exe *> (Join-Path $taskResults 'tests.log')
 +    if ($LASTEXITCODE -ne 0) { throw 'Testes de logica falharam. Executavel principal preservado.' }
 +    Build @('/define:TESTS','/target:exe','/main:UiSmoke','/out:UiSmoke.exe','@compilacao.rsp','tests\UiSmoke.cs','tests\UnifiedUiTests.cs','tests\FunctionalUiTests.cs','tests\ProductUiTests.cs','tests\PanelUiTests.cs') 'ui-build.log'
@@ -1128,13 +1128,14 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +} finally { Pop-Location }
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/compilacao.rsp work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/compilacao.rsp
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/compilacao.rsp	2026-09-19 04:12:15.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/compilacao.rsp	2026-09-19 08:48:09.664793834 +0000
-@@ -42,8 +42,12 @@
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/compilacao.rsp	2026-09-19 14:15:25.400579165 +0000
+@@ -42,8 +42,13 @@
  source\MachineProfile.cs
  source\Optimizations.cs
  source\FeatureNaming.cs
 +source\WindowsSettings.cs
 +source\SettingsPanels.cs
++source\SelfCheck.cs
  source\WindowsTools.cs
  source\NetworkCenter.cs
 +source\DnsManager.cs
@@ -1938,13 +1939,7 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
   [DllImport("user32.dll")] internal static extern uint GetWindowThreadProcessId(IntPtr hwnd,out uint pid);
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-19 04:12:28.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-19 08:48:21.851715303 +0000
-@@ -1,4 +1,4 @@
--using System;
-+﻿using System;
- using System.IO;
- using System.Linq;
- using System.Text;
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Interface.cs	2026-09-19 14:15:47.474777124 +0000
 @@ -148,7 +148,10 @@
    var links=new FlowLayoutPanel {Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=true};side.Controls.Add(links,0,1);
    // "Memory Manager" estava em inglês no meio de um menu em português. "Memória" diz a
@@ -1966,20 +1961,44 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
    workerTimer=new System.Windows.Forms.Timer {Interval=350};workerTimer.Tick+=(s,e)=>ReadWorkerProgress();
    PrepareEmbedded();
    Load+=async(s,e)=>{ready=true;RefreshHistory();RefreshCatalog();UpdateMetrics();if(EmbeddedInterface.Parent!=IntPtr.Zero){scanning=true;try{machine=await Task.Run(()=>App.ScanHardware());}finally{scanning=false;SetActions();footer.Text="Escolha a ação desta ferramenta.";}if(!App.IsUiTest()&&(title.Text=="Apps e RAM"||title.Text=="Manutenção"))await RefreshResources();return;}InitializeBridge();if(App.IsUiTest()||App.ToolMode)return;if(App.PreviewOutput!=null)StartPreview();else {await RefreshScan();await RefreshResources();}};
+@@ -217,7 +220,14 @@
+  void BuildDiagnostics(){
+   var page=Page("Diagnóstico");var root=Rows(69,-1,109);page.Controls.Add(root);diagHeader=Theme.Label("A análise consulta configurações e serviços. Nenhum benchmark de FPS ou latência é executado.\r\n“Conferido” indica leitura do Windows. “Valores conferidos” indica correspondência no Registro.",10,Theme.Muted);root.Controls.Add(diagHeader,0,0);var card=new Surface {Dock=DockStyle.Fill,Margin=new Padding(0,0,0,16)};diagnosticText=Theme.ReadBox();diagnosticText.Font=Theme.Font(10);card.Controls.Add(diagnosticText);root.Controls.Add(card,0,1);
+   var actions=new FlowLayoutPanel {Dock=DockStyle.Fill,WrapContents=true};point=Theme.Button("Ponto de restauração");point.Width=189;point.Click+=async(s,e)=>await Elevated("--restorepoint","system");actions.Controls.Add(point);
+-  AddSystemButton(actions,"Proteção do Sistema","SystemPropertiesProtection.exe","");AddSettingsButton(actions,"Modo Jogo","ms-settings:gaming-gamemode");AddSettingsButton(actions,"Capturas","ms-settings:gaming-gamedvr");AddSettingsButton(actions,"Gráficos / GPU","ms-settings:display-advancedgraphics");AddSettingsButton(actions,"Inicialização","ms-settings:startupapps");AddSettingsButton(actions,"Armazenamento","ms-settings:storagesense");export=Theme.Button("Exportar diagnóstico");export.Width=182;export.Click+=(s,e)=>ExportReport();actions.Controls.Add(export);root.Controls.Add(actions,0,2);
++  AddSystemButton(actions,"Proteção do Sistema","SystemPropertiesProtection.exe","");AddSettingsButton(actions,"Modo Jogo","ms-settings:gaming-gamemode");AddSettingsButton(actions,"Capturas","ms-settings:gaming-gamedvr");AddSettingsButton(actions,"Gráficos / GPU","ms-settings:display-advancedgraphics");AddSettingsButton(actions,"Inicialização","ms-settings:startupapps");AddSettingsButton(actions,"Armazenamento","ms-settings:storagesense");export=Theme.Button("Exportar diagnóstico");export.Width=182;export.Click+=(s,e)=>ExportReport();actions.Controls.Add(export);
++  // A pergunta que nenhum teste automático responde: aplicar MUDA mesmo o Windows?
++  // Estes dois botões respondem NESTA máquina. Ver source\SelfCheck.cs.
++  var checkRead=Theme.Button("Conferir estado atual");checkRead.Name="selfcheck-read";checkRead.Width=196;checkRead.Margin=new Padding(0,0,10,10);
++  checkRead.Click+=async(s,e)=>await RunSelfCheck(false);actions.Controls.Add(checkRead);
++  var checkFull=Theme.Button("Provar que aplicar funciona");checkFull.Name="selfcheck-full";checkFull.Width=232;checkFull.Margin=new Padding(0,0,10,10);
++  checkFull.Click+=async(s,e)=>await RunSelfCheck(true);actions.Controls.Add(checkFull);
++  root.Controls.Add(actions,0,2);
+  }
+  void AddSystemButton(FlowLayoutPanel p,string text,string exe,string args){var b=Theme.Button(text);b.Width=173;b.Margin=new Padding(0,0,10,10);b.Click+=(s,e)=>OpenSystem(exe,args);p.Controls.Add(b);}
+  void AddSettingsButton(FlowLayoutPanel p,string text,string uri){var b=Theme.Button(text);b.Width=137;b.Margin=new Padding(0,0,10,10);b.Click+=(s,e)=>{if(App.IsWindows)OpenLocal(uri);};p.Controls.Add(b);}
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/IsolatedTransactions.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/IsolatedTransactions.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/IsolatedTransactions.cs	2026-09-19 04:11:11.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/IsolatedTransactions.cs	2026-09-19 08:24:14.449315810 +0000
-@@ -26,6 +26,9 @@
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/IsolatedTransactions.cs	2026-09-19 14:15:25.401534848 +0000
+@@ -1,4 +1,4 @@
+-﻿using System;
++using System;
+ using System.Linq;
+ using System.Collections.Generic;
+ 
+@@ -26,6 +26,11 @@
     return admin;
    }
    if(action=="--network-diagnostic"){if(!NetworkTools.IsDiagnostic(payload))throw new ArgumentException("Diagnostico de rede desconhecido.");return false;}
 +  // Gravar servidor DNS por adaptador exige administrador. Parse recusa aqui, antes de
 +  // qualquer elevação, um pedido que o processo elevado recusaria depois.
 +  if(action=="--dns-apply"){DnsManager.Parse(payload);return true;}
++  // A conferencia completa grava em HKLM; a de leitura nao grava nada.
++  if(action=="--self-check")return payload==SelfCheck.Full;
    if(action=="--apply-many"||action=="--max")return LiquidProtocol.NeedsAdmin(LiquidProtocol.Resolve(payload));
    if(action=="--apply"){
     var item=Items.FirstOrDefault(i=>i.Id==CatalogIds.Canonical(payload));
-@@ -33,7 +36,7 @@
+@@ -33,7 +38,7 @@
    }
    if(action=="--undo"||action=="--undo-last"){
     var record=action=="--undo-last"?History().FirstOrDefault(CanUndo):Json.Deserialize<Record>(AtomicStore.Read(RecordPath(payload)));
@@ -2011,7 +2030,7 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
     body.Append(Row("state",i.Id,state.State,state.Detail,issue??"",NeedsAdmin(new[]{i})?"1":"0",state.Verified?"1":"0"));
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/LukeOptimizer.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/LukeOptimizer.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/LukeOptimizer.cs	2026-09-19 04:10:55.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/LukeOptimizer.cs	2026-09-19 08:40:04.531654877 +0000
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/LukeOptimizer.cs	2026-09-19 14:15:25.401144270 +0000
 @@ -62,6 +62,7 @@
   public string Updated {get;set;} public bool ChangesStarted {get;set;}
   public List<ServiceSaved> ServiceValues {get;set;}
@@ -2028,17 +2047,20 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
     ImportedScripts.Load();
     Items.AddRange(ImportedScripts.AsCatalogItems());
     ResetIndex();
-@@ -186,6 +188,9 @@
+@@ -186,6 +188,12 @@
        // então a allowlist continua valendo item a item: nada fora dela executa.
        else if(args[0]=="--network-actions")foreach(string step in args[1].Split(new[]{','}))RunNetworkAction(step,CancellationToken.None);
        else if(args[0]=="--network-diagnostic")RunNetworkDiagnostic(args[1],CancellationToken.None);
 +      // Troca de DNS: o pedido é validado de novo AQUI, dentro do processo elevado, e o
 +      // adaptador é reencontrado por índice. O nome do adaptador nunca atravessa.
 +      else if(args[0]=="--dns-apply")ApplyDns(args[1],CancellationToken.None);
++      // Conferencia real: aplica e desfaz cada opcao NESTA maquina para provar que a
++      // gravacao tem efeito e que o desfazer devolve o valor original.
++      else if(args[0]=="--self-check")RunSelfCheck(args[1],CancellationToken.None);
        else if(args[0]=="--priority")ApplyFocus(args[1]);
        else if(args[0]=="--restore-selection")ApplyTransaction(RestoreSelectionItems(args[1]),"Perfil","Restaurar seleção do backup");
        else if(args[0]=="--apply-custom")ApplyTransaction(ExtraSettings.Manual(args[1]),"Perfil","Ajustes manuais escolhidos");
-@@ -248,7 +253,7 @@
+@@ -248,7 +256,7 @@
    foreach(string p in Directory.GetFiles(RecordsRoot,"*.json"))try{list.Add(Json.Deserialize<Record>(AtomicStore.Read(p)));}catch{}
    return list.OrderByDescending(x=>x.Time).ToList();
   }
@@ -2047,7 +2069,7 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
   internal static void RecordLaunchFailure(string action,string payload,Exception error,bool needsAdmin){var r=NewRecord("Execução não iniciada",payload,"Execução");r.RequestedAdmin=needsAdmin;r.OutcomeCode=ErrorHelp.For(error).ErrorCode;r.Status=ErrorHelp.For(error).ErrorCode=="CANCELLED"?"cancelado":"falhou antes de alterar";r.Message=ErrorHelp.For(error).FriendlyError;r.FailureDetail=error.ToString();r.Steps.Add(new StepResult{Id=payload,Name=action,Status=r.Status,Message=r.Message});Save(r);}
   static Record NewRecord(string name,string itemId,string kind) {return new Record {Id=Guid.NewGuid().ToString("N"),ItemId=itemId,Name=name,Time=RecordTime(),Kind=kind,Status="preparando",Message="",UserSid=Sid,Values=new List<SavedValue>(),NativeValues=new List<NativeSaved>(),Steps=new List<StepResult>(),Schema=3,ItemIds=new[]{itemId}};}
   static RegistryKey Hive(string name) {
-@@ -402,6 +407,7 @@
+@@ -402,6 +410,7 @@
    if(latest==null||latest.Id!=id)throw new Exception("Desfaça primeiro a alteração gerenciada mais recente.");
    if(rec.Kind=="Serviços"){RestoreOptionalServices(rec);return;}
    if(rec.Kind=="Foco"){RestoreFocus(rec);return;}
@@ -2077,6 +2099,281 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
    netCenterOutput=Theme.ReadBox();netCenterOutput.Text="Nenhuma tarefa executada ainda.\r\n\r\nAs leituras não alteram nada. As tarefas que alteram pedem confirmação, explicam o custo antes e gravam o resultado no Histórico.";
    box.Controls.Add(netCenterOutput);
   }
+diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SelfCheck.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SelfCheck.cs
+--- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SelfCheck.cs	1970-01-01 00:00:00.000000000 +0000
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SelfCheck.cs	2026-09-19 14:16:02.779494030 +0000
+@@ -0,0 +1,271 @@
++using System;
++using System.Linq;
++using System.Text;
++using System.Threading;
++using System.Collections.Generic;
++
++// CONFERÊNCIA REAL — "quando eu aplico, muda mesmo no Windows?"
++//
++// Esta é a única pergunta que os testes automáticos NÃO respondem, e é importante dizer
++// por quê: os testes de motor trocam a gravação no Registro por um dicionário em memória
++// (App.TestWrite / App.TestCapture) e os de interface trocam a elevação por um gancho
++// (TestElevation). Isso é proposital — teste não pode mexer no Windows de quem roda —,
++// mas significa que eles provam a LÓGICA (backup antes de gravar, id certo, desfazer
++// restaura, nada duplicado) e não provam o EFEITO.
++//
++// A conferência abaixo fecha essa lacuna no único lugar onde ela pode ser fechada: a
++// máquina real. E faz isso pelo MESMO caminho do produto — ApplyTransaction e Undo, os
++// mesmos que o botão Aplicar usa. Conferir por um caminho paralelo não provaria nada
++// sobre o caminho que a pessoa usa.
++//
++// Para cada opção:
++//
++//   LER  →  APLICAR  →  LER DE NOVO  →  DESFAZER  →  LER DE NOVO
++//
++// e o relatório responde, por opção, quatro perguntas separadas:
++//   · o Windows estava como antes de mexer?
++//   · aplicar MUDOU o valor no Windows?
++//   · desfazer executou?
++//   · o valor VOLTOU exatamente ao que era?
++//
++// A quarta é a que mais importa. Uma opção que muda o Windows mas não volta é pior que
++// uma que não faz nada.
++public class SelfCheckRow {
++ public string Id="",Name="",Group="",Before="",AfterApply="",AfterUndo="",Outcome="",Detail="";
++ public bool Attempted,Changed,Undone,Restored;
++}
++
++static class SelfCheck {
++ internal const string ReadOnly="leitura",Full="completo";
++
++ // Valores de TODAS as chaves e preferências que a opção toca, num texto comparável.
++ // É a leitura crua: serve para comparar antes/depois sem depender de texto de tela.
++ internal static string Snapshot(Item item){
++  if(item==null)return "";
++  var parts=new List<string>();
++  foreach(var op in item.Operations??new RegOp[0]){
++   try{
++    var now=App.Capture(op).Before;
++    parts.Add(op.Hive+"\\"+op.Key+"\\"+op.Name+" = "+(now.Delete?"(ausente)":now.Kind+":"+now.Data));
++   }catch(Exception e){parts.Add(op.Hive+"\\"+op.Key+"\\"+op.Name+" = (leitura falhou: "+e.Message+")");}
++  }
++  if(!String.IsNullOrEmpty(item.ActionCode)){
++   foreach(string code in NativeSettings.Codes(item.ActionCode)){
++    try{parts.Add(code+" = "+NativeSettings.Read(code));}
++    catch(Exception e){parts.Add(code+" = (leitura falhou: "+e.Message+")");}
++   }
++  }
++  return parts.Count==0?"":String.Join(" | ",parts.ToArray());
++ }
++
++ // Por que uma opção NÃO entra na parte que grava. Devolve o motivo, ou null.
++ //
++ // O critério é um só: entra o que tem caminho de volta EXATO e imediato. Uma opção que
++ // eu não consiga desfazer na hora não pode ser testada assim na máquina de alguém —
++ // seria transformar a conferência em alteração permanente sem pedir.
++ internal static string ExcludedFromWrite(Item item){
++  if(item==null)return "opção inexistente";
++  if(!item.Native)return "não é função executável: o app não aplica, só explica";
++  if(item.ActionCode=="power")return "troca o plano de energia do sistema inteiro; fora desta conferência por segurança";
++  bool writes=(item.Operations??new RegOp[0]).Length>0||
++              (!String.IsNullOrEmpty(item.ActionCode)&&NativeSettings.Codes(item.ActionCode).Length>0);
++  if(!writes)return "não grava valor conferível (ação, diagnóstico ou atalho)";
++  return null;
++ }
++
++ internal static List<Item> Candidates(){
++  return App.Items.Where(i=>i.Native&&ExcludedFromWrite(i)==null).OrderBy(i=>i.Category,StringComparer.CurrentCulture)
++          .ThenBy(i=>i.ReviewTitle,StringComparer.CurrentCulture).ToList();
++ }
++
++ // ------------------------------------------------------------------ relatório
++ internal static string Report(List<SelfCheckRow> rows,string mode,string machineText){
++  var b=new StringBuilder();
++  b.AppendLine("CONFERÊNCIA REAL DAS OPÇÕES — o que muda de verdade neste Windows");
++  b.AppendLine(new String('=',78)).AppendLine();
++  b.AppendLine("Gerado em: "+DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
++  if(!String.IsNullOrEmpty(machineText))b.AppendLine(machineText);
++  b.AppendLine("Modo: "+(mode==Full?"COMPLETO — cada opção foi aplicada e desfeita nesta máquina"
++                                    :"SOMENTE LEITURA — nada foi alterado")).AppendLine();
++
++  if(mode!=Full){
++   b.AppendLine("Esta leitura mostra o estado ATUAL de cada opção. Ela não prova que aplicar");
++   b.AppendLine("funciona — para isso use o modo completo, que aplica e desfaz cada uma.").AppendLine();
++   foreach(var row in rows)b.AppendLine(row.Outcome.PadRight(22)+" · "+row.Name+"\r\n"+Indent(row.Before));
++   return b.ToString();
++  }
++
++  int changed=rows.Count(r=>r.Changed),restored=rows.Count(r=>r.Restored),attempted=rows.Count(r=>r.Attempted);
++  var broken=rows.Where(r=>r.Attempted&&r.Changed&&!r.Restored).ToList();
++  var silent=rows.Where(r=>r.Attempted&&!r.Changed).ToList();
++
++  b.AppendLine("RESUMO").AppendLine(new String('-',78));
++  b.AppendLine("Opções testadas:                      "+attempted);
++  b.AppendLine("Mudaram o Windows de verdade:         "+changed);
++  b.AppendLine("Voltaram exatamente ao estado original:"+restored);
++  b.AppendLine("Aplicaram mas NÃO voltaram:           "+broken.Count+(broken.Count>0?"   <-- PRECISA DE ATENÇÃO":""));
++  b.AppendLine("Não mudaram nada ao aplicar:          "+silent.Count).AppendLine();
++
++  if(broken.Count>0){
++   b.AppendLine("ESTAS NÃO VOLTARAM AO ORIGINAL — corrija antes de usar:").AppendLine(new String('-',78));
++   foreach(var row in broken){
++    b.AppendLine("· "+row.Name+"  ["+row.Id+"]");
++    b.AppendLine("   Antes:   "+row.Before);
++    b.AppendLine("   Depois:  "+row.AfterApply);
++    b.AppendLine("   Desfeito:"+row.AfterUndo);
++    if(!String.IsNullOrEmpty(row.Detail))b.AppendLine("   "+row.Detail);
++   }
++   b.AppendLine();
++  }
++  if(silent.Count>0){
++   b.AppendLine("ESTAS NÃO MUDARAM NADA AO APLICAR:").AppendLine(new String('-',78));
++   b.AppendLine("Pode ser legítimo — o valor já estava no alvo, o Windows recusou a gravação,");
++   b.AppendLine("ou a chave não existe nesta build. O motivo de cada uma está abaixo.").AppendLine();
++   foreach(var row in silent){
++    b.AppendLine("· "+row.Name+"  ["+row.Id+"]");
++    b.AppendLine("   Antes:  "+row.Before);
++    b.AppendLine("   Depois: "+row.AfterApply);
++    if(!String.IsNullOrEmpty(row.Detail))b.AppendLine("   "+row.Detail);
++   }
++   b.AppendLine();
++  }
++
++  b.AppendLine("DETALHE, OPÇÃO POR OPÇÃO").AppendLine(new String('=',78)).AppendLine();
++  string group=null;
++  foreach(var row in rows){
++   if(row.Group!=group){group=row.Group;b.AppendLine().AppendLine("### "+group).AppendLine();}
++   b.AppendLine(Mark(row)+" "+row.Name);
++   b.AppendLine("    id: "+row.Id);
++   b.AppendLine("    antes ........ "+row.Before);
++   if(row.Attempted){
++    b.AppendLine("    ao aplicar ... "+row.AfterApply+"   "+(row.Changed?"MUDOU":"não mudou"));
++    b.AppendLine("    ao desfazer .. "+row.AfterUndo+"   "+(row.Restored?"voltou ao original":"NÃO voltou"));
++   }
++   if(!String.IsNullOrEmpty(row.Detail))b.AppendLine("    "+row.Detail);
++   b.AppendLine();
++  }
++  b.AppendLine(new String('=',78));
++  b.AppendLine("O que este relatório NÃO diz: se a mudança melhora o desempenho. Ele prova");
++  b.AppendLine("que o valor foi gravado no Windows e que voltou ao original — nada além disso.");
++  return b.ToString();
++ }
++ static string Mark(SelfCheckRow row){
++  if(!row.Attempted)return "[ -- ]";
++  if(row.Changed&&row.Restored)return "[ OK ]";
++  if(row.Changed&&!row.Restored)return "[FALHA]";
++  return "[ ?? ]";
++ }
++ static string Indent(string text){
++  if(String.IsNullOrEmpty(text))return "        (nada a ler)";
++  return "        "+text.Replace(" | ","\r\n        ");
++ }
++}
++
++public partial class MainForm {
++ // Texto do aviso antes da conferência completa. Ela ALTERA o Windows de verdade, uma
++ // opção por vez, e desfaz cada uma logo depois — a pessoa tem de saber disso antes.
++ internal static string SelfCheckWarning(int count){
++  var b=new StringBuilder();
++  b.AppendLine("Esta conferência responde: quando o aplicativo aplica uma opção, o Windows MUDA MESMO?").AppendLine();
++  b.AppendLine("Para responder de verdade, ela precisa alterar seu Windows. O que vai acontecer, para cada uma das "+count+" opções, uma de cada vez:").AppendLine();
++  b.AppendLine("   1. lê o valor atual");
++  b.AppendLine("   2. APLICA a opção (alteração real, com backup, pelo mesmo caminho do botão Aplicar)");
++  b.AppendLine("   3. lê de novo e compara — foi isso que mudou?");
++  b.AppendLine("   4. DESFAZ imediatamente");
++  b.AppendLine("   5. lê mais uma vez — voltou exatamente ao que era?").AppendLine();
++  b.AppendLine("Ao final, cada opção terá sido aplicada e desfeita. A intenção é que seu Windows termine exatamente como começou — e o relatório diz, opção por opção, se isso aconteceu.").AppendLine();
++  b.AppendLine("FICAM DE FORA, por não terem volta exata e imediata: plano de energia, serviços, remoção de aplicativos, reparos de rede e qualquer ação que exija reiniciar.").AppendLine();
++  b.AppendLine("Se alguma não voltar sozinha, o relatório mostra o valor original para você repor pelo Histórico. Feche jogos e trabalho aberto antes.").AppendLine();
++  b.AppendLine("Requer administrador. Pode demorar alguns minutos.").AppendLine();
++  b.AppendLine("Começar?");
++  return b.ToString();
++ }
++
++ async System.Threading.Tasks.Task RunSelfCheck(bool full){
++  if(busy||scanning||resourceScanning||easyRunning||productRunning)return;
++  if(!full){
++   if(!await InlineReview("Conferir estado atual",
++    "Lê o estado atual de cada opção neste Windows e monta um relatório.\r\n\r\nNada é alterado: é só leitura.\r\n\r\nO relatório fica no Histórico e pode ser exportado.\r\n\r\nContinuar?",true))return;
++   await Elevated("--self-check",SelfCheck.ReadOnly);
++   ShowPage("Histórico");
++   return;
++  }
++  if(!await InlineReview("Provar que aplicar funciona",SelfCheckWarning(SelfCheck.Candidates().Count),true))return;
++  if(await Elevated("--self-check",SelfCheck.Full))ShowPage("Histórico");
++ }
++}
++
++static partial class App {
++ // Executa a conferência. payload: "leitura" (não altera nada) ou "completo".
++ internal static Record RunSelfCheck(string payload,CancellationToken token){
++  string mode=payload==SelfCheck.Full?SelfCheck.Full:SelfCheck.ReadOnly;
++  var record=NewRecord("Conferência real das opções ("+mode+")","self-check","Diagnóstico");
++  record.RequestedAdmin=mode==SelfCheck.Full;
++  Save(record);
++  var rows=new List<SelfCheckRow>();
++  var machine=ScanHardware();
++  try{
++   var candidates=SelfCheck.Candidates();
++   int done=0;
++   foreach(var item in candidates){
++    if(token.IsCancellationRequested)break;
++    WriteProgress(candidates.Count==0?100:done*100/candidates.Count,"Conferindo opções",
++     (done+1)+" / "+candidates.Count+" · "+item.ReviewTitle);
++    done++;
++    var row=new SelfCheckRow{Id=item.Id,Name=item.ReviewTitle,Group=item.Category};
++    rows.Add(row);
++    string why=Compatibility(item,machine);
++    row.Before=SelfCheck.Snapshot(item);
++    if(why!=null){row.Outcome="não compatível";row.Detail=why;continue;}
++    var observed=Observe(item,machine);
++    row.Outcome=observed.State;
++    if(mode!=SelfCheck.Full)continue;
++    if(observed.Verified){
++     row.Detail="Já estava no valor que a opção grava; aplicar não teria o que mudar. Não foi alterada.";
++     continue;
++    }
++    // ------------------------------------------------ aplica pelo caminho real
++    try{
++     ApplyTransaction(new[]{item},"Nativo",item.ReviewTitle);
++     var applied=History().FirstOrDefault(CanUndo);
++     row.AfterApply=SelfCheck.Snapshot(item);
++     row.Attempted=true;
++     row.Changed=row.AfterApply!=row.Before;
++     if(applied==null){row.Detail="A aplicação não deixou backup restaurável; desfazer indisponível.";continue;}
++     // ------------------------------------------------ desfaz pelo caminho real
++     try{
++      Undo(applied.Id);
++      row.Undone=true;
++      row.AfterUndo=SelfCheck.Snapshot(item);
++      row.Restored=row.AfterUndo==row.Before;
++      if(!row.Restored)row.Detail="O valor depois de desfazer não bate com o original.";
++     }catch(Exception e){
++      row.AfterUndo=SelfCheck.Snapshot(item);
++      row.Restored=row.AfterUndo==row.Before;
++      row.Detail="Desfazer falhou: "+e.Message;
++     }
++    }catch(Exception e){
++     row.AfterApply=SelfCheck.Snapshot(item);
++     row.Attempted=true;
++     row.Changed=row.AfterApply!=row.Before;
++     row.Detail="Aplicar falhou: "+e.Message;
++    }
++   }
++   record.Status="consulta concluída";
++   record.OutcomeCode=rows.Any(r=>r.Attempted&&r.Changed&&!r.Restored)?"RESTORE_FAILED":"OK";
++  }catch(Exception e){
++   record.Status="leitura indisponível";
++   record.OutcomeCode=ErrorHelp.For(e).ErrorCode;
++   record.Message=ErrorHelp.For(e).FriendlyError+"\r\n"+e;
++   Save(record);return record;
++  }
++  string report=SelfCheck.Report(rows,mode,
++   "Windows "+machine.Build+" · "+machine.Edition+" · "+machine.Cpu);
++  record.Message=report;
++  foreach(var row in rows)record.Steps.Add(new StepResult{Id=row.Id,Name=row.Name,
++   Status=row.Attempted?(row.Changed&&row.Restored?"mudou e voltou":row.Changed?"mudou e NÃO voltou":"não mudou"):row.Outcome,
++   Message="antes: "+row.Before+"\r\ndepois: "+row.AfterApply+"\r\ndesfeito: "+row.AfterUndo+"\r\n"+row.Detail});
++  WriteProgress(100,record.Status,"Conferência concluída");
++  Save(record);return record;
++ }
++}
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SettingsPanels.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SettingsPanels.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SettingsPanels.cs	1970-01-01 00:00:00.000000000 +0000
 +++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SettingsPanels.cs	2026-09-19 13:32:19.754844405 +0000
@@ -8166,13 +8463,13 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +}
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs	2026-09-19 03:25:28.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs	2026-09-19 08:40:51.165446940 +0000
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/EngineTests.cs	2026-09-19 14:16:45.459740193 +0000
 @@ -76,7 +76,7 @@
    Reset();App.ApplyMaximum(new[]{"native-capture"});var observed=App.Observe(App.Items.Single(i=>i.ActionCode=="capture"),App.TestMachine);Assert(observed.State=="Valores conferidos"&&observed.Match==3,"status reports stored values without claiming performance");registry.Remove(registry.Keys.First());observed=App.Observe(App.Items.Single(i=>i.ActionCode=="capture"),App.TestMachine);Assert(observed.State=="Parcial"&&observed.Match==2,"partial configuration correctly detected");
    Reset();App.TestCapture=op=>{throw new UnauthorizedAccessException("test access denied");};legacyBatch=App.Items.Where(i=>new[]{"native-window","native-capture"}.Contains(i.Id)).ToList();ExpectFailure(()=>App.ApplyTransaction(legacyBatch,"Perfil","teste de snapshot"),"unreadable registry aborts before mutation");Assert(native["window"]=="1"&&Last().Status=="falhou antes de alterar","snapshot failure makes no changes");
    Reset();App.ApplyMaximum(new[]{"native-mouse"});record=Last();Assert(native["mouse"]=="0,0,0","optional mouse acceleration uses its own snapshot");App.Undo(record.Id);Assert(native["mouse"]=="6,10,1","all mouse acceleration parameters restored exactly");
 -  RunV3Tests();RunV4Tests();RunV5Tests();RunV52Tests();RunV53Tests();RunV54Tests();RunRegressionTests();RunV6Tests();RunFoundationTests();RunNamingTests();
-+  RunV3Tests();RunV4Tests();RunV5Tests();RunV52Tests();RunV53Tests();RunV54Tests();RunRegressionTests();RunV6Tests();RunFoundationTests();RunNamingTests();RunDnsTests();RunReferenceTests();
++  RunV3Tests();RunV4Tests();RunV5Tests();RunV52Tests();RunV53Tests();RunV54Tests();RunRegressionTests();RunV6Tests();RunFoundationTests();RunNamingTests();RunDnsTests();RunReferenceTests();RunSelfCheckTests();
    Console.WriteLine("TOTAL: "+checks+" checks passed, "+skips.Count+" skipped (logic only; not an FPS or live Windows mutation test)");
    foreach(string s in skips)Console.WriteLine("  skipped: "+s);
    return 0;
@@ -8520,6 +8817,101 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +   }
 +  }
 +  ExpectFailure(()=>WindowsSettings.Resolve("nao-existe"),"an unknown setting id is rejected");
++
++  Reset();
++ }
++}
+diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/SelfCheckTests.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/SelfCheckTests.cs
+--- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/SelfCheckTests.cs	1970-01-01 00:00:00.000000000 +0000
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/SelfCheckTests.cs	2026-09-19 14:16:37.851496115 +0000
+@@ -0,0 +1,91 @@
++using System;
++using System.Linq;
++using System.Threading;
++using System.Collections.Generic;
++
++// CONFERÊNCIA REAL — testes.
++//
++// Há um limite honesto aqui: estes testes rodam contra o registro SIMULADO, então eles
++// provam que a conferência detecta corretamente mudou/não mudou/voltou/não voltou — e
++// NÃO provam que gravar no Registro do Windows funciona. Provar isso é justamente o
++// trabalho da conferência quando ela roda na máquina de verdade.
++//
++// O que se testa aqui, e é o que pode dar errado no código: a conferência precisa
++// ACUSAR quando o valor não muda e quando não volta. Uma conferência que diz "tudo certo"
++// para tudo seria pior que nenhuma.
++partial class EngineTests {
++ static void RunSelfCheckTests(){
++  Reset();
++  FullCatalog();
++
++  // ------------------------------------------------------------- quem entra
++  var candidates=SelfCheck.Candidates();
++  Assert(candidates.Count>0,"the verification has options to check");
++  Assert(candidates.All(i=>i.Native),"only executable functions are verified");
++  Assert(candidates.All(i=>SelfCheck.ExcludedFromWrite(i)==null),"every candidate passes the exclusion rule");
++  // O plano de energia troca configuração do sistema inteiro e não tem volta imediata
++  // exata: fica de fora por segurança, e o motivo é escrito.
++  var power=App.Items.First(i=>i.ActionCode=="power");
++  Assert(SelfCheck.ExcludedFromWrite(power)!=null,"the power plan is kept out of the write verification");
++  Assert(SelfCheck.ExcludedFromWrite(power).Contains("energia"),"the exclusion says why, in plain language");
++  Assert(!candidates.Any(i=>i.ActionCode=="power"),"the excluded option never reaches the candidate list");
++  Assert(SelfCheck.ExcludedFromWrite(null)!=null,"a missing item is refused instead of crashing");
++
++  // ---------------------------------------------------------------- leitura
++  var target=App.ById("native-capture");
++  string before=SelfCheck.Snapshot(target);
++  Assert(before.Length>0,"the snapshot reads the values the option touches");
++  Assert(before.Contains("GameDVR_Enabled"),"the snapshot names each value it read");
++  Assert(SelfCheck.Snapshot(null)=="","a snapshot of nothing is empty, not an exception");
++
++  // ------------------------------------------------- modo leitura não altera
++  string registryBefore=String.Join(";",registry.OrderBy(x=>x.Key).Select(x=>x.Key+"="+x.Value.Data).ToArray());
++  var readOnly=App.RunSelfCheck(SelfCheck.ReadOnly,CancellationToken.None);
++  Assert(String.Join(";",registry.OrderBy(x=>x.Key).Select(x=>x.Key+"="+x.Value.Data).ToArray())==registryBefore,
++   "the read-only verification changes NOTHING");
++  Assert(readOnly.Status=="consulta concluída"&&readOnly.Message.Contains("SOMENTE LEITURA"),"the read-only report says plainly that nothing was changed");
++  Assert(readOnly.Steps.Count==SelfCheck.Candidates().Count,"the read-only report covers every candidate");
++
++  // ------------------------------------------------ ciclo completo: bom caso
++  Reset();FullCatalog();
++  var full=App.RunSelfCheck(SelfCheck.Full,CancellationToken.None);
++  Assert(full.Status=="consulta concluída","the full verification finishes");
++  Assert(full.Message.Contains("COMPLETO"),"the report says which mode ran");
++  Assert(full.OutcomeCode=="OK","with a working backend nothing is reported as failing to restore");
++  // A prova que importa: o registro voltou ao estado inicial depois de aplicar e desfazer
++  // TODAS as opções. Se o desfazer não funcionasse, isto acusaria.
++  Assert(registry.Count==0,"after applying and undoing every option, the registry is back to where it started");
++  Assert(native["window"]=="1"&&native["menu"]=="400","the API preferences are back to their original values too");
++  Assert(full.Message.Contains("Mudaram o Windows de verdade"),"the report answers the question that was asked");
++  Assert(full.Steps.Any(s=>s.Status=="mudou e voltou"),"at least one option is reported as changed and restored");
++  Assert(!full.Steps.Any(s=>s.Status=="mudou e NÃO voltou"),"no option is reported as unrestored on a healthy backend");
++
++  // ------------------------------------- acusa quando a gravação NÃO tem efeito
++  // failReadback faz a gravação de AutoGameModeEnabled não valer: é exatamente o caso
++  // "o app disse que aplicou e o Windows não mudou". A conferência tem de perceber.
++  Reset();FullCatalog();failReadback=true;
++  var silent=App.RunSelfCheck(SelfCheck.Full,CancellationToken.None);
++  failReadback=false;
++  Assert(silent.Message.Contains("NÃO MUDARAM NADA AO APLICAR"),"the report calls out options whose write had no effect");
++  Assert(silent.Steps.Any(s=>s.Status=="não mudou"),"an option that did not change is reported as such, never as applied");
++
++  // --------------------------------------- acusa quando NÃO volta ao original
++  // failRollback quebra a restauração. O relatório tem de destacar isso em primeiro
++  // lugar: uma opção que muda e não volta é pior que uma que não faz nada.
++  Reset();FullCatalog();failRollback=true;
++  var broken=App.RunSelfCheck(SelfCheck.Full,CancellationToken.None);
++  failRollback=false;
++  Assert(broken.OutcomeCode=="RESTORE_FAILED","a failed restore changes the outcome code of the whole run");
++  Assert(broken.Message.Contains("PRECISA DE ATENÇÃO")&&broken.Message.Contains("NÃO VOLTARAM AO ORIGINAL"),
++   "the report puts the unrestored options at the top, with a warning");
++  Assert(broken.Message.Contains("Antes:"),"the report shows the original value, so it can be put back by hand");
++
++  // ------------------------------------------------------------- honestidade
++  Assert(full.Message.Contains("NÃO diz")&&full.Message.Contains("melhora o desempenho"),
++   "the report states its own limit: it proves the value was written, not that it made anything faster");
++  Assert(App.ActionNeedsAdmin("--self-check",SelfCheck.Full),"the full verification asks for administrator");
++  Assert(!App.ActionNeedsAdmin("--self-check",SelfCheck.ReadOnly),"the read-only verification does not ask for administrator it does not need");
 +
 +  Reset();
 + }
