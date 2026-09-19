@@ -1,0 +1,549 @@
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Resources.cs	2026-09-14 01:53:54.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Resources.cs	2026-09-19 03:38:46.195657823 +0000
+@@ -36,13 +36,69 @@
+  [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetSystemTimes(out FT idle,out FT kernel,out FT user);
+  [DllImport("advapi32.dll",SetLastError=true)] static extern bool OpenProcessToken(IntPtr process,uint access,out IntPtr token);
+  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
+- internal static readonly HashSet<string> Closable=new HashSet<string>(new[]{
++ // Nível 1 — apps de usuário: fechar custa no máximo reabrir o programa.
++ static readonly string[] LightProcesses={
+   "chrome","msedge","firefox","brave","opera","spotify","discord","telegram","slack","teams","ms-teams","zoom","skype",
+-  "vivaldi","waterfox","librewolf","floorp","zen","thunderbird","WhatsApp","Signal","DiscordCanary","DiscordPTB",
++  "vivaldi","waterfox","librewolf","floorp","zen","thunderbird","WhatsApp","Signal","DiscordCanary","DiscordPTB","msteams",
+   "obs64","Streamlabs OBS","Overwolf","OverwolfBrowser","Medal","ShareX","ScreenToGif","CamtasiaStudio",
+   "vlc","mpv","PotPlayerMini64","iTunes","Deezer","Amazon Music","TIDAL","qBittorrent","uTorrent",
+   "notion","Obsidian","Todoist","Evernote","CapCut","Canva"
+- },StringComparer.OrdinalIgnoreCase);
++ };
++ // Nível 2 — acompanhantes e sincronização: param de sincronizar, atualizar ou notificar
++ // até serem reabertos. Nada some do disco; nada é desinstalado.
++ static readonly string[] AggressiveProcesses={
++  "OneDrive","Dropbox","GoogleDriveFS","googledrivesync","MEGAsync","pCloud","Creative Cloud",
++  "CCXProcess","CCLibrary","Adobe Desktop Service","AdobeIPCBroker","AdobeNotificationClient",
++  "GoogleUpdate","MicrosoftEdgeUpdate","jusched","AcrobatNotificationClient","OfficeClickToRun",
++  "Cortana","SearchApp","YourPhone","PhoneExperienceHost","Widgets","WidgetService",
++  "olk","OUTLOOK","EXCEL","WINWORD","POWERPNT","Todo","OneNote",
++  "SnippingTool","StickyNotes","Microsoft.Notes","GameBar","GameBarFTServer","XboxPcApp","XboxPcAppFT"
++ };
++ // Nível 3 — launchers, periféricos e overlays. Fechar um launcher pode encerrar o jogo
++ // aberto por ele e derrubar macros, RGB e software de mouse/teclado. Nunca entra em
++ // ação de um clique; exige seleção explícita e a confirmação avisa disso.
++ static readonly string[] ExtremeProcesses={
++  "steam","steamwebhelper","EpicGamesLauncher","EpicWebHelper","GalaxyClient","GalaxyClientService",
++  "Battle.net","UbisoftConnect","UplayWebCore","upc","EADesktop","EABackgroundService","Origin",
++  "RiotClientServices","RiotClientUx","RiotClientUxRender","Rockstar-Games-Launcher","SocialClubHelper",
++  "itch","PlayniteDesktop","HeroicGamesLauncher",
++  "RazerAppEngine","Razer Synapse 3","RzSDKService","LogiOverlay","LogiOptionsMgr","lghub","lghub_agent",
++  "iCUE","CorsairService","Armoury Crate","ArmouryCrate.UserSessionHelper","MSI Center","LightKeeper",
++  "SteelSeriesGG","SteelSeriesEngine","OpenRGB","SignalRgb","NZXT CAM","FanControl",
++  "NVIDIA Share","NVIDIA Web Helper","nvcontainer","RadeonSoftware","AMDRSServ","AMDRSSrcExt"
++ };
++ internal static readonly HashSet<string> Closable=new HashSet<string>(
++  LightProcesses.Concat(AggressiveProcesses).Concat(ExtremeProcesses),StringComparer.OrdinalIgnoreCase);
++ static readonly HashSet<string> AggressiveSet=new HashSet<string>(AggressiveProcesses,StringComparer.OrdinalIgnoreCase);
++ static readonly HashSet<string> ExtremeSet=new HashSet<string>(ExtremeProcesses,StringComparer.OrdinalIgnoreCase);
++ // "leve" | "agressivo" | "extremo" | "" (fora da lista, nunca fechável)
++ internal static string Tier(string processName){
++  if(String.IsNullOrEmpty(processName))return "";
++  if(ExtremeSet.Contains(processName))return "extremo";
++  if(AggressiveSet.Contains(processName))return "agressivo";
++  return Closable.Contains(processName)?"leve":"";
++ }
++ internal static bool WithinTier(string processName,string tier){
++  string actual=Tier(processName);
++  if(actual.Length==0)return false;
++  if(tier=="extremo")return true;
++  if(tier=="agressivo")return actual!="extremo";
++  return actual=="leve";
++ }
++ // Tamanho do array de origem, não do conjunto final: é o que permite provar que os
++ // três níveis não se sobrepõem (a soma tem de bater com Closable.Count).
++ internal static int TierSourceCount(string tier){
++  if(tier=="leve")return LightProcesses.Length;
++  if(tier=="agressivo")return AggressiveProcesses.Length;
++  if(tier=="extremo")return ExtremeProcesses.Length;
++  throw new ArgumentException("Nível de processo inválido.");
++ }
++ internal static string TierWarning(string tier){
++  if(tier=="leve")return "Fecha apenas apps de usuário: navegador, mensageiro, player, gravador. Reabra quando quiser; nada é desinstalado.";
++  if(tier=="agressivo")return "Inclui sincronização de nuvem (OneDrive, Drive, Dropbox), atualizadores e apps do Office. Arquivos param de sincronizar e notificações param de chegar até você reabrir. Nenhum arquivo local é apagado.";
++  if(tier=="extremo")return "Inclui launchers de jogos e software de periférico. FECHAR UM LAUNCHER PODE ENCERRAR O JOGO ABERTO POR ELE, e perfis de mouse, teclado e RGB voltam ao padrão até o software reabrir. Anticheat em execução não é tocado. Use com o jogo fechado.";
++  return "Nível desconhecido.";
++ }
+  internal static readonly HashSet<string> Focusable=new HashSet<string>(new[]{
+   "cs2","csgo","FortniteClient-Win64-Shipping","RobloxPlayerBeta","GTA5","GTA5_Enhanced","VALORANT-Win64-Shipping",
+   "League of Legends","acad","Revit","SketchUp","Lumion","3dsmax","blender","vray",
+@@ -60,7 +116,7 @@
+   return "";
+  }
+  internal static bool Within(string path,string directory) {
+-  try {string root=(directory??"").Replace('/','\\').TrimEnd('\\');string full=(path??"").Replace('/','\\');
++  try {string root=(directory??"").Replace('/','\\').TrimEnd(new[]{'\\'});string full=(path??"").Replace('/','\\');
+    if(root.Length==0||full.Length==0)return false;return String.Equals(root,full,StringComparison.OrdinalIgnoreCase)||full.StartsWith(root+"\\",StringComparison.OrdinalIgnoreCase);
+   }catch{return false;}
+  }
+@@ -158,8 +214,78 @@
+   Save(rec);try {
+    rec.BeforeSample=ResourceMonitor.Measure();rec.Status="executando";Save(rec);
+    rec.Steps=ResourceMonitor.CloseSelected(selected,force,progress);rec.AfterSample=ResourceMonitor.Measure();
++   // Guarda o executável de cada app efetivamente encerrado, para permitir reabrir depois.
++   // Só o caminho: linha de comando e argumentos não são reproduzidos.
++   rec.ClosedApps=new List<ClosedApp>();
++   foreach(var token in selected.GroupBy(p=>p.Pid).Select(g=>g.First())){
++    var step=rec.Steps.FirstOrDefault(s=>s.Id==token.Pid.ToString());
++    if(step==null||step.Status!="encerrado")continue;
++    if(String.IsNullOrEmpty(token.Path)||!ResourceMonitor.Closable.Contains(token.Name))continue;
++    if(rec.ClosedApps.Any(a=>String.Equals(a.Path,token.Path,StringComparison.OrdinalIgnoreCase)))continue;
++    rec.ClosedApps.Add(new ClosedApp{Name=token.Name,Path=token.Path,Tier=ResourceMonitor.Tier(token.Name)});
++   }
+    rec.Status=rec.Steps.Any(s=>s.Status!="encerrado"&&s.Status!="já encerrado")?"concluído com avisos":"concluído";
+-   rec.Message=ResourceMonitor.Compare(rec.BeforeSample,rec.AfterSample)+"\r\nFechar apps não possui desfazer: reabra-os manualmente. Não há limpeza periódica de cache/working set.";Save(rec);return rec;
++   rec.Message=ResourceMonitor.Compare(rec.BeforeSample,rec.AfterSample)+
++    "\r\n"+rec.ClosedApps.Count+" app(s) podem ser reabertos por Reabrir apps fechados, no Histórico. "+
++    "Reabrir inicia o programa de novo: janelas, abas e trabalho não salvo NÃO voltam. Não há limpeza periódica de cache/working set.";
++   Save(rec);return rec;
+   }catch(Exception e){rec.Status="falhou";rec.Message=e.Message+"\r\nApps já fechados não são reabertos automaticamente.";Save(rec);throw;}
+  }
++ // Reabrir NÃO é desfazer: não entra em CanUndo nem na cadeia de Undo, porque não
++ // restaura estado do Windows. É uma ação separada e explícita sobre um registro.
++ // Formato de caminho seguro, com resposta IDÊNTICA em qualquer plataforma.
++ //
++ // Path.GetInvalidPathChars() não serve para isto: no Windows ele inclui aspas, |, < e >;
++ // fora dele devolve praticamente só o caractere nulo. Uma verificação de segurança que
++ // muda de resultado conforme o sistema é uma verificação que não se pode testar.
++ // Esta lista é explícita e fechada, então o teste significa a mesma coisa nos dois lados.
++ //
++ // É operação de string pura: nunca lança. Por isso vem ANTES de qualquer API de caminho.
++ internal static readonly char[] RejectedPathChars={'\0','\r','\n','\t','"','|','<','>','*','?'};
++ internal static bool PathShapeSafe(string path){
++  return !String.IsNullOrWhiteSpace(path)&&path.IndexOfAny(RejectedPathChars)<0;
++ }
++ internal static Record ReopenClosedApps(string recordId){
++  var source=Json.Deserialize<Record>(AtomicStore.Read(RecordPath(recordId)));
++  if(source==null||source.UserSid!=Sid)throw new Exception("Este registro pertence a outro usuário.");
++  if(source.Kind!="Apps e RAM")throw new Exception("Este registro não fechou aplicativos.");
++  var apps=source.ClosedApps??new List<ClosedApp>();
++  if(apps.Count==0||apps.Count>300)throw new Exception("Nenhum aplicativo reabrível neste registro.");
++  var rec=NewRecord("Reabrir apps fechados","reopen-apps","Apps e RAM");
++  rec.Status="executando";Save(rec);
++  string windows=Environment.GetFolderPath(Environment.SpecialFolder.Windows);
++  foreach(var app in apps){
++   var step=new StepResult{Id=app.Path,Name=app.Name,Status="ignorado",Message=""};rec.Steps.Add(step);
++   try{
++    // O registro fica no perfil do próprio usuário, mas nunca confiamos nele para
++    // executar: o caminho é revalidado contra a mesma allowlist e as mesmas regras
++    // que autorizaram o fechamento.
++    if(!ResourceMonitor.Closable.Contains(app.Name)){step.Message="Aplicativo fora da lista autorizada.";continue;}
++    // A ORDEM destas duas verificações importa, e estava invertida.
++    //
++    // Path.IsPathRooted LANÇA ArgumentException, no .NET Framework, quando o caminho
++    // contém caractere inválido — e aspas são inválidas no Windows. Chamá-lo ANTES da
++    // checagem de caracteres fazia um registro adulterado com aspas sair pelo catch como
++    // "não reaberto" + mensagem crua do .NET, em vez de recusa limpa com motivo legível.
++    // Nada era executado nos dois caminhos, mas o usuário via um erro do framework.
++    //
++    // Fora do Windows aspas são caractere válido de caminho, IsPathRooted não lança, e o
++    // defeito ficava invisível: só apareceu ao rodar a suíte num Windows de verdade.
++    // Gaming.cs:ValidateExecutable já fazia na ordem certa; aqui tinha escapado.
++    if(!App.PathShapeSafe(app.Path)||!Path.IsPathRooted(app.Path)){step.Message="Caminho inválido.";continue;}
++    if(!app.Path.EndsWith(".exe",StringComparison.OrdinalIgnoreCase)){step.Message="Somente executáveis são reabertos.";continue;}
++    if(!File.Exists(app.Path)){step.Message="O executável não está mais neste caminho.";continue;}
++    if(!String.IsNullOrEmpty(windows)&&ResourceMonitor.Within(app.Path,windows)){step.Message="Componente do Windows: não é reaberto por aqui.";continue;}
++    if(!String.Equals(Path.GetFileNameWithoutExtension(app.Path),app.Name,StringComparison.OrdinalIgnoreCase)){step.Message="O nome do processo não corresponde ao executável gravado.";continue;}
++    using(Process.Start(new ProcessStartInfo(app.Path){UseShellExecute=true,WorkingDirectory=Path.GetDirectoryName(app.Path)})){}
++    step.Status="reaberto";step.Message="Programa iniciado. Abas, janelas e trabalho não salvo não são restaurados.";
++   }catch(Exception e){step.Status="não reaberto";step.Message=e.Message;}
++   Save(rec);
++  }
++  int reopened=rec.Steps.Count(s=>s.Status=="reaberto");
++  rec.Status=reopened==rec.Steps.Count?"concluído":reopened==0?"falhou":"concluído com avisos";
++  rec.Message=reopened+" de "+rec.Steps.Count+" aplicativo(s) reaberto(s) a partir do registro "+recordId+
++   ".\r\nCada um foi iniciado do zero, sem argumentos de linha de comando e sem restaurar sessão.";
++  Save(rec);return rec;
++ }
+ }
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Management.cs	2026-09-14 01:53:54.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/Management.cs	2026-09-19 03:38:46.196186096 +0000
+@@ -26,18 +26,117 @@
+  [DllImport("advapi32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool ChangeServiceConfig(IntPtr service,uint type,uint start,uint error,string binary,string group,IntPtr tag,string dependencies,string user,string password,string display);
+  [DllImport("advapi32.dll",SetLastError=true)] static extern bool CloseServiceHandle(IntPtr handle);
+  internal const string RunKey=@"Software\Microsoft\Windows\CurrentVersion\Run";
++ // NUNCA entram na lista opcional, por mais "extremo" que seja o perfil pedido.
++ // ServiceTiers é conferido contra esta lista em ValidateServiceCatalog().
++ internal static readonly HashSet<string> ProtectedServices=new HashSet<string>(new[]{
++  // Segurança
++  "WinDefend","SecurityHealthService","WdNisSvc","Sense","wscsvc","mpssvc","SgrmBroker","BFE","EventLog",
++  // Atualização e Store
++  "wuauserv","UsoSvc","WaaSMedicSvc","BITS","DoSvc","TrustedInstaller","msiserver","AppXSvc","ClipSVC","StateRepository","InstallService",
++  // Núcleo do sistema
++  "RpcSs","DcomLaunch","RpcEptMapper","LSM","PlugPlay","Power","ProfSvc","gpsvc","UserManager","Schedule",
++  "CryptSvc","KeyIso","SamSs","Themes","ShellHWDetection","SENS","SystemEventsBroker","CoreMessagingRegistrar",
++  // Rede
++  "Dhcp","Dnscache","NlaSvc","netprofm","nsi","WlanSvc","LanmanWorkstation","LanmanServer","WinHttpAutoProxySvc",
++  // Áudio e vídeo
++  "Audiosrv","AudioEndpointBuilder","AudioSrv",
++  // Backup e recuperação
++  "VSS","swprv","wbengine","sppsvc",
++  // SysMain fica de fora de propósito: em SSD o ganho é nulo e pode piorar abertura de apps.
++  "SysMain"
++ },StringComparer.OrdinalIgnoreCase);
++
++ // Nível de cada serviço opcional: "leve" (perda óbvia e localizada),
++ // "agressivo" (perde recurso que muita gente usa) e "extremo" (só com certeza do que se perde).
++ internal static readonly Dictionary<string,string> ServiceTiers=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase) {
++  {"Fax","leve"},{"RetailDemo","leve"},{"RemoteRegistry","leve"},{"MapsBroker","leve"},
++  {"WMPNetworkSvc","leve"},{"AJRouter","leve"},{"RemoteAccess","leve"},{"WpcMonSvc","leve"},
++  {"SCardSvr","leve"},{"ScDeviceEnum","leve"},{"SCPolicySvc","leve"},{"SEMgrSvc","leve"},
++  {"TrkWks","leve"},{"dmwappushservice","leve"},{"diagnosticshub.standardcollector.service","leve"},
++  {"DiagTrack","agressivo"},{"WerSvc","agressivo"},{"PhoneSvc","agressivo"},{"lfsvc","agressivo"},
++  {"WSearch","agressivo"},{"Spooler","agressivo"},{"PrintNotify","agressivo"},{"stisvc","agressivo"},
++  {"WiaRpc","agressivo"},{"icssvc","agressivo"},{"QWAVE","agressivo"},{"PcaSvc","agressivo"},
++  {"SSDPSRV","extremo"},{"upnphost","extremo"},{"bthserv","extremo"},{"BTAGService","extremo"},
++  {"SensorService","extremo"},{"SensrSvc","extremo"},{"SensorDataService","extremo"},
++  {"XblAuthManager","extremo"},{"XblGameSave","extremo"},{"XboxNetApiSvc","extremo"},{"XboxGipSvc","extremo"},
++  {"DPS","extremo"},{"WdiServiceHost","extremo"},{"WdiSystemHost","extremo"}
++ };
++
+  internal static readonly Dictionary<string,string> OptionalServices=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase) {
+-  {"WSearch","Indexação da pesquisa — pode deixar buscas de arquivos/Outlook mais lentas."},
+-  {"Spooler","Impressão — desativa impressoras e impressão em PDF enquanto estiver desativado."},
+-  {"DiagTrack","Diagnóstico conectado — reduz coleta de diagnóstico; não há ganho de FPS comprovado."},
++  // ---- leve ----
+   {"Fax","Fax — use apenas se você não utiliza envio/recebimento de fax."},
+-  {"MapsBroker","Mapas baixados — interrompe acesso/atualização de mapas offline."},
+   {"RetailDemo","Demonstração de varejo — dispensável em um PC pessoal que não usa modo de loja."},
+-  {"WMPNetworkSvc","Compartilhamento do Windows Media Player — interrompe streaming DLNA para outros aparelhos."},
+   {"RemoteRegistry","Registro remoto — impede administração remota por esse serviço. Não altera acesso local."},
+-  {"WerSvc","Relatórios de erros — dificulta diagnóstico de falhas. Deixe ativo ao investigar crashes."},
+-  {"PhoneSvc","Telefonia / integração com telefone — pode afetar recursos de conexão com celular."}
++  {"MapsBroker","Mapas baixados — interrompe acesso/atualização de mapas offline."},
++  {"WMPNetworkSvc","Compartilhamento do Windows Media Player — interrompe streaming DLNA para outros aparelhos."},
++  {"AJRouter","Roteador AllJoyn — protocolo de dispositivos IoT quase sem uso doméstico. Normalmente já está parado."},
++  {"RemoteAccess","Roteamento e acesso remoto — VPN/roteamento de entrada. Vem desativado por padrão no Windows."},
++  {"WpcMonSvc","Controle dos Pais — desativa relatórios e limites de conta infantil. Não use se há conta de criança supervisionada."},
++  {"SCardSvr","Cartão inteligente — só faz falta com leitor de smart card, certificado A3 ou crachá corporativo."},
++  {"ScDeviceEnum","Enumeração de dispositivos de cartão inteligente — acompanha o serviço acima."},
++  {"SCPolicySvc","Política de remoção de cartão inteligente — acompanha o serviço acima."},
++  {"SEMgrSvc","Gerenciador de pagamentos e NFC — desativa pagamento por aproximação. Sem efeito em PC sem NFC."},
++  {"TrkWks","Rastreamento de link distribuído — deixa de corrigir atalhos quando o arquivo de destino é movido no NTFS."},
++  {"dmwappushservice","Roteamento de mensagens WAP push — usado por gerenciamento corporativo (MDM). Não desative em PC da empresa."},
++  {"diagnosticshub.standardcollector.service","Coletor do Hub de Diagnóstico — usado pelo profiler do Visual Studio. Sem efeito para quem não faz profiling."},
++  // ---- agressivo ----
++  {"DiagTrack","Experiências do Usuário Conectado (telemetria) — reduz coleta de diagnóstico. Não há ganho de FPS comprovado."},
++  {"WerSvc","Relatórios de erros — dificulta diagnóstico de falhas. Deixe ativo se está investigando travamentos."},
++  {"PhoneSvc","Telefonia / integração com telefone — pode afetar recursos de conexão com celular."},
++  {"lfsvc","Geolocalização — Mapas, Clima, Buscar meu dispositivo e fuso horário automático param de funcionar."},
++  {"WSearch","Indexação da pesquisa — buscas de arquivos, e-mail do Outlook e Iniciar ficam mais lentas e incompletas."},
++  {"Spooler","Spooler de impressão — desativa impressoras e impressão em PDF enquanto estiver desativado."},
++  {"PrintNotify","Notificações e extensões de impressora — acompanha o Spooler; sem ele alguns drivers perdem a interface."},
++  {"stisvc","Aquisição de imagens (WIA) — scanners e importação de câmera param de funcionar."},
++  {"WiaRpc","Chamadas WIA — acompanha o serviço de scanner acima."},
++  {"icssvc","Ponto de acesso móvel — desativa compartilhar a internet do PC por Wi-Fi."},
++  {"QWAVE","QoS de áudio e vídeo — streaming local pode perder priorização de rede. Não aumenta FPS."},
++  {"PcaSvc","Assistente de compatibilidade — para de sugerir correções para programas antigos e de registrar incompatibilidades."},
++  // ---- extremo ----
++  {"SSDPSRV","Descoberta SSDP — quebra DLNA, Transmitir para dispositivo e descoberta de TV, console e impressora de rede."},
++  {"upnphost","Host de dispositivo UPnP — acompanha o SSDP; pode afetar NAT aberto em console e alguns jogos multiplayer."},
++  {"bthserv","Suporte a Bluetooth — fone, mouse, teclado e controle Bluetooth param de conectar."},
++  {"BTAGService","Gateway de áudio Bluetooth — acompanha o suporte a Bluetooth."},
++  {"SensorService","Serviço de sensores — rotação automática, brilho adaptativo e sensores param."},
++  {"SensrSvc","Monitoramento de sensores — acompanha o serviço de sensores."},
++  {"SensorDataService","Dados de sensores — acompanha o serviço de sensores."},
++  {"XblAuthManager","Xbox Live: autenticação — quebra login do app Xbox, Game Pass e jogos que autenticam por Xbox Live."},
++  {"XblGameSave","Xbox Live: saves na nuvem — progresso deixa de sincronizar. Saves locais permanecem."},
++  {"XboxNetApiSvc","Xbox Live: rede — multiplayer e convites de jogos Xbox podem falhar."},
++  {"XboxGipSvc","Acessórios Xbox — controle Xbox por cabo/adaptador pode não ser reconhecido."},
++  {"DPS","Serviço de Política de Diagnóstico — solucionadores de problemas do Windows param de funcionar, inclusive o de rede."},
++  {"WdiServiceHost","Host de serviço de diagnóstico — acompanha o serviço de política de diagnóstico."},
++  {"WdiSystemHost","Host de sistema de diagnóstico — acompanha o serviço de política de diagnóstico."}
+  };
++
++ internal static string ServiceTier(string name){
++  string tier;return ServiceTiers.TryGetValue(name,out tier)?tier:"extremo";
++ }
++ internal static bool ServiceWithinTier(string name,string tier){
++  string actual=ServiceTier(name);
++  if(tier=="extremo")return true;
++  if(tier=="agressivo")return actual!="extremo";
++  return actual=="leve";
++ }
++ internal static string ServiceTierWarning(string tier){
++  if(tier=="leve")return "Recursos que a maioria dos PCs domésticos nunca usa: fax, modo de loja, cartão inteligente, NFC, mapas offline, registro remoto.";
++  if(tier=="agressivo")return "Inclui busca indexada, impressão, scanner, geolocalização e telemetria. Você perde funções que usa de vez em quando; tudo volta ao desfazer.";
++  if(tier=="extremo")return "Inclui Bluetooth, Xbox Live, DLNA/UPnP, sensores e os solucionadores de problemas do Windows. Só use se souber exatamente o que cada um faz no seu PC. Nada aqui aumenta FPS por si só.";
++  return "Nível desconhecido.";
++ }
++ // Conferido nos testes e antes de qualquer alteração em lote: a lista opcional não
++ // pode conter nada da lista protegida, e todo serviço precisa de nível e descrição.
++ internal static void ValidateServiceCatalog(){
++  foreach(var entry in OptionalServices){
++   if(ProtectedServices.Contains(entry.Key))throw new Exception("Serviço protegido na lista opcional: "+entry.Key);
++   if(String.IsNullOrWhiteSpace(entry.Value))throw new Exception("Serviço sem descrição de impacto: "+entry.Key);
++   if(!ServiceTiers.ContainsKey(entry.Key))throw new Exception("Serviço sem nível declarado: "+entry.Key);
++   string tier=ServiceTiers[entry.Key];
++   if(tier!="leve"&&tier!="agressivo"&&tier!="extremo")throw new Exception("Nível inválido em "+entry.Key+": "+tier);
++  }
++  foreach(var entry in ServiceTiers)
++   if(!OptionalServices.ContainsKey(entry.Key))throw new Exception("Nível declarado para serviço fora da lista opcional: "+entry.Key);
++ }
+ #if TESTS
+  internal static Func<string,ServiceState> TestServiceRead;
+  internal static Action<string,bool> TestServiceChange;
+@@ -60,6 +159,11 @@
+   string c=Environment.ExpandEnvironmentVariables(command).Trim(),exe;
+   if(c.StartsWith("\"")){int end=c.IndexOf('"',1);if(end<2)return "";exe=c.Substring(1,end-1);}
+   else {int end=c.IndexOf(' ');exe=end<0?c:c.Substring(0,end);}
++  // Mesmo motivo de ReopenClosedApps: Path.IsPathRooted lança ArgumentException no
++  // Windows se o valor tiver caractere inválido. Aqui o texto vem de HKCU\...\Run,
++  // que qualquer programa instalado pode escrever — um valor malformado derrubaria a
++  // varredura inteira de inicialização com exceção, em vez de a entrada ser ignorada.
++  if(!PathShapeSafe(exe))return "";
+   bool windowsAbsolute=exe.Length>=3&&Char.IsLetter(exe[0])&&exe[1]==':'&&(exe[2]=='\\'||exe[2]=='/')||exe.StartsWith("\\\\",StringComparison.Ordinal);
+   if((!Path.IsPathRooted(exe)&&!windowsAbsolute)||!exe.EndsWith(".exe",StringComparison.OrdinalIgnoreCase))return "";
+   return exe;
+@@ -142,7 +246,13 @@
+    if(!ChangeServiceConfig(service,UInt32.MaxValue,UInt32.Parse(start),UInt32.MaxValue,null,null,IntPtr.Zero,null,null,null,null))throw new Win32Exception(Marshal.GetLastWin32Error());
+   }finally{if(service!=IntPtr.Zero)CloseServiceHandle(service);CloseServiceHandle(manager);}
+  }
++ // Serviços de um nível que ainda não estão desativados neste PC.
++ internal static string[] ServicesInTier(string tier){
++  if(tier!="leve"&&tier!="agressivo"&&tier!="extremo")throw new Exception("Nível de serviço inválido.");
++  return OptionalServices.Keys.Where(n=>ServiceWithinTier(n,tier)).OrderBy(n=>ServiceTier(n)=="leve"?0:ServiceTier(n)=="agressivo"?1:2).ThenBy(n=>n,StringComparer.OrdinalIgnoreCase).ToArray();
++ }
+  internal static void DisableOptionalServices(string[] names) {
++  ValidateServiceCatalog(); // nada protegido pode ter entrado na lista opcional
+   if(names.Length==0||names.Length>OptionalServices.Count||names.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=names.Length)throw new Exception("Seleção de serviços inválida.");
+   foreach(string name in names)ServiceStart(name); // entire allowlist check before any record or mutation
+   var rec=NewRecord("Desativar serviços opcionais selecionados","services-v3","Serviços");rec.ServiceValues=new List<ServiceSaved>();Save(rec);
+--- a/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/V4Tests.cs	2026-09-14 01:53:54.000000000 +0000
++++ b/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/V4Tests.cs	2026-09-19 03:39:55.591166207 +0000
+@@ -9,9 +9,14 @@
+  static FrameSummary Summary(params double[] values){var c=new FrameCapture{File="test.csv"};var stream=new FrameStream{Key="game",Metric="FrameTime",Frames=values.ToList()};c.Streams.Add(stream);return FrameAnalysis.Summarize(c,stream,100,0);}
+  static void RunV4Tests(){
+   string atomicFile=Path.Combine(App.DataRoot,"atomic-store.txt");AtomicStore.Write(atomicFile,"original");
+-  using(var locked=new FileStream(atomicFile,FileMode.Open,FileAccess.Read,FileShare.Read))ExpectFailure(()=>AtomicStore.Write(atomicFile,"replacement"),"locked history file causes atomic save to fail");
+-  Assert(File.ReadAllText(atomicFile)=="original","failed atomic save preserves the complete previous file");
+-  Assert(Directory.GetFiles(App.DataRoot,"*.pending").Length==0,"failed atomic write cleans only its own temporary file");
++  // A premissa deste bloco -- um leitor aberto impedir a substituicao -- so existe onde
++  // o sistema tem trava obrigatoria de arquivo. Em POSIX o rename sempre vence. Medimos
++  // o runtime em vez de supor a plataforma, e pulamos em voz alta em vez de afrouxar.
++  if(ReplacementBlockedByReaders()){
++   using(var locked=new FileStream(atomicFile,FileMode.Open,FileAccess.Read,FileShare.Read))ExpectFailure(()=>AtomicStore.Write(atomicFile,"replacement"),"locked history file causes atomic save to fail");
++   Assert(File.ReadAllText(atomicFile)=="original","failed atomic save preserves the complete previous file");
++   Assert(Directory.GetFiles(App.DataRoot,"*.pending").Length==0,"failed atomic write cleans only its own temporary file");
++  }else Skip("locked history file causes atomic save to fail","este sistema nao tem trava obrigatoria de arquivo; a garantia vale no Windows e nao pode ser conferida aqui");
+   AtomicStore.Write(atomicFile,"replacement");Assert(File.ReadAllText(atomicFile)=="replacement","atomic replacement succeeds after lock release");
+   Task concurrentWrite;
+   using(var gate=AtomicStore.Acquire(atomicFile))using(var sharedFile=new FileStream(atomicFile,FileMode.Open,FileAccess.Read,FileShare.Read|FileShare.Delete))using(var reader=new StreamReader(sharedFile)){
+@@ -22,8 +27,36 @@
+   var library=PerformanceLibrary.Load();Assert(library.Count>=70&&library.Select(x=>x.Id).Distinct().Count()==library.Count,"original performance library preserved and unique");
+   Assert(library.All(x=>(x.Action=="catalog"||x.Source.StartsWith("https://"))&&!String.IsNullOrWhiteSpace(x.Effect)&&!String.IsNullOrWhiteSpace(x.Tradeoff)),"every option identifies effects, limits and reference");
+   Assert(library.Where(x=>x.Action=="native").All(x=>Builtins.Create().Concat(V5Options.Items()).Concat(V5InputItems.Create()).Concat(ImportedOptions.Items()).Concat(ExtraSettings.Items()).Concat(ReviewedFeatures.Items()).Any(i=>i.Id==x.Target)),"library native actions resolve to trusted items");
+-  Assert(App.OptionalServices.Count==10&&!App.OptionalServices.Keys.Any(x=>new[]{"WinDefend","wuauserv","BITS","Audiosrv","Dhcp","SysMain"}.Contains(x)),"expanded optional service list excludes essential security and device services");
+-  Assert(ResourceMonitor.Closable.Count>=40&&!ResourceMonitor.Closable.Contains("OneDrive")&&!ResourceMonitor.Closable.Contains("steam")&&!ResourceMonitor.Closable.Contains("explorer"),"expanded process list preserves synchronization, launcher and shell");
++  // A contagem deixou de ser fixa (era 10, hoje 41). O que precisa continuar valendo é
++  // que nada essencial entre na lista, que todo serviço tenha nível e descrição, e que
++  // a lista protegida e a opcional nunca se cruzem — é o que ValidateServiceCatalog confere.
++  App.ValidateServiceCatalog();
++  Assert(App.OptionalServices.Count>=10&&!App.OptionalServices.Keys.Any(x=>App.ProtectedServices.Contains(x)),"optional service list never contains a protected service");
++  Assert(new[]{"WinDefend","wuauserv","BITS","Audiosrv","Dhcp","SysMain","Dnscache","PlugPlay","CryptSvc","VSS","Schedule","Themes"}.All(x=>App.ProtectedServices.Contains(x)&&!App.OptionalServices.ContainsKey(x)),"security, update, network, audio and core services stay out of reach");
++  Assert(App.ServicesInTier("leve").All(n=>App.ServiceTier(n)=="leve")&&App.ServicesInTier("agressivo").All(n=>App.ServiceTier(n)!="extremo")&&App.ServicesInTier("extremo").Length==App.OptionalServices.Count,"service tiers nest: leve subset of agressivo subset of extremo");
++  Assert(App.ServicesInTier("leve").Length>0&&App.ServicesInTier("leve").Length<App.ServicesInTier("agressivo").Length&&App.ServicesInTier("agressivo").Length<App.ServicesInTier("extremo").Length,"each service tier adds services");
++  ExpectFailure(()=>App.ServicesInTier("tudo"),"unknown service tier rejected");
++  ExpectFailure(()=>App.DisableOptionalServices(new[]{"Dnscache"}),"protected service rejected by tier-aware allowlist");
++  // Launchers e sincronização passaram a ser fecháveis, mas só nos níveis 2 e 3, nunca
++  // no nível 1 nem na ação de um clique. O shell continua fora de qualquer nível.
++  Assert(ResourceMonitor.Closable.Count>=40&&!ResourceMonitor.Closable.Contains("explorer")&&!ResourceMonitor.Closable.Contains("csrss")&&!ResourceMonitor.Closable.Contains("dwm"),"shell and session processes are never closable");
++  Assert(ResourceMonitor.Tier("OneDrive")=="agressivo"&&ResourceMonitor.Tier("steam")=="extremo"&&ResourceMonitor.Tier("chrome")=="leve"&&ResourceMonitor.Tier("explorer")=="","synchronization, launcher and user apps are tiered, shell has no tier");
++  Assert(!ResourceMonitor.WithinTier("steam","leve")&&!ResourceMonitor.WithinTier("steam","agressivo")&&ResourceMonitor.WithinTier("steam","extremo"),"launcher only reachable at the extreme tier");
++  Assert(!ResourceMonitor.WithinTier("OneDrive","leve")&&ResourceMonitor.WithinTier("OneDrive","agressivo"),"synchronization only reachable from the aggressive tier up");
++  Assert(!ResourceMonitor.WithinTier("explorer","extremo"),"a process outside the allowlist belongs to no tier");
++  Assert(new[]{"leve","agressivo","extremo"}.All(t=>!String.IsNullOrWhiteSpace(ResourceMonitor.TierWarning(t))&&!String.IsNullOrWhiteSpace(App.ServiceTierWarning(t))),"every tier states what is lost");
++  // Um nome genérico casa com processo alheio: "Agent" é backup, monitoramento e EDR
++  // corporativo; "Sync" é meia dúzia de produtos. Nada disso pode virar app fechável.
++  Assert(!ResourceMonitor.Closable.Contains("Agent")&&!ResourceMonitor.Closable.Contains("Sync")&&!ResourceMonitor.Closable.Contains("Update")&&!ResourceMonitor.Closable.Contains("Service")&&!ResourceMonitor.Closable.Contains("Host")&&!ResourceMonitor.Closable.Contains("Client"),"generic process names never enter the closable list");
++  // Closable já é um HashSet, então comparar com Distinct não provaria nada: um nome
++  // repetido entre níveis seria absorvido em silêncio e ficaria com o nível errado.
++  // Somar os arrays de origem é o que expõe a sobreposição.
++  Assert(ResourceMonitor.TierSourceCount("leve")+ResourceMonitor.TierSourceCount("agressivo")+ResourceMonitor.TierSourceCount("extremo")==ResourceMonitor.Closable.Count,"the three process tiers do not overlap");
++  ExpectFailure(()=>ResourceMonitor.TierSourceCount("tudo"),"unknown process tier rejected");
++  ReopenTests();
++  NetworkToolsTests();
++  FrameworkSurfaceTests();
++  PathShapeTests();
+   var parts=FrameAnalysis.ParseLine("\"a,b\",\"x\"\"y\",3",',');Assert(parts.SequenceEqual(new[]{"a,b","x\"y","3"}),"CSV parser handles quoted delimiters and escaped quotes");
+   ExpectFailure(()=>FrameAnalysis.ParseLine("\"unfinished",','),"unclosed CSV quotes rejected");
+   ExpectFailure(()=>Csv("Application,GPUTime\ngame,8"),"GPU duration is not falsely treated as frame interval");
+@@ -68,17 +101,161 @@
+   ExpectFailure(()=>GameProfiles.ValidateExecutable(@"\\server\share\game.exe",false),"UNC game paths rejected");
+   ExpectFailure(()=>GameProfiles.ValidateExecutable(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"System32","cmd.exe"),false),"Windows system executable excluded from game profile");
+   ExpectFailure(()=>GameProfiles.ValidateExecutable("game.exe",false),"relative game path rejected");
+-  Reset();string gameExe=Path.Combine(App.DataRoot,"fake-game.exe");File.WriteAllText(gameExe,"test fixture: never executed");
+-  var game=new GameProfile{Id=Guid.NewGuid().ToString("N"),Name="Fixture",Executable=gameExe,TargetFps=144,HighGpu=true,DisableFullscreen=true,Notes="teste",CloseApps=new[]{"chrome"}};
+-  GameProfiles.Save(game);Assert(GameProfiles.Load().Any(p=>p.Id==game.Id&&p.CloseApps[0]=="chrome"),"game profile local persistence round trip");
+-  var gpuOp=GameProfiles.StringOp(@"Software\Microsoft\DirectX\UserGpuPreferences",gameExe,"Other=1;GpuPreference=1;");registry[Key(gpuOp)]=Copy(gpuOp);
+-  App.ApplyGameProfile(App.SaveRequest(new OperationRequest{Game=game}));record=Last();Assert(record.Status=="aplicado"&&record.Values.Count==2,"per-game preferences applied as a backed-up transaction");
+-  Assert(registry[Key(gpuOp)].Data=="Other=1;GpuPreference=2;","per-game transaction keeps existing GPU fields");App.Undo(record.Id);Assert(registry.Count==1&&registry[Key(gpuOp)].Data==gpuOp.Data,"per-game undo restores original values and removes previously absent flags");
+-  var expected=new List<RegOp>();var operations=GameProfiles.Operations(game,expected);registry[Key(gpuOp)].Data="Other=2;";
+-  ExpectFailure(()=>App.ApplyTransaction(new[]{new Item{Id="test-game",Name="Game",ReviewTitle="Game",Native=true,ActionCode="gameprofile",Operations=operations.ToArray(),Expected=expected.ToArray()}},"Integrado","Game"),"per-game race detected before overwriting a newer preference");
+-  Assert(registry[Key(gpuOp)].Data=="Other=2;","newer GPU preference preserved");
+-  game.CloseApps=new[]{"explorer"};ExpectFailure(()=>GameProfiles.Save(game),"profile cannot add protected process to closing list");
+-  game.CloseApps=new string[0];game.TargetFps=1001;ExpectFailure(()=>GameProfiles.Save(game),"invalid target FPS rejected");
++  // O perfil por jogo exige caminho com letra de unidade e arquivo real; a fixture so
++  // pode ser montada no Windows. Pular em voz alta, nunca relaxar ValidateExecutable.
++  if(WindowsDrivePaths()){
++   Reset();string gameExe=Path.Combine(App.DataRoot,"fake-game.exe");File.WriteAllText(gameExe,"test fixture: never executed");
++   var game=new GameProfile{Id=Guid.NewGuid().ToString("N"),Name="Fixture",Executable=gameExe,TargetFps=144,HighGpu=true,DisableFullscreen=true,Notes="teste",CloseApps=new[]{"chrome"}};
++   GameProfiles.Save(game);Assert(GameProfiles.Load().Any(p=>p.Id==game.Id&&p.CloseApps[0]=="chrome"),"game profile local persistence round trip");
++   var gpuOp=GameProfiles.StringOp(@"Software\Microsoft\DirectX\UserGpuPreferences",gameExe,"Other=1;GpuPreference=1;");registry[Key(gpuOp)]=Copy(gpuOp);
++   App.ApplyGameProfile(App.SaveRequest(new OperationRequest{Game=game}));record=Last();Assert(record.Status=="aplicado"&&record.Values.Count==2,"per-game preferences applied as a backed-up transaction");
++   Assert(registry[Key(gpuOp)].Data=="Other=1;GpuPreference=2;","per-game transaction keeps existing GPU fields");App.Undo(record.Id);Assert(registry.Count==1&&registry[Key(gpuOp)].Data==gpuOp.Data,"per-game undo restores original values and removes previously absent flags");
++   var expected=new List<RegOp>();var operations=GameProfiles.Operations(game,expected);registry[Key(gpuOp)].Data="Other=2;";
++   ExpectFailure(()=>App.ApplyTransaction(new[]{new Item{Id="test-game",Name="Game",ReviewTitle="Game",Native=true,ActionCode="gameprofile",Operations=operations.ToArray(),Expected=expected.ToArray()}},"Integrado","Game"),"per-game race detected before overwriting a newer preference");
++   Assert(registry[Key(gpuOp)].Data=="Other=2;","newer GPU preference preserved");
++   game.CloseApps=new[]{"explorer"};ExpectFailure(()=>GameProfiles.Save(game),"profile cannot add protected process to closing list");
++   game.CloseApps=new string[0];game.TargetFps=1001;ExpectFailure(()=>GameProfiles.Save(game),"invalid target FPS rejected");
++  }else Skip("per-game profile persistence, transaction, undo and validation","este sistema nao tem caminhos com letra de unidade; a fixture do jogo so existe no Windows");
++  Reset();
++ }
++ // Sobrecargas que EXISTEM no compilador mas NÃO no .NET Framework 4.8.
++ //
++ // String.Trim/TrimStart/TrimEnd(char) só entraram no .NET Core 2.0. Compilando com um
++ // Roslyn moderno contra assemblies de referência novos, a chamada liga na sobrecarga de
++ // char e o binário quebra em tempo de execução com MissingMethodException — foi o que
++ // aconteceu no executável distribuído: "Método não encontrado: String.TrimEnd(Char)"
++ // derrubava a varredura de processos e a tela mostrava "Medição incompleta".
++ //
++ // O código agora usa TrimEnd(new[]{c}), que liga na sobrecarga params char[] em qualquer
++ // compilador. Estas chamadas rodam de verdade: se alguém reintroduzir a forma de um char
++ // e o binário for compilado assim, o teste estoura aqui em vez de na mão do usuário.
++ // Forma de caminho: a mesma resposta em qualquer plataforma, de proposito.
++ // Path.GetInvalidPathChars() varia por sistema (no Windows inclui aspas, |, < e >;
++ // fora dele quase nada), entao uma checagem baseada nele significaria coisas
++ // diferentes em cada lado e nao poderia ser testada de verdade.
++ static void PathShapeTests(){
++  foreach(string bad in new[]{"C:\\Apps\\x.exe\" --flag","C:\\Apps\\a|b.exe","C:\\Apps\\a<b.exe","C:\\Apps\\a>b.exe","C:\\Apps\\a*b.exe","C:\\Apps\\a?b.exe","C:\\Apps\\a\rb.exe","C:\\Apps\\a\nb.exe","C:\\Apps\\a\tb.exe"})
++   Assert(!App.PathShapeSafe(bad),"a path carrying a shell or quoting character is refused: "+bad.Replace("\r","\\r").Replace("\n","\\n").Replace("\t","\\t"));
++  Assert(!App.PathShapeSafe(null)&&!App.PathShapeSafe("")&&!App.PathShapeSafe("   "),"an empty or blank path is never a safe shape");
++  foreach(string good in new[]{"C:\\Apps\\chrome.exe","C:\\Program Files\\App\\a b.exe","\\\\server\\share\\app.exe","/usr/bin/app"})
++   Assert(App.PathShapeSafe(good),"an ordinary path passes the shape check: "+good);
++  // O ponto do conserto: a checagem e string pura e NUNCA lanca, entao pode vir antes
++  // de qualquer API de caminho. Se ela lancasse, o bug voltaria pela porta dos fundos.
++  foreach(string hostile in new[]{"\"","|","<",">","\0"}){
++   bool threw=false;try{App.PathShapeSafe(hostile);}catch{threw=true;}
++   Assert(!threw,"the shape check never throws, which is why it can run first");
++  }
++ }
++ static void FrameworkSurfaceTests(){
++  // Within normaliza separadores e corta a barra final com TrimEnd -- e essa chamada
++  // que quebrava em tempo de execucao. Caminhos literais, nunca pastas do sistema: o
++  // teste precisa exercitar a mesma linha em qualquer plataforma.
++  Assert(ResourceMonitor.Within(@"C:\Windows\system32\x.exe",@"C:\Windows\"),"ResourceMonitor.Within executes on this runtime, trailing separator included");
++  Assert(ResourceMonitor.Within("C:/Windows/system32/x.exe",@"C:\Windows"),"ResourceMonitor.Within normalizes separators before comparing");
++  Assert(!ResourceMonitor.Within(@"C:\Apps\fora.exe",@"C:\Windows"),"ResourceMonitor.Within rejects a path outside the folder");
++  Assert(!ResourceMonitor.Within(@"C:\WindowsApps\x.exe",@"C:\Windows"),"ResourceMonitor.Within does not match a sibling folder by name prefix");
++  // SafePath usa o mesmo TrimEnd e e a ultima barreira antes de excluir arquivo.
++  string sandbox=Path.Combine(Path.GetTempPath(),"lo-safepath-"+Guid.NewGuid().ToString("N"));
++  Directory.CreateDirectory(sandbox);
++  try{
++   string inner=Path.Combine(sandbox,"a.tmp");File.WriteAllText(inner,"x");
++   Assert(TempCleaner.SafePath(inner,sandbox),"TempCleaner.SafePath executes and accepts a file inside its own root");
++   Assert(!TempCleaner.SafePath(sandbox,sandbox),"TempCleaner.SafePath refuses the root directory itself");
++   Assert(!TempCleaner.SafePath(Path.Combine(sandbox,"..","fora.tmp"),sandbox),"TempCleaner.SafePath refuses an escape through the parent directory");
++  }finally{try{Directory.Delete(sandbox,true);}catch{}}
++  string volume=Path.GetPathRoot(Path.GetFullPath(Path.GetTempPath()));
++  Assert(!TempCleaner.SafePath(volume,volume),"TempCleaner.SafePath refuses the volume root");
++  // As mesmas sobrecargas em forma de asseracao direta, uma por uso real no projeto.
++  Assert("a\\".TrimEnd(new[]{'\\'})=="a","TrimEnd(params char[]) is the overload this build binds to");
++  Assert("\uFEFFms".TrimStart(new[]{'\uFEFF'})=="ms","TrimStart(params char[]) is the overload this build binds to");
++ }
++ // Rede: o cliente escolhe um Id, nunca um executável ou argumento. E o catálogo tem de
++ // declarar honestamente quem derruba a conexão e quem exige reiniciar, porque é isso
++ // que a confirmação mostra antes de executar.
++ static void NetworkToolsTests(){
++  ExpectFailure(()=>NetworkTools.Resolve("netsh int ip reset"),"network action outside the allowlist rejected");
++  ExpectFailure(()=>NetworkTools.Resolve("net-flushdns ; calc.exe"),"network action id with injection rejected");
++  ExpectFailure(()=>NetworkTools.Resolve(""),"empty network action id rejected");
++  var actions=NetworkTools.Actions();
++  Assert(actions.Select(a=>a.Id).Distinct().Count()==actions.Count,"network action ids are unique");
++  Assert(actions.All(a=>a.Executable=="ipconfig.exe"||a.Executable=="netsh.exe"),"network actions only run ipconfig or netsh");
++  Assert(actions.All(a=>a.Executable.IndexOf('\\')<0&&a.Executable.IndexOf('/')<0),"network executables are resolved by App.SystemExe, never by path");
++  Assert(actions.All(a=>a.Arguments.IndexOfAny(new[]{'&','|','>','<','^','"'})<0),"network arguments carry no shell metacharacters");
++  Assert(actions.All(a=>a.TimeoutSeconds>0&&a.TimeoutSeconds<=3600),"every network action has a usable timeout");
++  Assert(actions.All(a=>a.Administrator),"every network action declares that it needs administrator");
++  Assert(actions.All(a=>!String.IsNullOrWhiteSpace(a.Effect)&&!String.IsNullOrWhiteSpace(a.Tradeoff)&&a.Source.StartsWith("https://learn.microsoft.com/")),"every network action states effect, cost and an official source");
++  // As duas destrutivas têm de estar marcadas, senão a confirmação mente.
++  var winsock=NetworkTools.Resolve("net-winsock");var reset=NetworkTools.Resolve("net-ipreset");
++  Assert(winsock.NeedsRestart&&winsock.Disconnects&&!String.IsNullOrEmpty(winsock.BackupArguments),"winsock reset declares restart, disconnect and a backup dump");
++  Assert(reset.NeedsRestart&&reset.Disconnects&&!String.IsNullOrEmpty(reset.BackupArguments),"tcp/ip reset declares restart, disconnect and a backup dump");
++  Assert(!NetworkTools.Resolve("net-flushdns").NeedsRestart&&!NetworkTools.Resolve("net-flushdns").Disconnects,"flushing the dns cache claims neither restart nor disconnect");
++  Assert(NetworkTools.Resolve("net-renew").Disconnects&&!NetworkTools.Resolve("net-renew").NeedsRestart,"renewing the address declares the drop but not a restart");
++  Assert(actions.Count(a=>a.NeedsRestart)==2,"only the two repairs require a restart");
++  // Nenhuma ação de rede entra na cadeia de desfazer: não há como reverter estes comandos.
++  Assert(!App.CanUndo(new Record{Kind="Rede",Status="aplicado",Values=new List<SavedValue>{new SavedValue()}}),"network actions stay out of the undo chain");
++  // Elevação: ações pedem administrador, diagnósticos não.
++  Assert(App.ActionNeedsAdmin("--network-action","net-winsock"),"network action requests elevation");
++  Assert(!App.ActionNeedsAdmin("--network-diagnostic","netdiag-mtu"),"read-only network diagnostic never elevates");
++  ExpectFailure(()=>App.ActionNeedsAdmin("--network-diagnostic","netdiag-inventado"),"unknown network diagnostic rejected before elevation");
++  ExpectFailure(()=>App.ActionNeedsAdmin("--network-action","netsh firewall set opmode disable"),"unknown network action rejected before elevation");
++  // MTU: carga útil + 28 bytes de cabeçalho IPv4+ICMP, e a faixa sondada é a válida.
++  Assert(NetworkTools.MtuFromPayload(1472)==1500&&NetworkTools.MtuFromPayload(1464)==1492,"mtu arithmetic adds the 28 header bytes");
++  Assert(NetworkTools.MaxPayload==1472&&NetworkTools.MinPayload==548&&NetworkTools.HeaderBytes==28,"mtu probe stays inside the valid ipv4 range");
++  Assert(NetworkTools.Diagnostics.All(NetworkTools.IsDiagnostic)&&!NetworkTools.IsDiagnostic("net-winsock"),"diagnostics and actions are different sets");
++  Assert(NetworkTools.Diagnostics.All(d=>!String.IsNullOrWhiteSpace(NetworkTools.DiagnosticTitle(d))&&NetworkTools.DiagnosticDetail(d).Length>80),"every network diagnostic explains what it does and does not measure");
++  ExpectFailure(()=>NetworkTools.DiagnosticTitle("netdiag-inventado"),"unknown diagnostic title rejected");
++ }
++ // Reabrir apps fechados nunca deve virar "execute este caminho porque o registro mandou".
++ // Todo caminho é revalidado contra a mesma allowlist que autorizou o fechamento.
++ static void ReopenTests(){
++  Reset();
++  ExpectFailure(()=>App.ReopenClosedApps("nao-e-um-guid"),"reopen with malformed record id rejected");
++  ExpectFailure(()=>App.ReopenClosedApps(Guid.NewGuid().ToString("N")),"reopen of a missing record rejected");
++
++  Func<List<ClosedApp>,string,Record> store=(apps,kind)=>{
++   var r=new Record{Id=Guid.NewGuid().ToString("N"),ItemId="apps",Name="fixture",Time=DateTime.UtcNow.ToString("o"),
++    Kind=kind,Status="concluído",Message="",UserSid=App.Sid,Values=new List<SavedValue>(),
++    NativeValues=new List<NativeSaved>(),Steps=new List<StepResult>(),Schema=3,ClosedApps=apps};
++   App.Save(r);return r;
++  };
++
++  var wrongKind=store(new List<ClosedApp>{new ClosedApp{Name="chrome",Path=@"C:\Apps\chrome.exe",Tier="leve"}},"Serviços");
++  ExpectFailure(()=>App.ReopenClosedApps(wrongKind.Id),"reopen refuses a record that did not close applications");
++
++  var empty=store(new List<ClosedApp>(),"Apps e RAM");
++  ExpectFailure(()=>App.ReopenClosedApps(empty.Id),"reopen refuses a record with nothing to reopen");
++
++  var foreign=store(new List<ClosedApp>{new ClosedApp{Name="chrome",Path=@"C:\Apps\chrome.exe",Tier="leve"}},"Apps e RAM");
++  foreign.UserSid="S-1-0-0";App.Save(foreign);
++  ExpectFailure(()=>App.ReopenClosedApps(foreign.Id),"reopen refuses another account's record");
++
++  // Um registro adulterado não consegue lançar nada: cada entrada é recusada por um
++  // motivo próprio e o resultado fica "falhou", sem nenhum processo iniciado.
++  var tampered=store(new List<ClosedApp>{
++   new ClosedApp{Name="evil",Path=@"C:\Temp\evil.exe",Tier="leve"},                      // fora da allowlist
++   new ClosedApp{Name="chrome",Path=@"..\..\chrome.exe",Tier="leve"},                    // caminho relativo
++   new ClosedApp{Name="chrome",Path="C:\\Apps\\chrome.exe\" --disable-web-security",Tier="leve"}, // aspas no caminho
++   new ClosedApp{Name="chrome",Path=@"C:\Apps\payload.bat",Tier="leve"},                 // não é .exe
++   new ClosedApp{Name="chrome",Path=@"C:\Apps\naoexiste.exe",Tier="leve"}                // não existe
++  },"Apps e RAM");
++  var result=App.ReopenClosedApps(tampered.Id);
++  // A garantia que importa e esta, e nao depende de rotulo nenhum: NADA foi iniciado.
++  // Fica separada para que uma mudanca de texto de status jamais possa mascarar um
++  // lancamento real.
++  Assert(!result.Steps.Any(s=>s.Status=="reaberto"),"a tampered record launches no process at all");
++  Assert(result.Status=="falhou"&&result.Steps.Count==5,"every tampered entry is reported, and the record fails as a whole");
++  // E a recusa tem de ser LIMPA. Antes, o caminho com aspas estourava ArgumentException
++  // dentro de Path.IsPathRooted -- no Windows aspas sao caractere invalido de caminho --
++  // e saia pelo catch como "nao reaberto" com a mensagem crua do .NET. Nada era
++  // executado, mas o usuario via erro de framework em vez do motivo. Fora do Windows
++  // aspas sao validas, IsPathRooted nao lancava, e o defeito ficava invisivel aqui.
++  Assert(result.Steps.All(s=>s.Status=="ignorado"),"each tampered entry is refused cleanly, not through an exception");
++  Assert(result.Steps[2].Message.Contains("Caminho inv"),"a quoted path is reported as an invalid path, in plain language");
++  // O motivo exato das entradas 2 a 5 depende da plataforma (Path.IsPathRooted trata
++  // "C:\..." como relativo fora do Windows), então só a recusa pela allowlist é fixada.
++  Assert(result.Steps[0].Message.Contains("fora da lista"),"a process outside the allowlist is refused by name, before any path check");
++  Assert(result.Steps.All(s=>!String.IsNullOrWhiteSpace(s.Message)),"every refused reopen states a reason");
++  Assert(!App.CanUndo(result)&&!App.CanUndo(tampered),"closing and reopening apps stay outside the undo chain");
+   Reset();
+  }
+ }
