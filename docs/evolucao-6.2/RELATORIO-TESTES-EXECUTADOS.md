@@ -1,4 +1,35 @@
-# Testes realmente executados — e três bugs que só apareceram ao executá-los
+# Testes realmente executados — e os bugs que só apareceram ao executá-los
+
+> ## ✔ Confirmado em Windows real
+>
+> O usuário executou `COMPILAR.cmd` no próprio PC (Windows, PowerShell 5.1) e o
+> resultado foi:
+>
+> ```
+> Publicado em native\LukeOptimizer-6.1.2.exe - SHA256 2b8efcd87ec2…
+> Manifestos atualizados: 650 arquivos.
+> TOTAL: 1415 checks passed, 0 skipped
+> UI smoke passed: navigation, filtering, forms, chart and offscreen rendering.
+> Validacao concluida.
+> ```
+>
+> Isso confirma, em Windows de verdade e não por inferência:
+>
+> | Item | Antes | Agora |
+> |---|---|---|
+> | Publicação em `native\LukeOptimizer-6.1.2.exe` | revisado, **não executado** | **funciona**, com SHA-256 conferido |
+> | Os 6 blocos pulados no Linux | pulados por premissa do Windows | **rodaram e passaram** |
+> | Compilação com `csc.exe` do .NET Framework | não testada | **compila** |
+> | Suíte de interface com WinForms real | rodada sob Xvfb/mono | **passa no WinForms do Windows** |
+>
+> 1390 verificações aqui (6 puladas) → **1415 no Windows (0 puladas)**: as 25 a
+> mais são exatamente os blocos que dependem de API do Windows.
+>
+> **Continua sem verificação:** elevação por UAC, aplicar uma otimização de
+> verdade, desfazer a partir do Histórico, DPI de monitor, e os valores que as
+> leituras WMI do `MachineProfile` devolvem num PC real (a lógica é testada; os
+> valores retornados, não).
+
 
 Nas rodadas anteriores eu disse que não conseguia compilar aqui. Isso mudou:
 instalei `mono-devel` 6.8.0.105 e `Xvfb` neste contêiner, e **compilei e rodei o
