@@ -1014,6 +1014,296 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +| simplify-windows11 | 8 | 7 | PARTIAL | opt-aligntaskbartoleft, opt-disablechat |
 +| uninstall-onedrive | 2 | 1 | PARTIAL | opt-disableonedrive |
 +
+diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/WINDOWS_BOOST_COMPLETE_INVENTORY.md work/LukeOptimizer-6.1.2/WINDOWS_BOOST_COMPLETE_INVENTORY.md
+--- head12/LukeOptimizer-6.1.2/WINDOWS_BOOST_COMPLETE_INVENTORY.md	1970-01-01 00:00:00.000000000 +0000
++++ work/LukeOptimizer-6.1.2/WINDOWS_BOOST_COMPLETE_INVENTORY.md	2026-09-19 14:57:30.518173030 +0000
+@@ -0,0 +1,95 @@
++# INVENTÁRIO COMPLETO — Windows Boost e Windows Boost Essential
++
++Auditoria do **conteúdo** de cada arquivo. O pedido foi explícito em não confiar no
++nome, e a auditoria confirmou por quê: vários nomes descrevem algo diferente do que o
++arquivo faz.
++
++| Pacote | Arquivo | Comportamento real | Já no LukeOptimizer | Status |
++|---|---|---|---|---|
++| Essential | `Fazer backup do Windows.bat` | 1 valores de Registro | — | NEW |
++| Essential | `Ajustes de energia.reg` | 12 valores de Registro | — | NEW |
++| Essential | `Aumentar Prioridade da GPU (DirectX e Renderização).` | 1 valores de Registro — Apesar do nome, grava `NtfsDisableLastAccessUpdate` — não tem relação com GPU. É o MESMO valor do arquivo "Aumentar velocidade ao abrir pastas". | opt-disablentfstimestamp | DUPLICATE |
++| Essential | `Aumentar velocidade ao abrir pastas e arquivos.reg` | 1 valores de Registro — Grava `NtfsDisableLastAccessUpdate`, idêntico ao arquivo de "prioridade da GPU". Uma feature só: já existe como `opt-disablentfstimestamp`. | opt-disablentfstimestamp | DUPLICATE |
++| Essential | `Desabilitar Prefetch e Superfetch.reg` | 2 valores de Registro | pack-a137e56bbd0e, pack-f06301afb713 | EXISTING |
++| Essential | `Desabilitar SmartSceen e Downloads Blocks.reg` | 1 valores de Registro | opt-disablesmartscreen | EXISTING |
++| Essential | `Desativar Animações no Sistema.bat` | 1 valores de Registro | — | NEW |
++| Essential | `Desativar Bing Search.bat` | 2 valores de Registro | opt-disablecortana | MERGED |
++| Essential | `Desativar Cortana.bat` | 1 valores de Registro | opt-disablecortana | EXISTING |
++| Essential | `Desativar Game DVR.reg` | 9 valores de Registro | native-capture | MERGED |
++| Essential | `Desativar Hibernação.bat` | 1 comandos de energia | — | NOT APPLICABLE |
++| Essential | `Desativar Serviço de Relógio do Windows.bat` | 2 operações de serviço | — | NEW |
++| Essential | `Desativar Serviços Xbox.reg` | 4 valores de Registro | opt-disablexboxlive | EXISTING |
++| Essential | `Desativar Sugestões de Pesquisa.bat` | 1 valores de Registro | — | NEW |
++| Essential | `Desativar Transparência do Windows.bat` | 1 valores de Registro | native-transparency | EXISTING |
++| Essential | `Desativar VBS (Isolamento de núcleo).bat` | 2 valores de Registro · 1 alterações de inicialização | opt-disablevirtualizationbasedsecurity, opt-userhvci | EXISTING |
++| Essential | `Desativar Windows Telemetria (Coleta de dados).bat` | 1 valores de Registro | — | NEW |
++| Essential | `Desativar atualizações automaticas.bat` | 1 valores de Registro · 6 operações de serviço | opt-disableautomaticupdates | EXISTING |
++| Essential | `Desativar efeitos visuais.bat` | 3 valores de Registro | — | NEW |
++| Essential | `Desativar histórico de atividade.bat` | 1 valores de Registro | — | NEW |
++| Essential | `Desativar indexação.bat` | 2 operações de serviço | — | NEW |
++| Essential | `Desativar o Hyper-V (não usar se você usa maquina vi` | 1 alterações de inicialização | — | NOT APPLICABLE |
++| Essential | `Desativar seviços.bat` | 36 operações de serviço | — | NEW |
++| Essential | `Habilitar a otimização do sistema de arquivos.reg` | 1 valores de Registro — Apesar do nome genérico, altera `EnableOplocks` do LanmanServer — cache de arquivos compartilhados em rede, não "otimização do sistema de arquivos". | — | NEW |
++| Essential | `Aumentar Prioridade de jogos no Sistema.bat` | 246 valores de Registro · 246 prioridades por executável | — | NEW |
++| Essential | `Forçar o windows a priorizar tarefas de jogos.reg` | 4 valores de Registro | — | NEW |
++| Essential | `Otimizar Foreground.reg` | 4 valores de Registro | — | NEW |
++| Essential | `Otimizar BATTLEFIELD (TODOS).bat` | 41 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 18 prioridades por executável · 12 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia | native-capture, opt-disableautomaticupdates | MERGED |
++| Essential | `Otimizar CALL OF DUTY BLACK OPS (TODOS).bat` | 26 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 3 prioridades por executável · 12 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia — Grava prioridade para **FortniteClient-Win64-Shipping.exe** — executável de outro jogo. Erro de cópia; não reproduzido. | native-capture, opt-disableautomaticupdates | BROKEN |
++| Essential | `Otimizar CS2.bat` | 26 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 3 prioridades por executável · 12 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia | native-capture, opt-disableautomaticupdates | MERGED |
++| Essential | `Otimizar FIVE M.bat` | 26 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 3 prioridades por executável · 12 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia | native-capture, opt-disableautomaticupdates | MERGED |
++| Essential | `Otimizar Fortnite.bat` | 26 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 3 prioridades por executável · 13 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia | native-capture, opt-disableautomaticupdates | MERGED |
++| Essential | `Otimizar GTA V.bat` | 26 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 3 prioridades por executável · 12 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia — Também grava prioridade para **FortniteClient-Win64-Shipping.exe** em vez de GTA5.exe. Não reproduzido. | native-capture, opt-disableautomaticupdates | BROKEN |
++| Essential | `Otimizar Minecraft.bat` | 32 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 9 prioridades por executável · 12 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia | native-capture, opt-disableautomaticupdates | MERGED |
++| Essential | `Otimizar RED DEAD REDEMPTION 2.bat` | 26 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 3 prioridades por executável · 13 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia — Limpa `FortniteGame\Saved\WebCache` — cache de outro jogo. Não reproduzido. | native-capture, opt-disableautomaticupdates | BROKEN |
++| Essential | `Otimizar ROBLOX.bat` | 26 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 3 prioridades por executável · 12 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia | native-capture, opt-disableautomaticupdates | MERGED |
++| Essential | `Otimizar Valorant.bat` | 29 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 6 prioridades por executável · 12 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia | native-capture, opt-disableautomaticupdates | MERGED |
++| Essential | `Otimizar WARZONE.bat` | 26 valores de Registro · 44 operações de serviço · 15 pacotes de aplicativo · 3 prioridades por executável · 12 exclusões de arquivo · 4 tarefas agendadas · 1 comandos de energia | native-capture, opt-disableautomaticupdates | MERGED |
++| Essential | `Arrumar Windows.bat` | 2 comandos de reparo | — | NOT APPLICABLE |
++| Essential | `Limpeza Completa PC.bat` | 2 operações de serviço · 4 exclusões de arquivo · 1 comandos de rede | — | NEW |
++| Essential | `Ativar Pacote Office (Desative antes o Anti-Vírus).b` | 1 downloads — Mesmo payload de ativação. NÃO integrado. | — | INTENTIONALLY OMITTED |
++| Essential | `Ativar Windows (Desative antes o Anti-Vírus).bat` | 1 downloads — Baixa e executa payload remoto de ativação (`get.activated.win`). Não é otimização. NÃO integrado, não executado, sem botão. | — | INTENTIONALLY OMITTED |
++| Essential | `Baixar Driver AMD.bat` | 1 downloads | — | NOT APPLICABLE |
++| Essential | `Desativar AMD Crash Defender (serviços.bat` | 2 operações de serviço | — | NEW |
++| Essential | `Desativar AMD Overlay e Telemetria.reg` | 2 valores de Registro | — | NEW |
++| Essential | `Desativar Hardware Accelerated GPU Scheduling.reg` | 1 valores de Registro | set-gaming-hags | EXISTING |
++| Essential | `Desativar MPO.reg` | 1 valores de Registro | — | NEW |
++| Essential | `Desativar ULPS (Stutter e quedas de clock).reg` | 2 valores de Registro | — | NEW |
++| Essential | `Forçar Shader Cache sempre ativo (AMD).reg` | 1 valores de Registro | — | NEW |
++| Essential | `Baixar Driver INTEL.bat` | 1 downloads | — | NOT APPLICABLE |
++| Essential | `Desativar MPO (Multiplane Overlay).bat` | 1 valores de Registro | — | NEW |
++| Essential | `Intel Priority Optimization.bat` | 1 valores de Registro | set-gaming-foreground-priority | EXISTING |
++| Essential | `Intel Timer Optimization (bcedit).bat` | 3 alterações de inicialização | — | NOT APPLICABLE |
++| Essential | `Baixar Driver NVIDIA.bat` | 1 downloads | — | NOT APPLICABLE |
++| Essential | `Desativar HGS.reg` | 1 valores de Registro | set-gaming-hags | EXISTING |
++| Essential | `Desativar MPO.reg` | 1 valores de Registro | — | NEW |
++| Essential | `Desativar NVIDIA ShadowPlay.reg` | 1 valores de Registro | — | NEW |
++| Essential | `Desativar Telemetria NVIDIA.bat` | 4 operações de serviço | — | NEW |
++| Essential | `Limpar Shader Cache NVIDIA.bat` | 2 exclusões de arquivo | — | NEW |
++| Essential | `Desativar Copilot.bat` | 3 valores de Registro | opt-disablecopilotai | MERGED |
++| Essential | `Desativar Cortana.bat` | 1 valores de Registro · 1 pacotes de aplicativo | opt-disablecortana | EXISTING |
++| Essential | `Linkedin.bat` | 3 pacotes de aplicativo | — | NEW |
++| Essential | `Loja do Windows.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `REMOVA TUDO DE UMA VEZ SÓ.bat` | 5 valores de Registro · 19 pacotes de aplicativo | opt-disablecopilotai, opt-disablecortana | MERGED |
++| Essential | `REVERTA OS DEBLOATERS.bat` | 5 valores de Registro · 19 pacotes de aplicativo | opt-disablecopilotai, opt-disablecortana | MERGED |
++| Essential | `Vincular celular.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Whatsapp.bat` | 3 pacotes de aplicativo | — | NEW |
++| Essential | `Windows 3Dbuilder.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Alarms.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Calculadora.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Calendario.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Camera.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Getstarted.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Groove Música.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Messaging.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Music.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows News.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Officehub.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows OneDrive.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows People.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Photos.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows Xbox.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `Windows maps.bat` | 1 pacotes de aplicativo | — | NEW |
++| Essential | `iGust Debloater.bat` | 15 valores de Registro · 55 pacotes de aplicativo · 1 downloads | opt-disablecopilotai, opt-disablecortana | MERGED |
++| Windows Boost | `debloater.bat` | 6 valores de Registro · 55 pacotes de aplicativo | opt-disablecopilotai, opt-disablecortana | MERGED |
++| Windows Boost | `iGust Windows Boost.bat` | 252 valores de Registro · 37 operações de serviço · 24 pacotes de aplicativo · 141 prioridades por executável · 4 exclusões de arquivo · 4 comandos de energia · 2 alterações de inicialização · 4 comandos de rede · 2 comandos de reparo · 2 comandos de memória | native-capture, native-gamemode | MERGED |
++
+diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/WINDOWS_BOOST_IMPLEMENTATION_REPORT.md work/LukeOptimizer-6.1.2/WINDOWS_BOOST_IMPLEMENTATION_REPORT.md
+--- head12/LukeOptimizer-6.1.2/WINDOWS_BOOST_IMPLEMENTATION_REPORT.md	1970-01-01 00:00:00.000000000 +0000
++++ work/LukeOptimizer-6.1.2/WINDOWS_BOOST_IMPLEMENTATION_REPORT.md	2026-09-19 14:57:19.765232612 +0000
+@@ -0,0 +1,150 @@
++# RELATÓRIO DE IMPLEMENTAÇÃO — Windows Boost e Windows Boost Essential
++
++Companheiro de `WINDOWS_BOOST_COMPLETE_INVENTORY.md` (o que existe nos pacotes) e de
++`WINDOWS_BOOST_PARITY_REPORT.md` (os números). Este aqui diz **o que virou código**.
++
++---
++
++## 1. O que a auditoria encontrou
++
++| | |
++|---|---:|
++| Arquivos com comportamento | **86** |
++| Comportamentos extraídos do conteúdo | **2.518** |
++| Ajustes de Registro distintos | **183** |
++| …repetidos nos **dois** pacotes | **73** |
++| …que **já existiam** no LukeOptimizer | **35** |
++| Executáveis de jogo com prioridade por IFEO | **87** |
++| Serviços distintos | **31** |
++| Pacotes de aplicativo | **31** |
++
++A duplicação é o traço mais marcante. As quatro tarefas agendadas de telemetria aparecem
++**11 vezes cada**; as exclusões de temporários, 11 a 13 vezes. Isso porque cada script
++"otimizar jogo X" é uma cópia integral do anterior com um executável trocado — e, em três
++casos, **nem o executável foi trocado**.
++
++---
++
++## 2. Funções implementadas nesta rodada
++
++19 configurações novas, todas pelo motor transacional existente: detecção de estado,
++backup antes de escrever, verificação depois, Histórico e Desfazer.
++
++| Feature ID | Nome na tela | Origem no pacote | Categoria | Reinício |
++|---|---|---|---|---|
++| `set-gpu-mpo` | Sobreposição de camadas de vídeo | `Desativar MPO.reg` (AMD, NVIDIA, INTEL — 3 cópias) | Avançado | sim |
++| `set-gaming-fullscreen` | Otimizações de tela cheia | `GameDVR_FSEBehaviorMode` nos dois pacotes | Avançado | sair e entrar |
++| `set-gaming-audio-capture` | Gravar áudio junto com o vídeo | `Desativar Game DVR.reg` | Opcional | não |
++| `set-gaming-capture-battery` | Gravar em segundo plano na bateria | `Desativar Game DVR.reg` | Opcional | não |
++| `set-gaming-gamebar-widgets` | Widgets da Game Bar | `iGust Windows Boost.bat` | Opcional | não |
++| `set-gaming-mmcss` | Prioridade do agendador para jogos | tarefa `Games` do MMCSS, nos dois pacotes | **Experimental** | sim |
++| `set-lab-timer-serialize` | Serializar expiração de timers | `SerializeTimerExpiration` | **Experimental** | sim |
++| `set-amd-web-content` | Conteúdo online do AMD Software | `Desativar AMD Overlay e Telemetria.reg` | Opcional | não |
++| `set-amd-auto-update` | Atualizações automáticas do AMD Software | idem | Opcional | não |
++| `set-amd-ulps` | Economia de energia entre GPUs AMD | `Desativar ULPS.reg` | Avançado | sim |
++| `set-nvidia-shadowplay` | Gravação da NVIDIA (ShadowPlay) | `Desativar NVIDIA ShadowPlay.reg` | Opcional | não |
++| `set-search-history` | Histórico de pesquisa | `Desativar Sugestões de Pesquisa.bat` | Opcional | não |
++| `set-privacy-activity-upload` | Enviar histórico de atividades | `Desativar histórico de atividade.bat` | Recomendado | não |
++| `set-privacy-error-reporting` | Relatórios de erro do Windows | `iGust Windows Boost.bat` | Opcional | não |
++| `set-privacy-consumer-experiences` | Experiências do consumidor | `Desativar Anúncios e sugestões.bat` | Recomendado | não |
++| `set-system-pca` | Assistente de compatibilidade de programas | `iGust Windows Boost.bat` | Avançado | não |
++| `set-update-no-internet-locations` | Buscar atualizações só no servidor da empresa | `Desativar Windows Telemetria.bat` | Avançado | não |
++| `set-restore-frequency` | Permitir pontos de restauração seguidos | `Fazer backup do Windows.bat` | Recomendado | não |
++| `set-appearance-visualfx` | Efeitos visuais do Windows | `Desativar efeitos visuais.bat` | Opcional | sair e entrar |
++
++Todas têm: UI · backend · detecção de estado · compatibilidade · prévia · backup ·
++aplicação · verificação · erro tratado · log · rollback.
++
++### Detecção por fabricante de GPU
++
++As quatro opções de AMD e NVIDIA só aparecem quando **aquela** placa existe na máquina.
++Os pacotes originais gravam esses valores em qualquer PC — escrever `EnableUlps` num
++computador com NVIDIA não faz nada além de sujar o Registro.
++
++Quando a placa não pode ser identificada com segurança, a opção **aparece**. Errar
++escondendo é pior que errar mostrando: a ficha do ⓘ diz qual placa a opção exige e qual
++foi detectada.
++
++---
++
++## 3. Separações que os pacotes não fizeram
++
++**Telemetria ≠ Windows Update.** O script `Desativar Windows Telemetria.bat` também grava
++`DoNotConnectToWindowsUpdateInternetLocations`, que impede o Windows Update de falar com
++a Microsoft. Num PC doméstico isso essencialmente **para as atualizações de segurança**.
++Virou feature separada, no painel de Windows Update, com o efeito escrito.
++
++**"Prioridade da GPU" que não é de GPU.** Dois `.reg` com nomes diferentes — um diz
++"Aumentar Prioridade da GPU (DirectX e Renderização)", o outro "Aumentar velocidade ao
++abrir pastas" — gravam **exatamente o mesmo valor**: `NtfsDisableLastAccessUpdate`. Não
++tem relação com GPU nem com DirectX. É uma feature só, e já existia aqui como
++`opt-disablentfstimestamp`.
++
++**"Otimização do sistema de arquivos" que é de rede.** `Habilitar a otimização do sistema
++de arquivos.reg` altera `EnableOplocks` do LanmanServer — cache de arquivos compartilhados
++em rede.
++
++---
++
++## 4. Defeitos encontrados e NÃO reproduzidos
++
++Confirmados lendo o conteúdo, não o nome:
++
++| Arquivo | Defeito |
++|---|---|
++| `Otimizar CALL OF DUTY BLACK OPS (TODOS).bat` | Grava prioridade para `FortniteClient-Win64-Shipping.exe` |
++| `Otimizar GTA V.bat` | Também grava para `FortniteClient-Win64-Shipping.exe`, não para `GTA5.exe` |
++| `Otimizar RED DEAD REDEMPTION 2.bat` | Limpa `FortniteGame\Saved\WebCache` |
++| `powercfg -duplicatescheme` + `/setactive SCHEME_CURRENT` | Cria o plano Desempenho Máximo e **reativa o plano atual** — o plano novo nunca é ativado, e cada execução cria outra cópia |
++
++Uma suspeita minha **não** se confirmou: achei que `%windows%` fosse variável inexistente
++nas linhas de limpeza. Está definida (`set "windows=%windir%"`) e as exclusões funcionam.
++Registro aqui porque quase reportei um defeito que não existe.
++
++---
++
++## 5. O que NÃO entrou
++
++| Item | Motivo |
++|---|---|
++| `Ativar Windows.bat` e `Ativar Pacote Office.bat` | Baixam e executam payload remoto de ativação. Não é otimização. Não integrado, não executado, sem botão. |
++| `RequirePlatformSecurityFeatures = 0`, `LsaCfgFlags = 0` | Desligam proteção de virtualização e da autoridade de segurança local. O pedido é explícito: mostrar estado, nunca desligar por padrão. Mostrar estado ainda **não** foi implementado — está como ausente. |
++| `LargeSystemCache` | Continua na lista de placebos proibidos de executar. Não há motivo técnico defensável em Windows moderno. |
++| `del %windows%\system32\dllcache\*.*` | Pasta de Windows antigo; apagá-la em Windows moderno não tem efeito útil. Não reproduzido. |
++| Executáveis de terceiros (DNS Jumper, Autoruns, ISLC, EmptyStandbyList, Firemin, MSI Mode Utility, OpenHardwareMonitor, FilterKeysSetter) | Nenhum redistribuído. As capacidades úteis devem ser implementadas nativamente — parte já está (DNS, memória, inicialização), parte não. |
++
++---
++
++## 6. O que continua AUSENTE
++
++Honestamente listado, não escondido. Dos **148** ajustes de Registro ausentes, **19**
++foram implementados nesta rodada. O que falta, por ordem de valor:
++
++| Família | Ausentes | Observação |
++|---|---:|---|
++| Prioridade por jogo (IFEO) | 87 executáveis | São **dados**, não 87 features. Precisam do Game Profile Engine com detecção de jogo e prioridade escolhida pelo usuário — não `CpuPriorityClass=3` fixo para todos. |
++| Energia (AC/DC, ocioso do processador, USB) | 13 | Precisa de backend `powercfg` por plano, com captura do GUID — e sem o defeito do `SCHEME_CURRENT`. |
++| Serviços | 16 | O catálogo de serviços existe; faltam estes 16 com descrição humana e detecção de dependência. |
++| Aplicativos (AppX) | 21 | O gerenciador existe com 141 definições; faltam estas, com Package Family Name correto em vez de curinga `*store*`. |
++| Tarefas agendadas de telemetria | 4 | Consolidator, ProgramDataUpdater, Autochk Proxy, DiskDiagnosticDataCollector. |
++| BCD (`useplatformtick`, `disabledynamictick`, `tscsyncpolicy`) | 3 | Exige backup da configuração de inicialização antes. Laboratório. |
++| Estado de VBS, HVCI, SmartScreen, LSA | 4 | Mostrar estado, nunca desligar. |
++| Memória (MMAgent, standby list, working sets) | 2 comandos | `Disable-MMAgent`/`Enable-MMAgent` e limpeza de standby. |
++| Cache de shaders NVIDIA/AMD | — | Ação de limpeza, com aviso de recompilação. |
++
++---
++
++## 7. Verificação
++
++```
++COMPILADO ........................ sim
++TESTE UNITÁRIO ................... 3434 verificações, 6 puladas
++TESTE DE INTEGRAÇÃO .............. dentro da suíte (transação, rollback, deduplicação)
++UI SMOKE ......................... 4 painéis, 58 configurações
++TESTADO EM WINDOWS REAL .......... NÃO
++```
++
++**Nenhuma das 19 funções novas foi aplicada em Windows real.** Os testes usam registro
++simulado. Para provar o efeito na máquina de verdade existe a **Conferência real** em
++Diagnóstico → *Provar que aplicar funciona*, que aplica e desfaz cada opção e diz, uma a
++uma, se o Windows mudou e se voltou ao original.
+diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/WINDOWS_BOOST_PARITY_REPORT.md work/LukeOptimizer-6.1.2/WINDOWS_BOOST_PARITY_REPORT.md
+--- head12/LukeOptimizer-6.1.2/WINDOWS_BOOST_PARITY_REPORT.md	1970-01-01 00:00:00.000000000 +0000
++++ work/LukeOptimizer-6.1.2/WINDOWS_BOOST_PARITY_REPORT.md	2026-09-19 14:57:30.518210837 +0000
+@@ -0,0 +1,33 @@
++# RELATÓRIO DE PARIDADE — Windows Boost e Windows Boost Essential
++
++| | |
++|---|---:|
++| Arquivos analisados (com comportamento) | **86** |
++| Comportamentos extraídos | **2518** |
++| Gravações de Registro | 608 |
++| Pares (chave, valor) **distintos** | **183** |
++| …presentes nos **dois** pacotes (duplicação interna) | **73** |
++| …que **já existiam** no LukeOptimizer | **35** |
++| …**ausentes** | **148** |
++| Serviços distintos tocados | 31 (15 já no catálogo) |
++| Pacotes de aplicativo distintos | 31 |
++| Executáveis com prioridade por IFEO | **87** (em 444 gravações) |
++| Tarefas agendadas distintas | 4 (em 44 gravações) |
++
++## A duplicação é massiva
++
++| Comportamento | Vezes repetido |
++|---|---:|
++| Tarefa `Consolidator` | 11 |
++| Tarefa `ProgramDataUpdater` | 11 |
++| Tarefa `Proxy` | 11 |
++| Tarefa `Microsoft-Windows-DiskDiagnosticDataCollector` | 11 |
++| Exclusão `/s /f /q "%temp%\*.*" 2>nul` | 13 |
++| Exclusão `/s /f /q "%windows%\temp\*.*" 2>nul` | 11 |
++| Exclusão `/s /f /q "%windows%\Prefetch\*.exe" 2>nul` | 11 |
++| Exclusão `/s /f /q "%windows%\Prefetch\*.dll" 2>nul` | 11 |
++
++**73 dos 183 ajustes de Registro aparecem nos dois pacotes.** Cada um virou **uma**
++feature no LukeOptimizer, com um id só. O teste de deduplicação derruba o build se
++aparecer um segundo id gravando o mesmo valor.
++
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1 work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-19 03:46:09.000000000 +0000
 +++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/VALIDAR-5.4.ps1	2026-09-19 14:16:45.470616159 +0000
@@ -2376,8 +2666,8 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +}
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SettingsPanels.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SettingsPanels.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SettingsPanels.cs	1970-01-01 00:00:00.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SettingsPanels.cs	2026-09-19 13:32:19.754844405 +0000
-@@ -0,0 +1,317 @@
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/SettingsPanels.cs	2026-09-19 14:52:44.549216252 +0000
+@@ -0,0 +1,324 @@
 +using System;
 +using System.Linq;
 +using System.Text;
@@ -2563,7 +2853,8 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +  b.AppendLine("CLASSIFICAÇÃO").AppendLine("  "+setting.Risk+(setting.Risk=="experimental"?" — sem ganho comprovado; existe porque você pediu para poder testar":""));
 +  b.AppendLine("  Reinício: "+(setting.Restart?"necessário":setting.SignOut?"basta sair e entrar de novo":"não"));
 +  b.AppendLine("  Administrador: "+(setting.Administrator?"sim":"não"));
-+  b.AppendLine("  Compatibilidade: "+(setting.MinBuild>0?"exige build "+setting.MinBuild+" ou mais recente"+(machine!=null&&machine.Build>0?"; este PC tem "+machine.Build:""):"Windows 10 e 11"));
++  b.AppendLine("  Compatibilidade: "+(setting.MinBuild>0?"exige build "+setting.MinBuild+" ou mais recente"+(machine!=null&&machine.Build>0?"; este PC tem "+machine.Build:""):"Windows 10 e 11")+
++   (setting.Vendor.Length>0?" · exige placa de vídeo "+setting.Vendor+(machine!=null&&machine.Gpu!=null?" (este PC: "+(App.GpuVendorOf(machine.Gpu).Length>0?App.GpuVendorOf(machine.Gpu):"não identificada")+")":""):""));
 +  b.AppendLine();
 +  b.AppendLine("COMO VOLTAR ATRÁS");
 +  b.AppendLine("  O valor anterior é gravado no Histórico antes da mudança. Desfazer restaura exatamente o que havia, e recusa sobrescrever se outro programa tiver mudado o valor depois.");
@@ -2642,6 +2933,12 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +  return null;
 + }
 + bool PanelCompatible(WindowsSetting setting){
++  // Fabricante de GPU: uma opção da AMD num PC com NVIDIA é botão que não faz nada.
++  // Sem leitura confiável da placa, NÃO esconde — errar escondendo é pior que mostrar.
++  if(setting.Vendor.Length>0){
++   string vendor=machine==null?"":App.GpuVendorOf(machine.Gpu);
++   if(vendor.Length>0&&!String.Equals(vendor,setting.Vendor,StringComparison.OrdinalIgnoreCase))return false;
++  }
 +  if(setting.MinBuild<=0)return true;
 +  if(machine==null||machine.Build<=0)return true;   // sem leitura confiável, não esconde
 +  return machine.Build>=setting.MinBuild;
@@ -2721,8 +3018,8 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
  
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/WindowsSettings.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/WindowsSettings.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/WindowsSettings.cs	1970-01-01 00:00:00.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/WindowsSettings.cs	2026-09-19 08:39:47.977294458 +0000
-@@ -0,0 +1,376 @@
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/WindowsSettings.cs	2026-09-19 14:52:28.053496284 +0000
+@@ -0,0 +1,574 @@
 +using System;
 +using System.Linq;
 +using System.Text;
@@ -2761,6 +3058,10 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 + public string Id="",Name="",Summary="",Panel="",Group="",Risk="",Source="",Technical="";
 + public bool Restart,Administrator,SignOut;
 + public int MinBuild;                       // 0 = qualquer Windows 10/11
++ // "NVIDIA", "AMD" ou "Intel". Vazio = serve a qualquer placa. Opção de fabricante só
++ // aparece quando ESSA placa existe na máquina: mostrar ajuste de AMD em PC com NVIDIA
++ // é oferecer botão que não faz nada.
++ public string Vendor="";
 + public string[] Aliases=new string[0];     // termos técnicos que a busca também encontra
 + public string[] References=new string[0];  // origens; só aparecem em Modo desenvolvedor
 + public RegOp[] On=new RegOp[0];            // estado "ligado" de um interruptor
@@ -2779,8 +3080,18 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 + const string DocMouse="https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-systemparametersinfow";
 +
 + static RegOp Cu(string key,string name,string data){return new RegOp{Hive="HKEY_CURRENT_USER",Key=key,Name=name,Data=data,Kind="DWord"};}
++ // "Padrão do Windows" para um valor que o Windows não grava por conta própria é APAGAR
++ // o valor, não escrever um número que alguém achou que fosse o padrão. Escrever um
++ // "padrão" inventado é o erro mais comum dos pacotes de tweak: parece reversão e não é.
++ static RegOp Drop(string hive,string key,string name){return new RegOp{Hive=hive,Key=key,Name=name,Data="",Kind="DWord",Delete=true};}
 + static RegOp CuText(string key,string name,string data){return new RegOp{Hive="HKEY_CURRENT_USER",Key=key,Name=name,Data=data,Kind="String"};}
 + static RegOp Lm(string key,string name,string data){return new RegOp{Hive="HKEY_LOCAL_MACHINE",Key=key,Name=name,Data=data,Kind="DWord"};}
++ static RegOp LmText(string key,string name,string data){return new RegOp{Hive="HKEY_LOCAL_MACHINE",Key=key,Name=name,Data=data,Kind="String"};}
++ internal const string MmcssGames=@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games";
++ // Marca a opção como exclusiva de um fabricante de GPU e, quando preciso, exige admin.
++ static WindowsSetting Vendor(WindowsSetting setting,string vendor,bool administrator){
++  setting.Vendor=vendor;setting.Administrator=setting.Administrator||administrator;return setting;
++ }
 +
 + static WindowsSetting Toggle(string id,string panel,string group,string name,string summary,string risk,RegOp[] on,string source,string technical){
 +  return new WindowsSetting{Id=id,Panel=panel,Group=group,Name=name,Summary=summary,Risk=risk,On=on,Source=source,Technical=technical};
@@ -2984,6 +3295,190 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +   Technical="HKLM\\System\\CurrentControlSet\\Control\\PriorityControl · Win32PrioritySeparation = 38 (padrão 2)",
 +   Aliases=new[]{"Win32PrioritySeparation","quantum","prioridade de primeiro plano"},
 +   On=new[]{Lm(@"System\CurrentControlSet\Control\PriorityControl","Win32PrioritySeparation","38")}});
++
++  // ============================================================ VÍDEO E GPU
++  // Multiplane Overlay. NÃO é ajuste de FPS — é de solução de problema. Quando o driver
++  // e o Windows discordam sobre composição de camadas, o sintoma é piscar, rasgo ou
++  // artefato em janela. Desligar MPO resolve ESSE sintoma e não aumenta desempenho.
++  list.Add(new WindowsSetting{Id="set-gpu-mpo",Panel="Jogos",Group="Vídeo e GPU",
++   Name="Sobreposição de camadas de vídeo",
++   Summary="Como o Windows compõe as camadas da imagem junto com a placa de vídeo. Desligar é solução de problema para tela piscando, rasgando ou com artefatos em certos drivers — NÃO aumenta FPS.",
++   Risk="avançado",Administrator=true,Restart=true,
++   Source="https://learn.microsoft.com/en-us/windows-hardware/drivers/display/multiplane-overlay-support",
++   Technical="HKLM\\SOFTWARE\\Microsoft\\Windows\\Dwm · OverlayTestMode = 5 desliga; voltar ao padrão APAGA o valor",
++   Aliases=new[]{"MPO","OverlayTestMode","Multiplane Overlay","piscando","flicker"},
++   Choices=new[]{
++    new SettingChoice{Label="Padrão do Windows",Detail="Apaga o valor, devolvendo a decisão ao Windows. Não grava um \"padrão\" inventado.",
++     Ops=new[]{Drop("HKEY_LOCAL_MACHINE",@"SOFTWARE\Microsoft\Windows\Dwm","OverlayTestMode")}},
++    new SettingChoice{Label="Desativado (corrigir piscada/artefato)",
++     Ops=new[]{Lm(@"SOFTWARE\Microsoft\Windows\Dwm","OverlayTestMode","5")}}}});
++
++  // ============================================================ CAPTURA DE JOGOS
++  list.Add(new WindowsSetting{Id="set-gaming-fullscreen",Panel="Jogos",Group="Vídeo e GPU",
++   Name="Otimizações de tela cheia",
++   Summary="Decide se o Windows usa tela cheia otimizada (uma janela sem borda que ele compõe) ou entrega a tela ao jogo. O efeito varia por jogo: em alguns reduz a latência, em outros atrapalha o alt-tab ou o HDR.",
++   Risk="avançado",SignOut=true,
++   Source="https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/for-best-performance--use-dxgi-flip-model",
++   Technical="HKCU\\System\\GameConfigStore · GameDVR_FSEBehaviorMode (0 padrão · 2 desativado)",
++   Aliases=new[]{"FSE","fullscreen optimizations","GameDVR_FSEBehaviorMode","tela cheia"},
++   Choices=new[]{
++    new SettingChoice{Label="Padrão do Windows",Ops=new[]{Cu(@"System\GameConfigStore","GameDVR_FSEBehaviorMode","0")}},
++    new SettingChoice{Label="Desativadas",Detail="O jogo recebe a tela exclusiva. Pode deixar o alt-tab mais lento.",
++     Ops=new[]{Cu(@"System\GameConfigStore","GameDVR_FSEBehaviorMode","2")}}}});
++
++  list.Add(Toggle("set-gaming-audio-capture","Jogos","Vídeo e GPU",
++   "Gravar áudio junto com o vídeo","Desliga a captura de áudio da gravação de jogos. Controle separado da gravação em si — dá para gravar imagem sem som.","opcional",
++   new[]{Cu(@"Software\Microsoft\Windows\CurrentVersion\GameDVR","AudioCaptureEnabled","0")},
++   "https://learn.microsoft.com/en-us/windows/uwp/launch-resume/launch-settings-app#gaming",
++   "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR · AudioCaptureEnabled = 0"));
++
++  list.Add(Toggle("set-gaming-gamebar-widgets","Jogos","Vídeo e GPU",
++   "Widgets da Game Bar","Desliga os painéis que a Game Bar sobrepõe ao jogo. A Game Bar continua abrindo com Win+G.","opcional",
++   new[]{Cu(@"Software\Microsoft\GameBar","UseNexusForGameBarEnabled","0")},
++   "https://learn.microsoft.com/en-us/gaming/game-bar/",
++   "HKCU\\Software\\Microsoft\\GameBar · UseNexusForGameBarEnabled = 0"));
++
++  // ================================================================== APARÊNCIA
++  list.Add(new WindowsSetting{Id="set-appearance-visualfx",Panel="Personalizar Windows",Group="Aparência",
++   Name="Efeitos visuais do Windows",
++   Summary="O mesmo controle da aba Desempenho das Propriedades do Sistema. \"Melhor desempenho\" desliga sombras, animações e suavização — a tela fica mais crua e responde um pouco antes em máquinas fracas.",
++   Risk="opcional",SignOut=true,
++   Source="https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-systemparametersinfow",
++   Technical="HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects · VisualFXSetting (0 Windows escolhe · 1 melhor aparência · 2 melhor desempenho · 3 personalizado)",
++   Aliases=new[]{"VisualFXSetting","efeitos visuais","performance options"},
++   Choices=new[]{
++    new SettingChoice{Label="Deixar o Windows escolher",Ops=new[]{Cu(@"Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects","VisualFXSetting","0")}},
++    new SettingChoice{Label="Melhor aparência",Ops=new[]{Cu(@"Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects","VisualFXSetting","1")}},
++    new SettingChoice{Label="Melhor desempenho",Ops=new[]{Cu(@"Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects","VisualFXSetting","2")}}}});
++
++  list.Add(Toggle("set-gaming-capture-battery","Jogos","Vídeo e GPU",
++   "Gravar em segundo plano na bateria","Impede a gravação contínua quando o notebook está na bateria. Gravar em segundo plano consome bateria de forma contínua.","opcional",
++   new[]{Cu(@"Software\Microsoft\Windows\CurrentVersion\GameDVR","HistoricalCaptureOnBatteryAllowed","0")},
++   "https://learn.microsoft.com/en-us/windows/uwp/launch-resume/launch-settings-app#gaming",
++   "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR · HistoricalCaptureOnBatteryAllowed = 0"));
++
++  // ------------------------------------------------------ agendador multimídia
++  // Os dois pacotes escrevem a tarefa "Games" do MMCSS com valores fixos (GPU Priority 8,
++  // Priority 6, Scheduling Category High, SFIO Priority High) e vendem isso como FPS.
++  // Não é. É a classe de agendamento que o Windows dá às threads que se registram no
++  // MMCSS — e um jogo só se beneficia se ele se registrar. Entra como EXPERIMENTAL, e o
++  // "padrão" APAGA os valores em vez de gravar números inventados.
++  list.Add(new WindowsSetting{Id="set-gaming-mmcss",Panel="Jogos",Group="Experimental",
++   Name="Prioridade do agendador para jogos",
++   Summary="Muda a classe de agendamento que o Windows reserva para tarefas registradas como jogo. EXPERIMENTAL: só afeta programas que usam esse registro, e não há medição pública consistente de ganho. Pode atrapalhar áudio profissional.",
++   Risk="experimental",Administrator=true,Restart=true,
++   Source="https://learn.microsoft.com/en-us/windows/win32/procthread/multimedia-class-scheduler-service",
++   Technical="HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games · GPU Priority, Priority, Scheduling Category, SFIO Priority",
++   Aliases=new[]{"MMCSS","GPU Priority","Scheduling Category","SFIO","tarefa Games"},
++   Choices=new[]{
++    new SettingChoice{Label="Padrão do Windows",Detail="Apaga os quatro valores; o Windows volta a decidir.",
++     Ops=new[]{Drop("HKEY_LOCAL_MACHINE",MmcssGames,"GPU Priority"),Drop("HKEY_LOCAL_MACHINE",MmcssGames,"Priority"),
++               Drop("HKEY_LOCAL_MACHINE",MmcssGames,"Scheduling Category"),Drop("HKEY_LOCAL_MACHINE",MmcssGames,"SFIO Priority")}},
++    new SettingChoice{Label="Priorizar jogos (experimental)",
++     Ops=new[]{Lm(MmcssGames,"GPU Priority","8"),Lm(MmcssGames,"Priority","6"),
++               LmText(MmcssGames,"Scheduling Category","High"),LmText(MmcssGames,"SFIO Priority","High")}}}});
++
++  list.Add(new WindowsSetting{Id="set-lab-timer-serialize",Panel="Jogos",Group="Experimental",
++   Name="Serializar expiração de timers",
++   Summary="Faz o Windows agrupar a expiração de temporizadores. EXPERIMENTAL: em teoria reduz interrupções; na prática o efeito depende do hardware e pode ser nenhum ou negativo.",
++   Risk="experimental",Administrator=true,Restart=true,
++   Source="https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/modern-standby",
++   Technical="HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power · SerializeTimerExpiration = 1",
++   Aliases=new[]{"SerializeTimerExpiration","timers"},
++   On=new[]{Lm(@"SYSTEM\CurrentControlSet\Control\Session Manager\Power","SerializeTimerExpiration","1")}});
++
++  // ==================================================================== AMD
++  // Só aparecem quando há placa AMD. Um dos pacotes grava isso em qualquer máquina.
++  list.Add(Vendor(Toggle("set-amd-web-content","Jogos","Placa de vídeo AMD",
++   "Conteúdo online do AMD Software","Desliga as notícias, promoções e conteúdo online dentro do painel da AMD. Não afeta o driver nem o desempenho.","opcional",
++   new[]{Lm(@"SOFTWARE\AMD\CN","AllowWebContent","0")},
++   "https://www.amd.com/en/support","HKLM\\SOFTWARE\\AMD\\CN · AllowWebContent = 0"),"AMD",true));
++
++  list.Add(Vendor(Toggle("set-amd-auto-update","Jogos","Placa de vídeo AMD",
++   "Atualizações automáticas do AMD Software","Para de verificar driver novo sozinho. Você passa a atualizar quando quiser — e precisa lembrar de fazê-lo.","opcional",
++   new[]{Lm(@"SOFTWARE\AMD\CN","AutoUpdate","0")},
++   "https://www.amd.com/en/support","HKLM\\SOFTWARE\\AMD\\CN · AutoUpdate = 0"),"AMD",true));
++
++  list.Add(Vendor(new WindowsSetting{Id="set-amd-ulps",Panel="Jogos",Group="Placa de vídeo AMD",
++   Name="Economia de energia entre GPUs AMD",
++   Summary="ULPS deixa a segunda placa AMD dormir em sistemas com duas. Desligar é solução de problema para queda de clock e engasgo — em placa única normalmente não muda nada e aumenta o consumo.",
++   Risk="avançado",Administrator=true,Restart=true,
++   Source="https://www.amd.com/en/support",
++   Technical="HKLM\\SYSTEM\\CurrentControlSet\\Services\\amdkmdag · EnableUlps = 0 e EnableUlps_NA = 0",
++   Aliases=new[]{"ULPS","EnableUlps","stutter AMD"},
++   On=new[]{Lm(@"SYSTEM\CurrentControlSet\Services\amdkmdag","EnableUlps","0"),
++            Lm(@"SYSTEM\CurrentControlSet\Services\amdkmdag","EnableUlps_NA","0")}},"AMD",true));
++
++  // ================================================================= NVIDIA
++  list.Add(Vendor(Toggle("set-nvidia-shadowplay","Jogos","Placa de vídeo NVIDIA",
++   "Gravação da NVIDIA (ShadowPlay)","Desliga a captura em segundo plano do painel da NVIDIA. O driver e o restante do painel continuam funcionando.","opcional",
++   new[]{Lm(@"SOFTWARE\NVIDIA Corporation\Global\ShadowPlay","Allow","0")},
++   "https://www.nvidia.com/en-us/geforce/geforce-experience/",
++   "HKLM\\SOFTWARE\\NVIDIA Corporation\\Global\\ShadowPlay · Allow = 0"),"NVIDIA",true));
++
++  // ================================================================ PESQUISA
++  list.Add(Toggle("set-search-history","Personalizar Windows","Pesquisa",
++   "Histórico de pesquisa","Para de guardar o que você digitou na caixa de pesquisa deste PC.","opcional",
++   new[]{Cu(@"Software\Microsoft\Windows\CurrentVersion\Search","SearchHistoryEnabled","0")},
++   "https://support.microsoft.com/en-us/windows/search-in-windows",
++   "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Search · SearchHistoryEnabled = 0"));
++
++  // ============================================================== PRIVACIDADE
++  list.Add(new WindowsSetting{Id="set-privacy-activity-upload",Panel="Privacidade",Group="Windows",
++   Name="Enviar histórico de atividades",Summary="Impede que a linha do tempo de atividades deste PC seja enviada à conta Microsoft. O histórico local continua.",
++   Risk="recomendado",Administrator=true,Source=DocPrivacy,
++   Technical="HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System · PublishUserActivities = 0",
++   Aliases=new[]{"PublishUserActivities","timeline","histórico de atividades"},
++   On=new[]{Lm(@"SOFTWARE\Policies\Microsoft\Windows\System","PublishUserActivities","0")}});
++
++  list.Add(new WindowsSetting{Id="set-privacy-error-reporting",Panel="Privacidade",Group="Windows",
++   Name="Relatórios de erro do Windows",Summary="Para de enviar relatórios quando um programa trava. Você perde os dados que ajudariam a Microsoft a corrigir o problema — e o Windows para de guardar esses despejos.",
++   Risk="opcional",Administrator=true,
++   Source="https://learn.microsoft.com/en-us/windows/win32/wer/windows-error-reporting",
++   Technical="HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting · Disabled = 1",
++   Aliases=new[]{"WER","Windows Error Reporting","WerSvc"},
++   On=new[]{Lm(@"SOFTWARE\Microsoft\Windows\Windows Error Reporting","Disabled","1")}});
++
++  list.Add(new WindowsSetting{Id="set-privacy-consumer-experiences",Panel="Privacidade",Group="Windows",
++   Name="Experiências do consumidor",Risk="recomendado",Administrator=true,Source=DocPrivacy,
++   Summary="Impede a instalação silenciosa de aplicativos promovidos e as sugestões que a Microsoft injeta no Iniciar.",
++   Technical="HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent · DisableWindowsConsumerFeatures = 1",
++   Aliases=new[]{"DisableWindowsConsumerFeatures","consumer experiences"},
++   On=new[]{Lm(@"SOFTWARE\Policies\Microsoft\Windows\CloudContent","DisableWindowsConsumerFeatures","1")}});
++
++  // ========================================================== COMPATIBILIDADE
++  list.Add(new WindowsSetting{Id="set-system-pca",Panel="Personalizar Windows",Group="Mouse e teclado",
++   Name="Assistente de compatibilidade de programas",
++   Summary="Desliga o aviso \"este programa pode não ter sido instalado corretamente\" e a coleta de inventário que o acompanha. Programas antigos deixam de receber correções automáticas de compatibilidade.",
++   Risk="avançado",Administrator=true,
++   Source="https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-admx-appcompat",
++   Technical="HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat · DisablePCA = 1, DisableEngine = 1, DisableInventory = 1",
++   Aliases=new[]{"PCA","Program Compatibility Assistant","AppCompat","PcaSvc"},
++   On=new[]{Lm(@"SOFTWARE\Policies\Microsoft\Windows\AppCompat","DisablePCA","1"),
++            Lm(@"SOFTWARE\Policies\Microsoft\Windows\AppCompat","DisableEngine","1"),
++            Lm(@"SOFTWARE\Policies\Microsoft\Windows\AppCompat","DisableInventory","1")}});
++
++  // ========================================================== WINDOWS UPDATE
++  // O pacote esconde isto dentro de um script chamado "desativar telemetria". NÃO é
++  // telemetria: é o Windows Update deixando de consultar a internet da Microsoft. Fica
++  // onde a pessoa espera encontrar, não escondido na privacidade.
++  list.Add(new WindowsSetting{Id="set-update-no-internet-locations",Panel="Windows Update",Group="Como atualizar",
++   Name="Buscar atualizações só no servidor da empresa",
++   Summary="Impede o Windows Update de consultar os servidores da Microsoft na internet. Em PC doméstico isso essencialmente PARA as atualizações — inclusive as de segurança.",
++   Risk="avançado",Administrator=true,Source=DocUpdate,
++   Technical="HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate · DoNotConnectToWindowsUpdateInternetLocations = 1",
++   Aliases=new[]{"DoNotConnectToWindowsUpdateInternetLocations","WSUS"},
++   On=new[]{Lm(@"SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate","DoNotConnectToWindowsUpdateInternetLocations","1")}});
++
++  // ============================================================ ARMAZENAMENTO
++  list.Add(new WindowsSetting{Id="set-restore-frequency",Panel="Personalizar Windows",Group="Explorador de Arquivos",
++   Name="Permitir pontos de restauração seguidos",
++   Summary="Por padrão o Windows recusa criar um novo ponto de restauração se já houver um das últimas 24 horas. Isto remove esse limite, para que cada alteração possa ter o seu.",
++   Risk="recomendado",Administrator=true,
++   Source="https://learn.microsoft.com/en-us/windows/win32/sr/system-restore-portal",
++   Technical="HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore · SystemRestorePointCreationFrequency = 0",
++   Aliases=new[]{"SystemRestorePointCreationFrequency","ponto de restauração"},
++   On=new[]{Lm(@"Software\Microsoft\Windows NT\CurrentVersion\SystemRestore","SystemRestorePointCreationFrequency","0")}});
 +
 +  // =============================================================== NOTIFICAÇÕES
 +  list.Add(Toggle("set-notify-toasts","Personalizar Windows","Notificações",
@@ -8698,8 +9193,8 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
    // Era "!=8", número congelado quando havia 8 categorias; hoje StorageManager traz 14
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/ReferenceTests.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/ReferenceTests.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/ReferenceTests.cs	1970-01-01 00:00:00.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/ReferenceTests.cs	2026-09-19 08:40:46.205293126 +0000
-@@ -0,0 +1,121 @@
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/tests/ReferenceTests.cs	2026-09-19 14:53:24.545218630 +0000
+@@ -0,0 +1,129 @@
 +using System;
 +using System.Linq;
 +using System.Collections.Generic;
@@ -8730,8 +9225,16 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +   foreach(string banned in new[]{"Winhance","Sophia","Win11Debloat","optimizerNXT","WinUtil","Chris Titus"})
 +    Assert(setting.Name.IndexOf(banned,StringComparison.OrdinalIgnoreCase)<0&&setting.Summary.IndexOf(banned,StringComparison.OrdinalIgnoreCase)<0,
 +     "no reference project is named in what the user reads: "+setting.Id+" / "+banned);
-+   Assert(setting.Source.StartsWith("https://learn.microsoft.com")||setting.Source.StartsWith("https://support.microsoft.com"),
-+    "every setting points at official documentation, not at the project it was found in: "+setting.Id);
++   // A regra é "aponte para a documentação de quem É DONO do ajuste, nunca para o pacote
++   // de tweak onde ele foi encontrado". Para um ajuste do Windows o dono é a Microsoft;
++   // para um do driver da placa, o dono é o fabricante da placa. Ambos satisfazem a
++   // intenção; o que não passa é apontar para um projeto de terceiro.
++   var official=new[]{"https://learn.microsoft.com","https://support.microsoft.com",
++                      "https://www.amd.com","https://www.nvidia.com","https://www.intel.com"};
++   Assert(official.Any(prefix=>setting.Source.StartsWith(prefix,StringComparison.Ordinal)),
++    "every setting points at the documentation of whoever owns the setting, not at the project it was found in: "+setting.Id+" -> "+setting.Source);
++   if(setting.Vendor.Length>0)
++    Assert(new[]{"NVIDIA","AMD","Intel"}.Contains(setting.Vendor),"a vendor-locked setting names a vendor the app can detect: "+setting.Id);
 +   Assert(!String.IsNullOrWhiteSpace(setting.Technical),"the technical detail exists for whoever wants to audit: "+setting.Id);
 +   Assert(new[]{"recomendado","opcional","avançado","experimental","segurança"}.Contains(setting.Risk),"every setting declares a risk level: "+setting.Id);
 +   // Sem botão vazio: interruptor tem operação, escolha tem opções.
