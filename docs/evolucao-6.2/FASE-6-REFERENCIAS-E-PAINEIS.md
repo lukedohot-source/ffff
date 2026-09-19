@@ -194,6 +194,22 @@ Executável: compila
   (controle existe, conta certo, envia o id certo), não por aparência. O visual precisa de
   conferência em Windows.
 
+### Uma falha que só o Windows pegou
+
+A primeira compilação no PC do usuário falhou com **CS1985: não é possível esperar no
+corpo de uma cláusula catch**. Eu tinha escrito um `await` dentro de um `catch` no
+`DnsInterface.cs` — construção que só passou a ser válida no C# 6, e este projeto compila
+com `/langversion:5`.
+
+O `mcs` do mono, que eu uso aqui, **aceitou em silêncio mesmo com `/langversion:5`**. Ou
+seja: compilar limpo no meu ambiente não prova que compila no `csc` do Windows. As
+restrições que o mono deixa passar são a `await` em `catch` e em `finally`.
+
+Corrigido guardando o motivo da recusa e mostrando a tela depois do `catch` — o mesmo
+formato que `FunctionalInterface` já usava. E ficou uma varredura no processo de revisão
+procurando `await` dentro de `catch`/`finally` em todos os arquivos, já que o compilador
+daqui não acusa.
+
 ---
 
 ## 5. O que continua faltando

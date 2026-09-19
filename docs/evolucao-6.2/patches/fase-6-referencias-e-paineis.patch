@@ -1,7 +1,7 @@
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/FASE-6-REFERENCIAS-E-PAINEIS.md work/LukeOptimizer-6.1.2/FASE-6-REFERENCIAS-E-PAINEIS.md
 --- head12/LukeOptimizer-6.1.2/FASE-6-REFERENCIAS-E-PAINEIS.md	1970-01-01 00:00:00.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/FASE-6-REFERENCIAS-E-PAINEIS.md	2026-09-19 08:54:28.325274322 +0000
-@@ -0,0 +1,217 @@
++++ work/LukeOptimizer-6.1.2/FASE-6-REFERENCIAS-E-PAINEIS.md	2026-09-19 13:47:33.994898750 +0000
+@@ -0,0 +1,233 @@
 +# FASE 6 — DNS completo, quatro referências auditadas, painéis compactos
 +
 +## 1. Gerenciador de DNS — o item que estava pendente desde a FASE 5
@@ -197,6 +197,22 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +  **para todos os testes**, não só os novos. Os painéis foram verificados por estrutura
 +  (controle existe, conta certo, envia o id certo), não por aparência. O visual precisa de
 +  conferência em Windows.
++
++### Uma falha que só o Windows pegou
++
++A primeira compilação no PC do usuário falhou com **CS1985: não é possível esperar no
++corpo de uma cláusula catch**. Eu tinha escrito um `await` dentro de um `catch` no
++`DnsInterface.cs` — construção que só passou a ser válida no C# 6, e este projeto compila
++com `/langversion:5`.
++
++O `mcs` do mono, que eu uso aqui, **aceitou em silêncio mesmo com `/langversion:5`**. Ou
++seja: compilar limpo no meu ambiente não prova que compila no `csc` do Windows. As
++restrições que o mono deixa passar são a `await` em `catch` e em `finally`.
++
++Corrigido guardando o motivo da recusa e mostrando a tela depois do `catch` — o mesmo
++formato que `FunctionalInterface` já usava. E ficou uma varredura no processo de revisão
++procurando `await` dentro de `catch`/`finally` em todos os arquivos, já que o compilador
++daqui não acusa.
 +
 +---
 +
@@ -1140,8 +1156,8 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
    if(items.Select(i=>i.Id).Distinct().Count()!=items.Count||all.Select(i=>i.Id).Distinct().Count()!=all.Count)throw new Exception("Catálogo contém IDs duplicados.");
 diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/DnsInterface.cs work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/DnsInterface.cs
 --- head12/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/DnsInterface.cs	1970-01-01 00:00:00.000000000 +0000
-+++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/DnsInterface.cs	2026-09-19 08:25:16.369314394 +0000
-@@ -0,0 +1,153 @@
++++ work/LukeOptimizer-6.1.2/codigo-fonte/LukeOptimizer/source/DnsInterface.cs	2026-09-19 13:46:05.142893468 +0000
+@@ -0,0 +1,159 @@
 +using System;
 +using System.Linq;
 +using System.Drawing;
@@ -1277,14 +1293,20 @@ diff -ruN '--exclude=*.exe' '--exclude=*.log' '--exclude=*.zip' head12/LukeOptim
 +  if(busy||scanning||resourceScanning||easyRunning||productRunning)return;
 +  var adapter=SelectedDnsAdapter();var provider=SelectedDnsProvider();
 +  if(adapter==null||provider==null)return;
-+  string payload;List<string> plan;
++  string payload=null;List<string> plan=null;
 +  // A prévia e o pedido são montados ANTES de qualquer confirmação: um endereço inválido
 +  // vira recusa explicada aqui, e não erro no meio de uma operação já elevada.
++  //
++  // O motivo da recusa é GUARDADO e a tela só aparece depois do catch: em C# 5 não se
++  // pode esperar (await) dentro de um bloco catch. É o mesmo formato já usado em
++  // FunctionalInterface.ApplyManualTuning.
++  string problem=null;
 +  try{
 +   plan=DnsManager.Plan(adapter,provider,dnsCustomV4.Text,dnsCustomV6.Text);
 +   payload=DnsManager.PayloadFor(adapter,provider.Id,dnsCustomV4.Text,dnsCustomV6.Text);
-+  }catch(Exception e){
-+   await InlineReview("DNS não alterado",e.Message+"\r\n\r\nNada foi executado.",false);
++  }catch(Exception e){problem=e.Message;}
++  if(problem!=null){
++   await InlineReview("DNS não alterado",problem+"\r\n\r\nNada foi executado.",false);
 +   return;
 +  }
 +  if(!await InlineReview("Alterar servidores DNS",DnsManager.Confirmation(adapter,provider,plan),true))return;
